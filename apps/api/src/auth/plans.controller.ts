@@ -2,7 +2,8 @@ import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get,
 import { AuthGuard } from "./auth.guard";
 import { AuthenticatedRequest } from "./auth.types";
 import { PrismaService } from "../prisma/prisma.service";
-import { FULL_ENTITLEMENTS, entitlementsFromPlanLimits, resolveEntitlements, entitlementsView, preservePlansAccess, withPlansAccess } from "./entitlements";
+import { FULL_ENTITLEMENTS, entitlementsFromPlanLimits, resolveEntitlements, entitlementsView, preservePlansAccess, withPlansAccess, paymentProviderOf, preservePaymentProvider, withPaymentProvider } from "./entitlements";
+import { canonicalPaymentProvider } from "../operations/payment-providers";
 import { monthWindowSaoPaulo } from "../common/month-window";
 const PRICE_MIN = 0, PRICE_MAX = 99999000;
 const VALID_CYCLE = new Set(["MONTH","YEAR","ONCE"]);
@@ -83,7 +84,7 @@ export class PlansController {
     const rows = tenants.map(t => {
       const plan = t.planId ? byId.get(t.planId) || null : null;
       const view = entitlementsView(t.entitlements);
-      return { id: t.id, name: t.name, slug: t.slug, status: t.status, createdAt: t.createdAt, plan, seats: t._count.memberships, channels: t._count.channelConnections, conversations: t._count.conversations, entitlements: view, aiMonth: aiByTenant.get(t.id) ?? 0, monthlyPriceCents: plan ? (plan.cycle === "YEAR" ? Math.round(plan.priceCents / 12) : plan.priceCents) : 0 };
+      return { id: t.id, name: t.name, slug: t.slug, status: t.status, createdAt: t.createdAt, plan, seats: t._count.memberships, channels: t._count.channelConnections, conversations: t._count.conversations, entitlements: view, paymentProvider: paymentProviderOf(t.entitlements), aiMonth: aiByTenant.get(t.id) ?? 0, monthlyPriceCents: plan ? (plan.cycle === "YEAR" ? Math.round(plan.priceCents / 12) : plan.priceCents) : 0 };
     });
     const mrr = rows.filter(r => r.status === "ACTIVE").reduce((sum, r) => sum + r.monthlyPriceCents, 0);
     return { customers: rows, mrrCents: mrr, total: rows.length };
@@ -100,7 +101,7 @@ export class PlansController {
     }
     const current = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { entitlements: true } });
     if (!current) throw new NotFoundException("Cliente não encontrado.");
-    const merged = preservePlansAccess(current.entitlements, entitlements);
+    const merged = preservePaymentProvider(current.entitlements, preservePlansAccess(current.entitlements, entitlements));
     const updated = await this.prisma.tenant.update({ where: { id: tenantId }, data: { planId: planId || null, entitlements: merged as any }, select: { id: true, name: true, slug: true, planId: true, entitlements: true } });
     return updated;
   }
@@ -112,6 +113,22 @@ export class PlansController {
     return this.prisma.tenant.update({
       where: { id: tenantId },
       data: { entitlements: withPlansAccess(current.entitlements, body.enabled) as any },
+      select: { id: true, name: true, slug: true, entitlements: true },
+    });
+  }
+  /**
+   * Plataforma de pagamento por empresa. A Véxora escolhe exatamente uma; as outras saem do menu.
+   * Nenhuma credencial é copiada e nenhuma cobrança é criada por aqui — é apenas configuração local.
+   */
+  @Patch("customers/:id/payment-provider") async setPaymentProvider(@Req() req: AuthenticatedRequest, @Param("id", ParseUUIDPipe) tenantId: string, @Body() body: any) {
+    this.admin(req);
+    const provider = canonicalPaymentProvider(body?.paymentProvider ?? body?.provider);
+    if (!provider) throw new BadRequestException("Escolha uma plataforma de pagamento válida: ASAAS, STRIPE ou INFINITEPAY.");
+    const current = await this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { id: true, name: true, slug: true, entitlements: true } });
+    if (!current) throw new NotFoundException("Cliente não encontrado.");
+    return this.prisma.tenant.update({
+      where: { id: tenantId },
+      data: { entitlements: withPaymentProvider(current.entitlements, provider) as any },
       select: { id: true, name: true, slug: true, entitlements: true },
     });
   }

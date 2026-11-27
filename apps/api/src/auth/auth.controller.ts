@@ -10,6 +10,7 @@ import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
 import { PrismaService } from "../prisma/prisma.service";
+import { paymentProviderOf } from "./entitlements";
 
 @Controller("auth")
 export class AuthController {
@@ -105,9 +106,9 @@ export class AuthController {
     });
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: request.user.tenantId },
-      select: { id: true, name: true, slug: true,kind:true, planId:true, plan:{select:{name:true,code:true,priceCents:true,cycle:true}} },
+      select: { id: true, name: true, slug: true,kind:true, planId:true, entitlements: true, plan:{select:{name:true,code:true,priceCents:true,cycle:true}} },
     });
     const membership=await this.prisma.membership.findFirst({where:{tenantId:request.user.tenantId,userId:request.user.sub},select:{knownBy:true}});
-    return { user:user?{...user,fullName:user.name,knownBy:membership?.knownBy||"",name:membership?.knownBy?.trim()||user.name}:user, tenant, role: request.user.role, allowedModules:request.user.allowedModules||[], departmentIds:request.user.departmentIds||[] };
+    return { user:user?{...user,fullName:user.name,knownBy:membership?.knownBy||"",name:membership?.knownBy?.trim()||user.name}:user, tenant, role: request.user.role, allowedModules:request.user.allowedModules||[], departmentIds:request.user.departmentIds||[], paymentProvider:paymentProviderOf(tenant?.entitlements) };
   }
 }

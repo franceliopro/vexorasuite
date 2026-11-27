@@ -36,7 +36,6 @@ const FinanceWorkspace=dynamic(()=>import("./finance-workspace").then(module=>mo
 const FinanceProviderWorkspace=dynamic(()=>import("./finance-provider-workspace").then(module=>module.FinanceProviderWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const ChannelsIntegrations=dynamic(()=>import("./channels-integrations").then(module=>module.ChannelsIntegrations),{loading:()=> <p role="status">Carregando módulo…</p>});
 const CalendarWorkspace=dynamic(()=>import("./calendar-workspace").then(module=>module.CalendarWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
-const MusicSchoolWorkspace=dynamic(()=>import("./music-school-workspace").then(module=>module.MusicSchoolWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const SchoolWorkspace=dynamic(()=>import("./school-workspace").then(module=>module.SchoolWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const TasksWorkspace=dynamic(()=>import("./tasks-workspace").then(module=>module.TasksWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const ChatbotWorkspace=dynamic(()=>import("./chatbot-workspace").then(module=>module.ChatbotWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
@@ -48,7 +47,6 @@ const workspacePreloaders:Partial<Record<string,()=>Promise<unknown>>>={
   "CRM":()=>import("./crm-workspace"),
   "Calendários":()=>import("./calendar-workspace"),
   "Agenda":()=>import("./calendar-workspace"),
-  "Escola de Música":()=>import("./music-school-workspace"),
   "Gestão escolar":()=>import("./school-workspace"),
   "Tarefas":()=>import("./tasks-workspace"),
   "Chatbots":()=>import("./chatbot-workspace"),
@@ -240,7 +238,7 @@ function mobileNavClass(isOverview:boolean){return isOverview?MOBILE_NAV_STATE_T
 type NavigationChild = { label: string; icon?: keyof typeof iconMap };
 type NavigationItem = { label: string; icon: keyof typeof iconMap; children?: NavigationChild[] };
 const navigation: { section: string; items: NavigationItem[] }[] = [
-  { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Calendários", icon: "calendar" }, { label: "Escola de Música", icon: "graduation-cap" }, { label: "Gestão escolar", icon: "graduation-cap" }, { label: "Tarefas", icon: "tasks" }, { label: "Relatórios", icon: "chart" }] },
+  { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Calendários", icon: "calendar" }, { label: "Gestão escolar", icon: "graduation-cap" }, { label: "Tarefas", icon: "tasks" }, { label: "Relatórios", icon: "chart" }] },
   { section: "RESULTADOS", items: [
     { label: "Automação", icon: "workflow", children: [{ label: "Chatbots", icon: "sparkles" }, { label: "Workflows", icon: "workflow" }, { label: "Agentes de IA", icon: "sparkles" }] },
     { label: "Financeiro", icon: "wallet", children: [{ label: "Asaas", icon: "wallet" }, { label: "InfinitePay", icon: "sparkles" }, { label: "Stripe", icon: "globe" }] },
@@ -261,6 +259,10 @@ export default function HomePage() {
   useGlobalPhoneMask();
   const [authStatus, setAuthStatus] = useState<"checking" | "anonymous" | "authenticated">("checking");
   const [session, setSession] = useState<AuthSession | null>(null);
+  const selectedPaymentProvider = session?.paymentProvider || "ASAAS";
+  const paymentProviderLabel = selectedPaymentProvider === "STRIPE" ? "Stripe" : selectedPaymentProvider === "INFINITEPAY" ? "InfinitePay" : "Asaas";
+  const providerForLabel: Record<string, string> = { Asaas: "ASAAS", Stripe: "STRIPE", InfinitePay: "INFINITEPAY" };
+  const providerVisible = (label: string) => !providerForLabel[label] || providerForLabel[label] === selectedPaymentProvider;
   useEffect(() => {
     let mounted = true;
     fetch("/api/backend/auth/me", { cache: "no-store" })
@@ -284,7 +286,7 @@ export default function HomePage() {
     const validModules = new Set(["Atendentes","Conexões","Canais e integrações","Relatórios","Clientes","Planos e preços","Biblioteca de referências","Referências criativas","Google Drive",...navigation.flatMap((group) => group.items.flatMap((item) => [item.label, ...(item.children || []).map((child) => child.label)]))]);
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("module");
-    if (["Gestão", "Financeiro", "asaas", "ASAAS"].includes(requested || "")) setActive("Asaas");
+    if (["Gestão", "Financeiro", "asaas", "ASAAS"].includes(requested || "")) setActive(paymentProviderLabel);
     else if (requested === "Integrações (API)") setActive("Configurações");
     else if (requested === "Origem dos Leads") setActive("CRM");
     else if (requested === "Inteligência Operacional") { setActive("CRM"); params.set("crmTab", "reports"); }
@@ -330,8 +332,8 @@ export default function HomePage() {
   const [catalogReturnTo, setCatalogReturnTo] = useState<"settings" | "finance-subscriptions" | "finance-catalog">("settings");
   const [catalogEditId, setCatalogEditId] = useState("");
   const [financeInitialTab, setFinanceInitialTab] = useState<"overview" | "subscriptions" | "catalog">("overview");
-  const catalogBackLabel = catalogReturnTo === "finance-catalog" ? "Voltar ao Asaas" : catalogReturnTo === "finance-subscriptions" ? "Voltar às Assinaturas" : "Voltar às Configurações";
-  function closeCatalog(){if(catalogReturnTo === "finance-subscriptions"){setFinanceInitialTab("subscriptions");setActive("Asaas")}else if(catalogReturnTo === "finance-catalog"){setFinanceInitialTab("catalog");setActive("Asaas")}else setActive("Configurações");setCatalogReturnTo("settings");setCatalogEditId("")}
+  const catalogBackLabel = catalogReturnTo === "finance-catalog" ? `Voltar ao ${paymentProviderLabel}` : catalogReturnTo === "finance-subscriptions" ? "Voltar às Assinaturas" : "Voltar às Configurações";
+  function closeCatalog(){if(catalogReturnTo === "finance-subscriptions"){setFinanceInitialTab("subscriptions");setActive(paymentProviderLabel)}else if(catalogReturnTo === "finance-catalog"){setFinanceInitialTab("catalog");setActive(paymentProviderLabel)}else setActive("Configurações");setCatalogReturnTo("settings");setCatalogEditId("")}
   useEffect(() => { const openCatalog = (event: Event) => { if (!["OWNER", "ADMIN", "MANAGER"].includes(String(session?.role || "").toUpperCase())) return; const detail = (event as CustomEvent<{ origin?: string; itemId?: string }>).detail || {}; const origin = detail.origin || "settings"; const itemId = typeof detail.itemId === "string" ? detail.itemId : ""; setCatalogReturnTo(origin === "finance-subscriptions" || origin === "finance-catalog" ? origin : "settings"); setCatalogEditId(itemId); if (origin === "finance-subscriptions") setFinanceInitialTab("subscriptions"); else if (origin === "finance-catalog") setFinanceInitialTab("catalog"); setSettingsAdvanced(false); preloadWorkspace("Catálogo"); setActive("Catálogo"); }; window.addEventListener("vexora:open-catalog", openCatalog); return () => window.removeEventListener("vexora:open-catalog", openCatalog); }, [session?.role]);
   useEffect(() => {
     if (!menuOpen && !workspaceInfoOpen) return;
@@ -444,8 +446,18 @@ export default function HomePage() {
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
-  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Escola de Música':'CALENDAR','Gestão escolar':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Relatórios':'INBOX','Clientes':'SETTINGS','Canais e integrações':'CHANNELS','E-mails':'EMAIL','Biblioteca de referências':'SETTINGS','Referências criativas':'SETTINGS','Google Drive':'SETTINGS','Planos e preços':'PLANS','Financeiro':'FINANCE','Asaas':'FINANCE','Stripe':'FINANCE','InfinitePay':'FINANCE','Documentos':'CRM','Conexões':'CHANNELS','Catálogo':'SETTINGS','Configurações':'SETTINGS'};
-  const moduleVisible=(label:string)=>label==="Visão geral"||session?.user.isPlatformAdmin===true||!moduleForLabel[label]||(session?.allowedModules||[]).includes(moduleForLabel[label]!);
+  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Gestão escolar':'SCHOOL','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Relatórios':'INBOX','Clientes':'SETTINGS','Canais e integrações':'CHANNELS','E-mails':'EMAIL','Biblioteca de referências':'SETTINGS','Referências criativas':'SETTINGS','Google Drive':'SETTINGS','Planos e preços':'PLANS','Financeiro':'FINANCE','Asaas':'FINANCE','Stripe':'FINANCE','InfinitePay':'FINANCE','Documentos':'CRM','Conexões':'CHANNELS','Catálogo':'SETTINGS','Configurações':'SETTINGS'};
+  const moduleVisible=(label:string)=>{
+    if(label==="Visão geral")return true;
+    const required=moduleForLabel[label];
+    if(!required)return true;
+    // SCHOOL e PLANS são capacidades da empresa: nem mesmo um admin da plataforma
+    // deve vê-las ao navegar como um cliente que não as contratou.
+    if(required==="SCHOOL")return session?.tenant.kind!=="PLATFORM"&&(session?.allowedModules||[]).includes("SCHOOL");
+    if(required==="PLANS")return session?.tenant.kind!=="PLATFORM"&&(session?.allowedModules||[]).includes("PLANS");
+    if(session?.user.isPlatformAdmin===true)return true;
+    return (session?.allowedModules||[]).includes(required);
+  };
   const platformPanel=session?.tenant.kind==="PLATFORM"&&session?.user.isPlatformAdmin===true;
   // Planos e preços é capacidade da plataforma: cliente só vê quando a Véxora libera o módulo PLANS.
   // Mesmo um admin da plataforma olhando um tenant cliente não faz o item reaparecer sem a liberação.
@@ -472,20 +484,21 @@ export default function HomePage() {
         </a></div>
         <nav className="side-nav" aria-label="Navegação principal">
           {navigation.map((group) => {
-            const visibleItems = group.items.filter((item) => (item.label !== "Planos e preços" || plansMenuVisible) && moduleVisible(item.label) && (!["Asaas","Financeiro","Relatórios","Planos e preços"].includes(item.label) || canManage) && (!["Configurações","Conexões"].includes(item.label) || canConfigure));
+            const visibleItems = group.items.filter((item) => (item.label !== "Planos e preços" || plansMenuVisible) && moduleVisible(item.label) && providerVisible(item.label) && (!["Asaas","Financeiro","Relatórios","Planos e preços"].includes(item.label) || canManage) && (!["Configurações","Conexões"].includes(item.label) || canConfigure));
             if (!visibleItems.length) return null;
             return <div className="nav-group" key={group.section}>
               <p className="nav-section">{group.section}</p>
               {visibleItems.map((item) => {
                 const expanded = expandedModules.includes(item.label);
-                const childActive = item.children?.some((child) => child.label === active) || false;
+                const visibleChildren=(item.children||[]).filter(child=>moduleVisible(child.label)&&providerVisible(child.label));
+                const childActive = visibleChildren.some((child) => child.label === active);
                 const familyActive = (item.label === "Automação" && workspaceTabKey(active) === "automation") || (item.label === "Conexões" && workspaceTabKey(active) === "connections");
                 return <div className={accordionClass(expanded)} key={item.label}>
                   <button type="button" title={sidebarCollapsed ? item.label : undefined} aria-expanded={item.children ? expanded : undefined} onPointerEnter={()=>{if(!item.children)preloadWorkspace(item.label)}} onFocus={()=>{if(!item.children)preloadWorkspace(item.label)}} className={navItemClass(active === item.label || childActive || familyActive)}
                     onClick={() => {
                       if (item.children) {
                         setExpandedModules((current) => current.includes(item.label) ? [] : [item.label]);
-                        if (item.label === "Financeiro") { preloadWorkspace("Asaas"); setActive("Asaas"); setMenuOpen(false); }
+                        if (item.label === "Financeiro") { preloadWorkspace(paymentProviderLabel); setActive(paymentProviderLabel); setMenuOpen(false); }
                       } else {
                         setExpandedModules([]);preloadWorkspace(item.label);setActive(item.label); setMenuOpen(false);
                       }
@@ -493,7 +506,7 @@ export default function HomePage() {
                     <span className="nav-glyph"><Icon name={item.icon} size={18} /></span><span>{item.label}</span>
                     {item.children ? <ChevronDown className="nav-accordion-chevron" size={14} aria-hidden="true" /> : null}
                   </button>
-                  {item.children && expanded ? <div className="nav-submenu" role="menu" aria-label={item.label}>{item.children.filter(child=>moduleVisible(child.label)).map((child) => <button key={child.label} type="button" role="menuitem" className={navSubitemClass(active === child.label)} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); }}><span className="nav-subitem-glyph"><Icon name={child.icon || "more"} size={15} /></span><span>{child.label}</span></button>)}</div> : null}
+                  {visibleChildren.length && expanded ? <div className="nav-submenu" role="menu" aria-label={item.label}>{visibleChildren.map((child) => <button key={child.label} type="button" role="menuitem" className={navSubitemClass(active === child.label)} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); }}><span className="nav-subitem-glyph"><Icon name={child.icon || "more"} size={15} /></span><span>{child.label}</span></button>)}</div> : null}
                 </div>;
               })}
             </div>;
@@ -588,7 +601,7 @@ export default function HomePage() {
             <DashboardWelcome onNavigate={(target) => { preloadWorkspace(target); setActive(target); setMenuOpen(false); }} />
           </div> : null}
 
-          {!moduleVisible(active)?<section className={cardTw}><h2>Acesso não permitido</h2><p>Este módulo não está habilitado para seu usuário.</p><button type="button" className={secondaryButton} onClick={() => setActive("Visão geral")}>Ir para Visão geral</button></section>:isOverview ? (
+          {!moduleVisible(active)||!providerVisible(active)?<section className={cardTw}><h2>Acesso não permitido</h2><p>Este módulo não está habilitado para sua empresa.</p><button type="button" className={secondaryButton} onClick={() => setActive("Visão geral")}>Ir para Visão geral</button></section>:isOverview ? (
             <>
               {overviewError&&!overview&&<p role="status">{overviewError}</p>}
               <OverviewIntelligence data={overview} onOpenQueue={() => setActive("Atendimento")} />
@@ -597,8 +610,6 @@ export default function HomePage() {
             <TasksWorkspace />
           ) : active === "Calendários" || active === "Agenda" ? (
             <CalendarWorkspace />
-          ) : active === "Escola de Música" ? (
-            canConfigure ? <MusicSchoolWorkspace /> : <section className={cardTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela empresa podem operar a Escola de Música.</p></section>
           ) : active === "Gestão escolar" ? (
             canConfigure ? <SchoolWorkspace /> : <section className={cardTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela empresa podem operar a Gestão escolar.</p></section>
           ) : active === "CRM" ? (

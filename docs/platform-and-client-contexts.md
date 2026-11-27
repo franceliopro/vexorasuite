@@ -43,3 +43,9 @@ Restrições individuais explícitas prevalecem sobre herança de padrões/depar
 WORDPRESS: não existe integração WordPress no produto. A chave de permissão histórica não autoriza conector nem operação; os sites são recriados em Next.js/MDX ou com CMS headless, sem código WordPress.
 
 Administradores de empresas não alteram permissões de contas administrativas, não concedem módulos que não possuem e não removem negativas existentes de atendentes. A reativação de permissões restritas pela administração Véxora permanece com a plataforma.
+
+## Módulo escolar e plataforma de pagamento
+
+`SCHOOL` é um módulo opcional por empresa e nunca é herdado de `CALENDAR`, de planos padrão ou de entitlements legados. Rastreabem e Véxora não usam vocabulário nem menu de Escola de Música; o item único, quando contratado, é Gestão escolar. Rotas `school` e `music-school` exigem `SCHOOL`, e negativas individuais continuam prevalecendo.
+
+A administração Véxora escolhe, por empresa, exatamente uma plataforma de pagamento entre Asaas, Stripe e InfinitePay. A preferência fica em `tenants.entitlements.paymentProvider` e somente a plataforma escolhida aparece no submenu Financeiro daquela empresa, mesmo quando navegada por um administrador da Véxora. Asaas vem primeiro por ser mais completo. Escolher a plataforma não escolhe forma de pagamento, não cria cobrança e não copia credenciais entre empresas.

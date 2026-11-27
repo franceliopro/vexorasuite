@@ -18,7 +18,7 @@ test('company deletion lives only in Véxora platform settings',()=>{
   assert.match(operations,/<option value="">Selecione uma empresa<\/option>/);
   assert.match(operations,/confirmation:"EXCLUIR EMPRESA"/);
   assert.match(operations,/confirmSlug/);
-  assert.match(operations,/deleteCompany:true/);
+  assert.match(operations,/resetPlatformConversations:true,deleteCompany:true/);
   assert.match(page,/platformContext=\{platformPanel\}/);
 });
 

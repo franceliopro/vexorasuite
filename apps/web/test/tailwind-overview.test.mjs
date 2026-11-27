@@ -205,7 +205,7 @@ test("as seções da Visão geral são planas e os blocos de boas-vindas ficam l
   assert.ok(page.includes('const [welcomeExpanded, setWelcomeExpanded] = useState(false);'));
   assert.ok(page.includes('welcomeExpanded || schoolProfile ? "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-1" : "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-2"'));
   assert.ok(page.includes('<OnboardingChecklist profile={segmentProfile} onNavigate={(target) => { preloadWorkspace(target); setActive(target); setMenuOpen(false); }} onDismiss={() => setWelcomeExpanded(true)} />'));
-  assert.ok(page.includes('<div className="bg-transparent"><h1>{greeting+'));
+  assert.ok(page.includes('<div className="bg-transparent"><h1>{schoolProfile ? "Visão geral da escola" : greeting+'));
 
   for (const [source, label] of [
     [onboarding, 'aria-label="Primeiros passos na Véxora"'],

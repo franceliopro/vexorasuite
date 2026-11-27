@@ -50,7 +50,13 @@ export class SchoolReadService {
 
     const storedPolicy = billingPolicies[0] ?? null;
     const policy = storedPolicy
-      ? { ...DEFAULT_BILLING_POLICY, ...storedPolicy, channels: Array.isArray(storedPolicy.channels) ? storedPolicy.channels : DEFAULT_BILLING_POLICY.channels }
+      ? {
+          ...DEFAULT_BILLING_POLICY,
+          ...storedPolicy,
+          channels: Array.isArray(storedPolicy.channels)
+            ? storedPolicy.channels.filter((channel): channel is string => typeof channel === "string")
+            : DEFAULT_BILLING_POLICY.channels,
+        }
       : DEFAULT_BILLING_POLICY;
     const heldDates = new Set(
       sessions.filter((session) => session.status === "HELD").map((session) => `${session.classId}:${session.sessionDate.toISOString().slice(0, 10)}`),

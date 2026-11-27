@@ -303,7 +303,7 @@ export function paymentReminderOccurrences(dueDate: string, policy: BillingPolic
 export function teacherReminderAt(sessionDate: string, startTime: string, minutesBefore: number): string | null {
   const date = isoDate(sessionDate);
   if (!date || !TIME.test(startTime)) return null;
-  const [hours, minutes] = startTime.split(":").map(Number);
+  const [hours = 0, minutes = 0] = startTime.split(":").map(Number);
   const moment = new Date(`${date}T00:00:00.000Z`);
   moment.setUTCHours(hours, minutes - minutesBefore, 0, 0);
   return moment.toISOString();

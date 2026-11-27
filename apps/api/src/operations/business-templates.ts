@@ -5,9 +5,19 @@ export const DEPARTMENT_PRESETS = {
  SALES: {name:'Comercial',modules:['INBOX','CRM','TASKS'],category:'SALES'},
  GENERAL: {name:'Atendimento',modules:['INBOX','CRM','CALENDAR','TASKS'],category:'OTHER'},
 };
-export const SEGMENTS = [
+export type Segment = {
+  id: string;
+  name: string;
+  requests: string[];
+  guidance: string;
+  /** Módulos contratados junto com o segmento; nunca são herdados por outras empresas. */
+  modules?: string[];
+  /** Vocabulario aprovado para os fluxos e atendentes deste segmento. */
+  vocabulary?: Record<string, string>;
+};
+export const SEGMENTS: Segment[] = [
  {id:'vehicle-tracking',name:'Rastreamento veicular',requests:['Suporte ao rastreador','Instalação e manutenção','Planos e contratação'],guidance:'Identifique veículo e plataforma. Encaminhe incidentes urgentes à equipe. Nunca execute bloqueio ou desbloqueio sem autorização e integração validada.'},
- {id:'music-school',name:'Escola de músicas e instrumentos',requests:['Aula experimental','Matrículas e cursos','Instrumentos e acessórios'],guidance:'Pergunte instrumento, nível, faixa etária e disponibilidade. Confirme vagas e professor antes de prometer horários.'},
+  {id:'music-school',name:'Escola de Música e Instrumentos',requests:['Aula experimental','Matrículas e cursos','Instrumentos e acessórios'],guidance:'Pergunte instrumento, nível, faixa etária e disponibilidade. Confirme vagas e professor antes de prometer horários.',modules:['SCHOOL','CALENDAR','INBOX','CRM','FINANCE','TASKS'],vocabulary:{aluno:'aluno',responsavel:'responsável',turma:'turma',matricula:'matrícula',presenca:'presença',instrumento:'instrumento',professor:'professor',aula:'aula'}},
  {id:'aesthetics',name:'Clínica de estética',requests:['Avaliação','Agendamento','Procedimentos'],guidance:'Informe serviços cadastrados e encaminhe avaliação à equipe habilitada.'},
  {id:'medical',name:'Clínica médica',requests:['Agendar consulta','Convênios','Retorno'],guidance:'Colete somente os dados necessários ao agendamento. Encaminhe dúvidas clínicas ao profissional responsável.'},
  {id:'barbershop',name:'Barbearia',requests:['Agendar horário','Serviços e preços','Profissionais'],guidance:'Consulte serviço, profissional e disponibilidade antes de confirmar.'},
@@ -35,6 +45,15 @@ export const SEGMENTS = [
  {id:'logistics',name:'Logística e transportadora',requests:['Cotação de frete','Rastrear entrega','Ocorrência na entrega'],guidance:'Colete identificador e dados mínimos. Informe somente status consultado no sistema e encaminhe divergências à operação.'},
  {id:'photography',name:'Fotografia e eventos',requests:['Solicitar orçamento','Disponibilidade de data','Pacotes e entrega'],guidance:'Confirme tipo de evento, data, local e entregáveis. Não prometa disponibilidade antes da checagem da equipe.'},
 ];
+/** Configuração explícita do segmento: usada na criação da empresa e nos fluxos. */
+export function modulesForSegment(id:string):string[] {
+  const segment=SEGMENTS.find(item=>item.id===id);
+  return [...new Set(segment?.modules||[])];
+}
+export function vocabularyForSegment(id:string):Record<string,string> {
+  const segment=SEGMENTS.find(item=>item.id===id);
+  return {...(segment?.vocabulary||{})};
+}
 export function segmentAgentPrompt(id:string, department?:keyof typeof DEPARTMENT_PRESETS):string {
  const segment=SEGMENTS.find(item=>item.id===id);
  if(!segment)return '';
@@ -46,6 +65,7 @@ export function segmentAgentPrompt(id:string, department?:keyof typeof DEPARTMEN
   'Objetivo: entender a necessidade com perguntas curtas, resolver com dados aprovados e encaminhar com contexto quando necessário.',
   'Temas frequentes: '+segment.requests.join('; ')+'.',
   'Orientação especializada: '+segment.guidance,
+   ...(Object.keys(segment.vocabulary||{}).length?['Vocabulario aprovado do segmento: '+Object.entries(segment.vocabulary||{}).map(([term,approved])=>term+' = '+approved).join('; ')+'.']:[]),
   'Use somente preços, horários, políticas, disponibilidade e fatos presentes na base de conhecimento ou em consultas autorizadas. Se algo não estiver confirmado, diga que vai verificar e encaminhe.',
   'Peça somente os dados necessários, proteja dados pessoais e nunca solicite senhas, códigos de autenticação ou dados de cartão.',
   'Nunca afirme que marcou, cobrou, consultou ou moveu algo sem confirmação do sistema.',

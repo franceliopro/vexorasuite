@@ -4,7 +4,7 @@ import {BadRequestException,ForbiddenException,Optional} from '@nestjs/common';
 import {isUUID} from 'class-validator';
 import {SEGMENTS} from '../operations/business-templates';
 import {provisionCompany} from './company-blueprint';
-import {entitlementsFromPlanLimits} from './entitlements';
+import {entitlementsForSegment} from './entitlements';
 import { ConflictException, Injectable, InternalServerErrorException, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { MembershipRole } from "../generated/prisma/client";
@@ -477,7 +477,8 @@ export class AuthService {
       if(existing)return existing;
       if(await tx.membership.count({where:{userId,role:'OWNER'}})>=25)throw new BadRequestException('Limite de empresas atingido. Entre em contato com a administração.');
       const base=input.name.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,50)||'empresa';
-      const tenant=await tx.tenant.create({data:{name:input.name.trim(),slug:base+'-'+randomBytes(5).toString('hex'),...(plan?{planId:plan.id,entitlements:entitlementsFromPlanLimits(plan.limits as any) as any}:{})}});
+      const entitlementSnapshot=entitlementsForSegment(plan?.limits as any,input.segmentId);
+      const tenant=await tx.tenant.create({data:{name:input.name.trim(),slug:base+'-'+randomBytes(5).toString('hex'),...(plan?{planId:plan.id}:{}),...(entitlementSnapshot?{entitlements:entitlementSnapshot as any}:{})}});
       await tx.membership.create({data:{tenantId:tenant.id,userId,role:'OWNER'}});
       await provisionCompany(tx,tenant,userId,input.segmentId,input.requestId,platforms.map((p:string)=>p.trim()));
       await tx.auditLog.create({data:{tenantId:tenant.id,userId,action:'company.created',entityType:'tenant',entityId:tenant.id,details:{segmentId:input.segmentId}}});

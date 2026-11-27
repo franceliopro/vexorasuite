@@ -76,7 +76,7 @@ const SCHOOL_PROFILE_OVERRIDES: Partial<SegmentProfile> = {
   overview: 'SCHOOL',
   departments: ['Diretoria', 'Gestão', 'Docente', 'Coordenação', 'Secretaria', 'Tesouraria'],
   flows: ['Matrícula', 'Aula', 'Presença', 'Resumo da aula', 'Mensalidade', 'Lembrete', 'Baixa'],
-  aiUses: ['Resumo da aula', 'Rascunho de lembrete', 'Explicação de regras', 'Sugestão de cobrança'],
+  aiUses: [],
   navigation: [
     { section: 'ESCOLA', items: [
       { label: 'Visão geral', target: 'Visão geral', icon: 'layout-dashboard' },
@@ -86,6 +86,7 @@ const SCHOOL_PROFILE_OVERRIDES: Partial<SegmentProfile> = {
         { label: 'Presença', target: 'Gestão escolar', icon: 'tasks' },
         { label: 'Planos de aula', target: 'Gestão escolar', icon: 'file-text' },
       ] },
+      { label: 'Matrículas', target: 'Matrículas', icon: 'file-text' },
       { label: 'Agenda de aulas', target: 'Calendários', icon: 'calendar' },
     ] },
     { section: 'FINANCEIRO', items: [

@@ -86,6 +86,12 @@ test("todos os formulários possuem data-testid estável", () => {
     "school-guardian-form",
     "school-notice-form",
     "school-material-form",
+    "school-paired-attendance-form",
+    "school-lesson-summary-form",
+    "school-billing-policy-form",
+    "school-payment-receipt-form",
+    "school-overdue-form",
+    "school-cancellation-form",
   ]) {
     assert.ok(workspace.includes(`data-testid="${testId}"`), `formulário ausente: ${testId}`);
   }
@@ -102,4 +108,26 @@ test("avisos e mensalidades permanecem agendados, sem afirmação de envio", () 
   assert.match(service, /status: "SCHEDULED"/);
   assert.match(service, /executed: false/);
   assert.match(service, /confirmed: false/);
+});
+
+test("requisitos Fermata são regras determinísticas e configuração, sem disparo real", () => {
+  for (const token of [
+    "school-paired-attendance-form",
+    "school-lesson-summary-form",
+    "school-billing-policy-form",
+    "school-payment-receipt-form",
+    "school-overdue-form",
+    "school-cancellation-form",
+    "Dias de aula contabilizados",
+    "Multa calculada",
+    "Cancelamento somente com aprovação",
+  ]) {
+    assert.ok(workspace.includes(token), `controlo ausente: ${token}`);
+  }
+  assert.match(service, /penaltyForBreach/);
+  assert.match(service, /billingPeriodKey/);
+  assert.match(service, /recordPairedAttendance/);
+  assert.match(service, /cancellationStatus: status/);
+  assert.match(service, /"SUGGESTED"/);
+  assert.match(service, /notified: false/);
 });

@@ -2,13 +2,18 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { PrismaService } from "../../prisma/prisma.service";
 import {
   ATTENDANCE_STATUSES,
+  CANCELLATION_DECISIONS,
+  DEFAULT_BILLING_POLICY,
   MATERIAL_KINDS,
   NOTICE_CHANNELS,
+  PAYMENT_RECEIPT_SOURCES,
   PERSON_KINDS,
   RECORD_KINDS,
   RELATIONSHIPS,
   SESSION_STATUSES,
+  TUITION_CYCLES,
   balanceOf,
+  billingPeriodKey,
   classTime,
   cleanRichText,
   httpsUrl,
@@ -20,6 +25,7 @@ import {
   jsonList,
   optionalInteger,
   optionalText,
+  penaltyForBreach,
   text,
   utcDate,
   weekday,
@@ -60,6 +66,44 @@ export class SchoolService {
   private youtubeUrlsFrom(html: string[], materials: string[]): string[] {
     const found = html.flatMap((value) => value.match(YOUTUBE_IN_HTML) ?? []);
     return [...new Set([...materials, ...found].filter((url) => Boolean(youtubeEmbed(url))))].slice(0, 50);
+  }
+
+  private async resolveSession(tx: any, tenantId: string, body: Record<string, unknown>, userId: string): Promise<any> {
+    if (body?.sessionId !== undefined && body.sessionId !== "") {
+      const sessionId = this.optionalUuid(body.sessionId, "Aula");
+      return this.find(tx, "schoolSession", { id: sessionId, tenantId }, "Aula");
+    }
+    const classId = this.optionalUuid(body?.classId, "Turma");
+    if (!classId) throw new Error("Informe a aula ou a turma com data.");
+    await this.find(tx, "schoolClass", { id: classId, tenantId }, "Turma");
+    const sessionDate = isoDate(body?.sessionDate);
+    if (!sessionDate) throw new Error("Informe a data da aula no formato AAAA-MM-DD.");
+    const existing = await tx.schoolSession.findFirst({ where: { tenantId, classId, sessionDate: utcDate(sessionDate) } });
+    return existing ?? tx.schoolSession.create({
+      data: { tenantId, classId, sessionDate: utcDate(sessionDate), status: "SCHEDULED", createdById: userId },
+    });
+  }
+
+  private async policyFor(tx: any, tenantId: string, userId: string): Promise<any> {
+    const existing = await tx.schoolBillingPolicy.findFirst({ where: { tenantId } });
+    if (existing) return existing;
+    return tx.schoolBillingPolicy.create({
+      data: {
+        tenantId,
+        paymentReminderDaysBefore: DEFAULT_BILLING_POLICY.paymentReminderDaysBefore,
+        remindOnDueDate: DEFAULT_BILLING_POLICY.remindOnDueDate,
+        remindDailyWhenOverdue: DEFAULT_BILLING_POLICY.remindDailyWhenOverdue,
+        channels: DEFAULT_BILLING_POLICY.channels,
+        consentRequired: DEFAULT_BILLING_POLICY.consentRequired,
+        teacherReminderMinutesBefore: DEFAULT_BILLING_POLICY.teacherReminderMinutesBefore,
+        cancellationApprovalRequired: DEFAULT_BILLING_POLICY.cancellationApprovalRequired,
+        overdueInstallmentsForCancellation: DEFAULT_BILLING_POLICY.overdueInstallmentsForCancellation,
+        breachPenaltyPercent: DEFAULT_BILLING_POLICY.breachPenaltyPercent,
+        paymentNoticeToManager: DEFAULT_BILLING_POLICY.paymentNoticeToManager,
+        paymentNoticeToAdmins: DEFAULT_BILLING_POLICY.paymentNoticeToAdmins,
+        updatedById: userId,
+      },
+    });
   }
 
   private rethrow(error: unknown): never {
@@ -151,14 +195,18 @@ export class SchoolService {
           const due = isoDate(body?.tuitionNextDueDate);
           if (tuitionAmountCents !== null && !due) throw new Error("Informe o vencimento quando houver valor mensal.");
           if (due && tuitionAmountCents === null) throw new Error("Informe o valor mensal quando houver vencimento.");
+          const contractTotalCents = integer(body?.contractTotalCents, 0, 100_000_000, "Valor total do contrato");
+          const tuitionCycle = body?.tuitionCycle === undefined || body.tuitionCycle === ""
+            ? "MONTHLY"
+            : inList(body.tuitionCycle, TUITION_CYCLES, "Ciclo de mensalidade");
           const duplicate = await tx.schoolEnrollment.findFirst({ where: { tenantId, classId, studentId } });
           if (duplicate) throw new Error("Este aluno já está matriculado nesta turma.");
           const row = await tx.schoolEnrollment.create({
             data: {
               tenantId, classId, studentId, contractedSessions, purchasedSessions,
-              status: "ACTIVE", tuitionAmountCents, tuitionCycle: "MONTHLY",
+              status: "ACTIVE", tuitionAmountCents, tuitionCycle,
               tuitionStatus: "SCHEDULED", tuitionNextDueDate: due ? utcDate(due) : null,
-              createdById: userId,
+              contractTotalCents, createdById: userId,
             },
           });
           return {
@@ -308,6 +356,181 @@ export class SchoolService {
           });
         }
 
+        if (kind === "LESSON_SUMMARY") {
+          const session = await this.resolveSession(tx, tenantId, body, userId);
+          const summaryHtml = cleanRichText(body?.summaryHtml ?? body?.bodyHtml, "Resumo da aula");
+          if (!summaryHtml.trim()) throw new Error("Informe o resumo do que foi estudado na aula.");
+          await tx.schoolSession.update({
+            where: { id: session.id },
+            data: { summaryHtml, summaryRecordedAt: new Date() },
+          });
+          const classRow = await this.find(tx, "schoolClass", { id: session.classId, tenantId }, "Turma");
+          return {
+            sessionId: session.id,
+            classId: session.classId,
+            className: classRow.name,
+            sessionDate: session.sessionDate,
+            summaryHtml,
+            delivered: false,
+            executed: false,
+            confirmed: false,
+          };
+        }
+
+        if (kind === "BILLING_POLICY") {
+          const policy = await this.policyFor(tx, tenantId, userId);
+          const channels = Array.isArray(body?.channels)
+            ? body.channels.map((channel: unknown) => inList(channel, NOTICE_CHANNELS, "Canal"))
+            : policy.channels;
+          const uniqueChannels = [...new Set(channels as string[])];
+          if (uniqueChannels.length === 0) throw new Error("Selecione ao menos um canal consentido.");
+          const row = await tx.schoolBillingPolicy.update({
+            where: { id: policy.id },
+            data: {
+              paymentReminderDaysBefore: body?.paymentReminderDaysBefore === undefined
+                ? policy.paymentReminderDaysBefore
+                : integer(body.paymentReminderDaysBefore, 0, 30, "Dias antes do vencimento"),
+              remindOnDueDate: body?.remindOnDueDate === undefined ? policy.remindOnDueDate : body.remindOnDueDate === true,
+              remindDailyWhenOverdue: body?.remindDailyWhenOverdue === undefined
+                ? policy.remindDailyWhenOverdue
+                : body.remindDailyWhenOverdue === true,
+              channels: uniqueChannels,
+              consentRequired: body?.consentRequired === undefined ? policy.consentRequired : body.consentRequired !== false,
+              teacherReminderMinutesBefore: body?.teacherReminderMinutesBefore === undefined
+                ? policy.teacherReminderMinutesBefore
+                : integer(body.teacherReminderMinutesBefore, 5, 120, "Minutos antes da aula"),
+              cancellationApprovalRequired: body?.cancellationApprovalRequired === undefined
+                ? policy.cancellationApprovalRequired
+                : body.cancellationApprovalRequired !== false,
+              overdueInstallmentsForCancellation: body?.overdueInstallmentsForCancellation === undefined
+                ? policy.overdueInstallmentsForCancellation
+                : integer(body.overdueInstallmentsForCancellation, 1, 12, "Mensalidades em atraso"),
+              breachPenaltyPercent: body?.breachPenaltyPercent === undefined
+                ? policy.breachPenaltyPercent
+                : integer(body.breachPenaltyPercent, 0, 100, "Percentual da multa"),
+              paymentNoticeToManager: body?.paymentNoticeToManager === undefined
+                ? policy.paymentNoticeToManager
+                : body.paymentNoticeToManager !== false,
+              paymentNoticeToAdmins: body?.paymentNoticeToAdmins === undefined
+                ? policy.paymentNoticeToAdmins
+                : body.paymentNoticeToAdmins !== false,
+              updatedById: userId,
+            },
+          });
+          return { ...row, executed: false, confirmed: false, dispatched: false };
+        }
+
+        if (kind === "PAYMENT_RECEIPT") {
+          const enrollmentId = this.optionalUuid(body?.enrollmentId, "Matrícula");
+          if (!enrollmentId) throw new Error("Informe a matrícula.");
+          const enrollment = await this.find(tx, "schoolEnrollment", { id: enrollmentId, tenantId }, "Matrícula");
+          const amountCents = integer(body?.amountCents, 1, 100_000_000, "Valor recebido");
+          const paidAt = isoDate(body?.paidAt);
+          if (!paidAt) throw new Error("Informe a data do recebimento no formato AAAA-MM-DD.");
+          const source = body?.source === undefined ? "CASH" : inList(body.source, PAYMENT_RECEIPT_SOURCES, "Origem");
+          const externalReference = optionalText(body?.externalReference, 160, "Referência externa");
+          if (source === "PROVIDER_CONFIRMED" && !externalReference) {
+            throw new Error("Confirmacao de provedor exige referencia externa.");
+          }
+          const periodKey = billingPeriodKey(paidAt, enrollment.tuitionCycle ?? "MONTHLY");
+          if (!periodKey) throw new Error("Ciclo de mensalidade inválido.");
+          const duplicate = await tx.schoolPaymentReceipt.findFirst({
+            where: { tenantId, enrollmentId, periodKey, source, amountCents },
+          });
+          if (duplicate) throw new Error("Este recebimento já foi registrado para o período.");
+          const row = await tx.schoolPaymentReceipt.create({
+            data: {
+              tenantId, enrollmentId, amountCents, paidAt: utcDate(paidAt), periodKey, source,
+              externalReference, notes: optionalText(body?.notes, 240, "Observação"), recordedById: userId,
+            },
+          });
+          const receipts = await tx.schoolPaymentReceipt.findMany({
+            where: { tenantId, enrollmentId }, select: { amountCents: true }, take: 1000,
+          });
+          const paidCents = receipts.reduce((sum: number, item: any) => sum + Number(item.amountCents), 0);
+          const policy = await this.policyFor(tx, tenantId, userId);
+          const penaltyCents = penaltyForBreach(enrollment.contractTotalCents, paidCents, policy.breachPenaltyPercent);
+          const suppressedOverdue = Math.max(0, Number(enrollment.overdueInstallments) - 1);
+          await tx.schoolEnrollment.update({
+            where: { id: enrollment.id },
+            data: { overdueInstallments: suppressedOverdue, penaltyCents: penaltyCents ?? 0 },
+          });
+          return {
+            ...row,
+            paidCents,
+            penaltyCents,
+            suppressesChargeForPeriod: true,
+            providerConfirmed: source === "PROVIDER_CONFIRMED",
+            notified: false,
+            executed: false,
+            confirmed: source === "PROVIDER_CONFIRMED",
+          };
+        }
+
+        if (kind === "MARK_OVERDUE") {
+          const enrollmentId = this.optionalUuid(body?.enrollmentId, "Matrícula");
+          if (!enrollmentId) throw new Error("Informe a matrícula.");
+          const enrollment = await this.find(tx, "schoolEnrollment", { id: enrollmentId, tenantId }, "Matrícula");
+          const policy = await this.policyFor(tx, tenantId, userId);
+          const overdueInstallments = Math.min(100, Number(enrollment.overdueInstallments) + 1);
+          const shouldSuggest = overdueInstallments >= policy.overdueInstallmentsForCancellation;
+          const status = enrollment.cancellationStatus === "APPROVED"
+            ? "APPROVED"
+            : shouldSuggest && policy.cancellationApprovalRequired
+              ? "SUGGESTED"
+              : enrollment.status === "ACTIVE"
+                ? "NONE"
+                : enrollment.cancellationStatus;
+          await tx.schoolEnrollment.update({
+            where: { id: enrollment.id }, data: { overdueInstallments, cancellationStatus: status },
+          });
+          return {
+            enrollmentId: enrollment.id,
+            overdueInstallments,
+            cancellationStatus: status,
+            approvedByManagerRequired: policy.cancellationApprovalRequired,
+            cancelled: false,
+            executed: false,
+          };
+        }
+
+        if (kind === "CANCELLATION_DECISION") {
+          const enrollmentId = this.optionalUuid(body?.enrollmentId, "Matrícula");
+          if (!enrollmentId) throw new Error("Informe a matrícula.");
+          const enrollment = await this.find(tx, "schoolEnrollment", { id: enrollmentId, tenantId }, "Matrícula");
+          const decision = inList(body?.decision, CANCELLATION_DECISIONS, "Decisão");
+          if (enrollment.cancellationStatus !== "SUGGESTED") {
+            throw new Error("Só é possível decidir sobre um cancelamento sugerido.");
+          }
+          const policy = await this.policyFor(tx, tenantId, userId);
+          if (policy.cancellationApprovalRequired && decision === "APPROVE" && !isManager(role)) {
+            throw new ForbiddenException("Somente responsáveis pela empresa podem aprovar o cancelamento.");
+          }
+          const receipts = await tx.schoolPaymentReceipt.findMany({
+            where: { tenantId, enrollmentId }, select: { amountCents: true }, take: 1000,
+          });
+          const paidCents = receipts.reduce((sum: number, item: any) => sum + Number(item.amountCents), 0);
+          const penaltyCents = penaltyForBreach(enrollment.contractTotalCents, paidCents, policy.breachPenaltyPercent);
+          const nextStatus = decision === "APPROVE" ? "APPROVED" : "REJECTED";
+          await tx.schoolEnrollment.update({
+            where: { id: enrollment.id },
+            data: {
+              status: decision === "APPROVE" ? "SUSPENDED" : "ACTIVE",
+              cancellationStatus: nextStatus,
+              penaltyCents: penaltyCents ?? enrollment.penaltyCents,
+            },
+          });
+          return {
+            enrollmentId: enrollment.id,
+            decision,
+            cancellationStatus: nextStatus,
+            penaltyCents,
+            inadimplente: decision === "APPROVE",
+            confirmedByManager: isManager(role),
+            executed: false,
+          };
+        }
+
         throw new Error("Tipo de registro não suportado.");
       });
     } catch (error) {
@@ -343,6 +566,7 @@ export class SchoolService {
   /** Presença de aluno ou professor em uma aula do tenant, com trava por tenant. */
   async recordAttendance(body: Record<string, unknown>, tenantId: string, role: string, userId: string) {
     if (!isManager(role)) throw new ForbiddenException("Somente responsáveis pela empresa podem registrar presença.");
+    if (body?.paired === true) return this.recordPairedAttendance(body, tenantId, userId);
     try {
       const personKind = inList(body?.personKind, PERSON_KINDS, "Tipo de pessoa");
       const personId = this.optionalUuid(body?.personId, "Pessoa");
@@ -351,23 +575,7 @@ export class SchoolService {
       const note = optionalText(body?.note, 240, "Observação");
       return await this.prisma.$transaction(async (tx: any) => {
         await this.lockTenant(tx, tenantId);
-        let session: any;
-        if (body?.sessionId !== undefined && body.sessionId !== "") {
-          const sessionId = this.optionalUuid(body.sessionId, "Aula");
-          session = await this.find(tx, "schoolSession", { id: sessionId, tenantId }, "Aula");
-        } else {
-          const classId = this.optionalUuid(body?.classId, "Turma");
-          if (!classId) throw new Error("Informe a aula ou a turma com data.");
-          await this.find(tx, "schoolClass", { id: classId, tenantId }, "Turma");
-          const sessionDate = isoDate(body?.sessionDate);
-          if (!sessionDate) throw new Error("Informe a data da aula no formato AAAA-MM-DD.");
-          session = await tx.schoolSession.findFirst({ where: { tenantId, classId, sessionDate: utcDate(sessionDate) } });
-          if (!session) {
-            session = await tx.schoolSession.create({
-              data: { tenantId, classId, sessionDate: utcDate(sessionDate), status: "SCHEDULED", createdById: userId },
-            });
-          }
-        }
+        const session = await this.resolveSession(tx, tenantId, body, userId);
         const person = await this.find(tx, "schoolPerson", { id: personId, tenantId, kind: personKind, active: true }, "Pessoa");
         let enrollmentId: string | null = null;
         if (personKind === "STUDENT") {
@@ -397,6 +605,56 @@ export class SchoolService {
           classId: session.classId,
           personName: person.name,
           balance: enrollmentId ? await this.balanceFor(tx, tenantId, enrollmentId) : null,
+        };
+      });
+    } catch (error) {
+      this.rethrow(error);
+    }
+  }
+
+  /** Registra aluno e professor da mesma aula em uma única transação tenant-scoped. */
+  async recordPairedAttendance(body: Record<string, unknown>, tenantId: string, userId: string) {
+    try {
+      const studentId = this.optionalUuid(body?.studentId, "Aluno");
+      const teacherId = this.optionalUuid(body?.teacherId, "Professor");
+      if (!studentId || !teacherId) throw new Error("Informe aluno e professor da aula.");
+      const studentStatus = inList(body?.studentStatus ?? body?.status, ATTENDANCE_STATUSES, "Status do aluno");
+      const teacherStatus = inList(body?.teacherStatus ?? body?.status, ATTENDANCE_STATUSES, "Status do professor");
+      return await this.prisma.$transaction(async (tx: any) => {
+        await this.lockTenant(tx, tenantId);
+        const session = await this.resolveSession(tx, tenantId, body, userId);
+        const student = await this.find(tx, "schoolPerson", { id: studentId, tenantId, kind: "STUDENT", active: true }, "Aluno");
+        const teacher = await this.find(tx, "schoolPerson", { id: teacherId, tenantId, kind: "TEACHER", active: true }, "Professor");
+        const schoolClass = await this.find(tx, "schoolClass", { id: session.classId, tenantId }, "Turma");
+        if (schoolClass.teacherId !== teacherId) throw new Error("Este professor não leciona nesta turma.");
+        const enrollment = await this.find(tx, "schoolEnrollment", { tenantId, classId: session.classId, studentId }, "Matrícula");
+        const records: any[] = [];
+        for (const entry of [
+          { personKind: "STUDENT", personId: studentId, status: studentStatus },
+          { personKind: "TEACHER", personId: teacherId, status: teacherStatus },
+        ]) {
+          const duplicate = await tx.schoolAttendance.findFirst({
+            where: { tenantId, sessionId: session.id, personKind: entry.personKind, personId: entry.personId },
+          });
+          if (duplicate) throw new Error("Já existe presença registrada para esta pessoa nesta aula.");
+          records.push(await tx.schoolAttendance.create({
+            data: {
+              tenantId, sessionId: session.id, personId: entry.personId,
+              personKind: entry.personKind, status: entry.status,
+              note: optionalText(body?.note, 240, "Observação"), recordedById: userId,
+            },
+          }));
+        }
+        if (session.status === "SCHEDULED" && studentStatus !== "CANCELLED" && teacherStatus !== "CANCELLED") {
+          await tx.schoolSession.update({ where: { id: session.id }, data: { status: "HELD" } });
+        }
+        return {
+          records,
+          sessionId: session.id,
+          classId: session.classId,
+          studentName: student.name,
+          teacherName: teacher.name,
+          balance: await this.balanceFor(tx, tenantId, enrollment.id),
         };
       });
     } catch (error) {

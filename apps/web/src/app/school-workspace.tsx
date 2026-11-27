@@ -15,7 +15,7 @@ type Person = { id: string; kind: "STUDENT" | "TEACHER"; name: string; email: st
 type Room = { id: string; name: string; capacity: number; active: boolean };
 type ClassRow = { id: string; courseId: string; teacherId: string; roomId: string; name: string; weekday: number; startTime: string; durationMinutes: number; active: boolean };
 type Enrollment = { id: string; classId: string; studentId: string; contractedSessions: number; purchasedSessions: number; status: string; tuitionAmountCents: number | null; tuitionCycle: string | null; tuitionStatus: string; tuitionNextDueDate: string | null };
-type SessionRow = { id: string; classId: string; sessionDate: string; status: string };
+type SessionRow = { id: string; classId: string; sessionDate: string; status: string; summaryHtml?: string | null };
 type Attendance = { id: string; sessionId: string; personId: string; personKind: string; status: string; note: string | null; recordedAt: string | null };
 type LessonPlan = { id: string; classId: string; version: number; title: string; objectiveHtml: string; contentHtml: string; activitiesHtml: string; observationsHtml: string; materials: string[]; youtubeUrls: string[]; createdAt: string | null };
 type Grade = { id: string; classId: string; studentId: string; title: string; evaluationDate: string | null; maxScore: number; score: number; note: string | null };
@@ -27,7 +27,15 @@ type Balance = {
   classId: string;
   studentId: string;
   status: string;
-  tuition: { status: string; amountCents: number | null; nextDueDate: string | null; executed: boolean; confirmed: boolean };
+  tuition: { status: string; cycle?: string | null; amountCents: number | null; nextDueDate: string | null; executed: boolean; confirmed: boolean };
+  contractTotalCents?: number | null;
+  paidCents?: number;
+  countedDays?: number;
+  overdueInstallments?: number;
+  cancellationStatus?: string;
+  penaltyCents?: number | null;
+  reminders?: { payment: Array<{ kind: string; scheduledFor: string }>; teacher: Array<{ remindAt: string | null; sent: boolean }>; consentRequired: boolean; channels: string[]; executed: boolean; confirmed: boolean };
+  paymentNotifications?: { toStudent: boolean; toManager: boolean; toAdmins: boolean; sent: boolean };
   contracted: number;
   consumed: number;
   balance: number;
@@ -37,7 +45,22 @@ type Stats = {
   students: { sessions: number; present: number; absences: number; percentage: number };
   teachers: { sessions: number; present: number; absences: number; percentage: number };
 };
+type BillingPolicy = {
+  paymentReminderDaysBefore: number;
+  remindOnDueDate: boolean;
+  remindDailyWhenOverdue: boolean;
+  channels: string[];
+  consentRequired: boolean;
+  teacherReminderMinutesBefore: number;
+  cancellationApprovalRequired: boolean;
+  overdueInstallmentsForCancellation: number;
+  breachPenaltyPercent: number;
+  paymentNoticeToManager: boolean;
+  paymentNoticeToAdmins: boolean;
+};
 type Snapshot = {
+  billingPolicy?: BillingPolicy;
+  paymentReceipts?: Array<{ id: string; enrollmentId: string; amountCents: number; paidAt: string; periodKey: string; source: string }>;
   courses: Course[];
   people: Person[];
   rooms: Room[];
@@ -347,6 +370,12 @@ export function SchoolWorkspace() {
   const [guardianForm, setGuardianForm] = useState({ studentId: "", name: "", relationship: "", phone: "", email: "" });
   const [noticeForm, setNoticeForm] = useState({ studentId: "", classId: "", title: "", bodyHtml: "", channel: "WHATSAPP", scheduledAt: "" });
   const [materialForm, setMaterialForm] = useState({ title: "", url: "", kind: "LINK", lessonPlanId: "", courseId: "" });
+  const [pairedForm, setPairedForm] = useState({ sessionId: "", studentId: "", teacherId: "", studentStatus: "PRESENT", teacherStatus: "PRESENT", note: "" });
+  const [summaryForm, setSummaryForm] = useState({ sessionId: "", summaryHtml: "" });
+  const [policyForm, setPolicyForm] = useState({ paymentReminderDaysBefore: "5", remindOnDueDate: true, remindDailyWhenOverdue: true, channels: ["WHATSAPP", "SMS", "EMAIL"], consentRequired: true, teacherReminderMinutesBefore: "30", cancellationApprovalRequired: true, overdueInstallmentsForCancellation: "2", breachPenaltyPercent: "20", paymentNoticeToManager: true, paymentNoticeToAdmins: true });
+  const [receiptForm, setReceiptForm] = useState({ enrollmentId: "", amountCents: "", paidAt: new Date().toISOString().slice(0, 10), source: "CASH", externalReference: "" });
+  const [overdueForm, setOverdueForm] = useState({ enrollmentId: "" });
+  const [cancelForm, setCancelForm] = useState({ enrollmentId: "", decision: "APPROVE" });
 
   const load = async () => {
     setError("");
@@ -481,10 +510,12 @@ export function SchoolWorkspace() {
             return (
               <details key={item.enrollmentId} className={rowTw}>
                 <summary className={summaryTw}><span>{nameOf(item.studentId)}</span><span className={mutedTw}>{nameOf(item.classId)}</span></summary>
-                <p className={mutedTw}>Contratadas: {contracted} · Consumidas: {consumed} · Reposições pendentes: {item.pendingMakeups}</p>
+                <p className={mutedTw}>Contratadas: {contracted} · Consumidas: {consumed} · Dias de aula contabilizados: {item.countedDays ?? 0} · Reposições pendentes: {item.pendingMakeups}</p>
                 <p className="m-0 text-body font-bold text-ink">Faltam {remaining} aula(s)</p>
                 <div className="h-2 w-full overflow-hidden rounded-token-sm bg-surface"><div className="h-full bg-blue-600" style={{ width: `${used}%` }} /></div>
                 <p className={mutedTw}>{TUITION_STATUS[item.tuition.status] || item.tuition.status} · Executado: {item.tuition.executed ? "sim" : "não"} · Confirmado: {item.tuition.confirmed ? "sim" : "não"}</p>
+                <p className={mutedTw}>Recebido: {item.paidCents ?? 0} centavos · Atrasos: {item.overdueInstallments ?? 0} · Cancelamento: {item.cancellationStatus ?? "NONE"} · Multa calculada: {item.penaltyCents ?? 0} centavos</p>
+                <p className={mutedTw}>Lembretes agendados: {item.reminders?.payment.length ?? 0} · Professor: {item.reminders?.teacher.length ?? 0} · Enviados: não · Confirmados: não</p>
               </details>
             );
           })}
@@ -738,9 +769,78 @@ export function SchoolWorkspace() {
             <button className={buttonTw} type="submit" disabled={busy}>Cadastrar material</button>
           </form>
         </details>
+
+        <details className={detailsTw} data-testid="school-paired-attendance-form">
+          <summary className={summaryFormTw}>Presença de aluno e professor na mesma aula</summary>
+          <form className={formTw} onSubmit={(event) => void submit(event, "school/attendances", { paired: true, ...pairedForm }, "Presença de aluno e professor registrada.")}>
+            <label className={labelTw}>Sessão<select className={fieldTw} required value={pairedForm.sessionId} onChange={(event) => setPairedForm({ ...pairedForm, sessionId: event.target.value })}><option value="">Selecione</option>{sessions.map((item) => <option key={item.id} value={item.id}>{nameOf(item.classId)} — {item.sessionDate}</option>)}</select></label>
+            <label className={labelTw}>Aluno<select className={fieldTw} required value={pairedForm.studentId} onChange={(event) => setPairedForm({ ...pairedForm, studentId: event.target.value })}><option value="">Selecione</option>{students.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+            <label className={labelTw}>Professor<select className={fieldTw} required value={pairedForm.teacherId} onChange={(event) => setPairedForm({ ...pairedForm, teacherId: event.target.value })}><option value="">Selecione</option>{teachers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+            <label className={labelTw}>Status do aluno<select className={fieldTw} value={pairedForm.studentStatus} onChange={(event) => setPairedForm({ ...pairedForm, studentStatus: event.target.value })}>{Object.entries(ATTENDANCE_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+            <label className={labelTw}>Status do professor<select className={fieldTw} value={pairedForm.teacherStatus} onChange={(event) => setPairedForm({ ...pairedForm, teacherStatus: event.target.value })}>{Object.entries(ATTENDANCE_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+            <label className={labelTw}>Observação<input className={fieldTw} value={pairedForm.note} onChange={(event) => setPairedForm({ ...pairedForm, note: event.target.value })} /></label>
+            <button className={buttonTw} type="submit" disabled={busy}>Registrar presença pareada</button>
+          </form>
+        </details>
+
+        <details className={detailsTw} data-testid="school-lesson-summary-form">
+          <summary className={summaryFormTw}>Resumo do que foi estudado na aula</summary>
+          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "LESSON_SUMMARY", ...summaryForm }, "Resumo da aula registrado.")}>
+            <label className={labelTw}>Sessão<select className={fieldTw} required value={summaryForm.sessionId} onChange={(event) => setSummaryForm({ ...summaryForm, sessionId: event.target.value })}><option value="">Selecione</option>{sessions.map((item) => <option key={item.id} value={item.id}>{nameOf(item.classId)} — {item.sessionDate}</option>)}</select></label>
+            <label className={labelTw}>Resumo<textarea className={fieldTw} rows={4} required value={summaryForm.summaryHtml} onChange={(event) => setSummaryForm({ ...summaryForm, summaryHtml: event.target.value })} /></label>
+            <button className={buttonTw} type="submit" disabled={busy}>Salvar resumo</button>
+          </form>
+        </details>
+
+        <details className={detailsTw} data-testid="school-billing-policy-form">
+          <summary className={summaryFormTw}>Política de lembretes e contrato (somente configuração)</summary>
+          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "BILLING_POLICY", ...policyForm }, "Política salva. Nenhum disparo foi executado.")}>
+            <label className={labelTw}>Dias antes do vencimento<input className={fieldTw} type="number" min={0} max={30} value={policyForm.paymentReminderDaysBefore} onChange={(event) => setPolicyForm({ ...policyForm, paymentReminderDaysBefore: event.target.value })} /></label>
+            <label className={labelTw}>Minutos antes da aula do professor<input className={fieldTw} type="number" min={5} max={120} value={policyForm.teacherReminderMinutesBefore} onChange={(event) => setPolicyForm({ ...policyForm, teacherReminderMinutesBefore: event.target.value })} /></label>
+            <label className={labelTw}>Mensalidades em atraso para sugerir cancelamento<input className={fieldTw} type="number" min={1} max={12} value={policyForm.overdueInstallmentsForCancellation} onChange={(event) => setPolicyForm({ ...policyForm, overdueInstallmentsForCancellation: event.target.value })} /></label>
+            <label className={labelTw}>Multa por quebra (%)<input className={fieldTw} type="number" min={0} max={100} value={policyForm.breachPenaltyPercent} onChange={(event) => setPolicyForm({ ...policyForm, breachPenaltyPercent: event.target.value })} /></label>
+            <label className={labelTw}>Canais consentidos<select className={fieldTw} multiple value={policyForm.channels} onChange={(event) => setPolicyForm({ ...policyForm, channels: Array.from(event.target.selectedOptions, (option) => option.value) })}><option value="WHATSAPP">WhatsApp</option><option value="SMS">SMS</option><option value="EMAIL">E-mail</option></select></label>
+            <label className={labelTw}><input type="checkbox" checked={policyForm.remindOnDueDate} onChange={(event) => setPolicyForm({ ...policyForm, remindOnDueDate: event.target.checked })} /> Lembrete no dia do vencimento</label>
+            <label className={labelTw}><input type="checkbox" checked={policyForm.remindDailyWhenOverdue} onChange={(event) => setPolicyForm({ ...policyForm, remindDailyWhenOverdue: event.target.checked })} /> Lembrete diário após atraso</label>
+            <label className={labelTw}><input type="checkbox" checked={policyForm.consentRequired} onChange={(event) => setPolicyForm({ ...policyForm, consentRequired: event.target.checked })} /> Exigir consentimento do canal</label>
+            <label className={labelTw}><input type="checkbox" checked={policyForm.cancellationApprovalRequired} onChange={(event) => setPolicyForm({ ...policyForm, cancellationApprovalRequired: event.target.checked })} /> Cancelamento somente com aprovação</label>
+            <label className={labelTw}><input type="checkbox" checked={policyForm.paymentNoticeToManager} onChange={(event) => setPolicyForm({ ...policyForm, paymentNoticeToManager: event.target.checked })} /> Avisar gestor financeiro designado</label>
+            <label className={labelTw}><input type="checkbox" checked={policyForm.paymentNoticeToAdmins} onChange={(event) => setPolicyForm({ ...policyForm, paymentNoticeToAdmins: event.target.checked })} /> Avisar OWNER/ADMIN da empresa</label>
+            <button className={buttonTw} type="submit" disabled={busy}>Salvar política</button>
+          </form>
+        </details>
+
+        <details className={detailsTw} data-testid="school-payment-receipt-form">
+          <summary className={summaryFormTw}>Baixa de pagamento recebido</summary>
+          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "PAYMENT_RECEIPT", ...receiptForm, amountCents: Number(receiptForm.amountCents) }, "Recebimento registrado; cobrança do período suprimida.")}>
+            <label className={labelTw}>Matrícula<select className={fieldTw} required value={receiptForm.enrollmentId} onChange={(event) => setReceiptForm({ ...receiptForm, enrollmentId: event.target.value })}><option value="">Selecione</option>{enrollments.map((item) => <option key={item.id} value={item.id}>{nameOf(item.studentId)} — {nameOf(item.classId)}</option>)}</select></label>
+            <label className={labelTw}>Valor recebido (centavos)<input className={fieldTw} type="number" min={1} required value={receiptForm.amountCents} onChange={(event) => setReceiptForm({ ...receiptForm, amountCents: event.target.value })} /></label>
+            <label className={labelTw}>Data do recebimento<input className={fieldTw} type="date" required value={receiptForm.paidAt} onChange={(event) => setReceiptForm({ ...receiptForm, paidAt: event.target.value })} /></label>
+            <label className={labelTw}>Origem<select className={fieldTw} value={receiptForm.source} onChange={(event) => setReceiptForm({ ...receiptForm, source: event.target.value })}><option value="CASH">Espécime (informado por humano)</option><option value="PROVIDER_CONFIRMED">Provedor confirmado</option></select></label>
+            <label className={labelTw}>Referência externa (se provedor)<input className={fieldTw} value={receiptForm.externalReference} onChange={(event) => setReceiptForm({ ...receiptForm, externalReference: event.target.value })} /></label>
+            <button className={buttonTw} type="submit" disabled={busy}>Registrar recebimento</button>
+          </form>
+        </details>
+
+        <details className={detailsTw} data-testid="school-overdue-form">
+          <summary className={summaryFormTw}>Marcar mensalidade em atraso</summary>
+          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "MARK_OVERDUE", ...overdueForm }, "Atraso marcado; cancelamento não foi executado.")}>
+            <label className={labelTw}>Matrícula<select className={fieldTw} required value={overdueForm.enrollmentId} onChange={(event) => setOverdueForm({ ...overdueForm, enrollmentId: event.target.value })}><option value="">Selecione</option>{enrollments.map((item) => <option key={item.id} value={item.id}>{nameOf(item.studentId)} — {nameOf(item.classId)}</option>)}</select></label>
+            <button className={buttonTw} type="submit" disabled={busy}>Marcar atraso</button>
+          </form>
+        </details>
+
+        <details className={detailsTw} data-testid="school-cancellation-form">
+          <summary className={summaryFormTw}>Decidir sobre cancelamento sugerido</summary>
+          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "CANCELLATION_DECISION", ...cancelForm }, "Decisão registrada; multa calculada sobre total menos pago.")}>
+            <label className={labelTw}>Matrícula<select className={fieldTw} required value={cancelForm.enrollmentId} onChange={(event) => setCancelForm({ ...cancelForm, enrollmentId: event.target.value })}><option value="">Selecione</option>{enrollments.filter((item) => balances.find((balance) => balance.enrollmentId === item.id)?.cancellationStatus === "SUGGESTED").map((item) => <option key={item.id} value={item.id}>{nameOf(item.studentId)} — {nameOf(item.classId)}</option>)}</select></label>
+            <label className={labelTw}>Decisão<select className={fieldTw} value={cancelForm.decision} onChange={(event) => setCancelForm({ ...cancelForm, decision: event.target.value })}><option value="APPROVE">Aprovar cancelamento</option><option value="REJECT">Rejeitar sugestão</option></select></label>
+            <button className={buttonTw} type="submit" disabled={busy}>Registrar decisão</button>
+          </form>
+        </details>
       </div>
 
-      <p className={mutedTw}>Avisos e mensalidades permanecem como SCHEDULED: nenhum envio, cobrança, pagamento ou publicação é realizado por esta tela.</p>
+      <p className={mutedTw}>Lembretes, notificações e cancelamento ficam configurados/calculados, não executados. Nenhum envio, cobrança, pagamento ou publicação é realizado por esta tela.</p>
     </section>
   );
 }

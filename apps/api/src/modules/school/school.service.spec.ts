@@ -152,6 +152,7 @@ const enrollmentBody = () => ({
   contractedSessions: 8,
   purchasedSessions: 2,
   tuitionAmountCents: 9900,
+  contractTotalCents: 99000,
   tuitionNextDueDate: "2026-12-05",
 });
 
@@ -246,12 +247,12 @@ describe("Gestão escolar — escrita tenant-scoped", () => {
     const student = await service.recordAttendance({
       classId: CLASS, sessionDate: "2026-11-27", personKind: "STUDENT", personId: STUDENT, status: "PRESENT", note: "Compareceu",
     }, TENANT, "OWNER", USER);
-    expect(student.record).toMatchObject({ tenantId: TENANT, sessionId: SESSION, personKind: "STUDENT", personId: STUDENT, status: "PRESENT", recordedById: USER });
+    expect((student as { record: unknown }).record).toMatchObject({ tenantId: TENANT, sessionId: SESSION, personKind: "STUDENT", personId: STUDENT, status: "PRESENT", recordedById: USER });
     expect(student.balance).toMatchObject({ contracted: 10, consumed: 1, balance: 9 });
     expect(state.sessions).toHaveLength(1);
     expect(state.sessions[0].status).toBe("HELD");
     const teacher = await service.recordAttendance({ sessionId: SESSION, personKind: "TEACHER", personId: TEACHER, status: "PRESENT" }, TENANT, "OWNER", USER);
-    expect(teacher.record).toMatchObject({ tenantId: TENANT, sessionId: SESSION, personKind: "TEACHER", personId: TEACHER, status: "PRESENT" });
+    expect((teacher as { record: unknown }).record).toMatchObject({ tenantId: TENANT, sessionId: SESSION, personKind: "TEACHER", personId: TEACHER, status: "PRESENT" });
     expect(teacher.balance).toBeNull();
     await expect(service.recordAttendance({ sessionId: SESSION, personKind: "STUDENT", personId: STUDENT, status: "ABSENT" }, TENANT, "OWNER", USER)).rejects.toThrow("Já existe presença");
     await expect(service.recordAttendance({ sessionId: SESSION, personKind: "TEACHER", personId: OTHER_TEACHER, status: "PRESENT" }, TENANT, "OWNER", USER)).rejects.toThrow("não leciona");

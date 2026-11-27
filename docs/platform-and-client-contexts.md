@@ -49,3 +49,11 @@ Administradores de empresas não alteram permissões de contas administrativas, 
 `SCHOOL` é um módulo opcional por empresa e nunca é herdado de `CALENDAR`, de planos padrão ou de entitlements legados. Rastreabem e Véxora não usam vocabulário nem menu de Escola de Música; o item único, quando contratado, é Gestão escolar. Rotas `school` e `music-school` exigem `SCHOOL`, e negativas individuais continuam prevalecendo.
 
 A administração Véxora escolhe, por empresa, exatamente uma plataforma de pagamento entre Asaas, Stripe e InfinitePay. A preferência fica em `tenants.entitlements.paymentProvider` e somente a plataforma escolhida aparece no submenu Financeiro daquela empresa, mesmo quando navegada por um administrador da Véxora. Asaas vem primeiro por ser mais completo. Escolher a plataforma não escolhe forma de pagamento, não cria cobrança e não copia credenciais entre empresas.
+
+## Contexto Fermata Music
+
+Fermata Music e uma empresa cliente separada, criada inicialmente como "Escola de Musica" com o segmento `music-school`. O nome final e a identidade visual preto e branco valem somente para esse tenant; nenhum dado, credencial, contato ou sessao da Vexora/Rastreabem e copiado para ele.
+
+Modulos e vocabulario passam a ser configurados no proprio segmento. `music-school` declara `SCHOOL`, `CALENDAR`, `INBOX`, `CRM`, `FINANCE` e `TASKS`, mais os termos de aluno, responsavel, turma, matricula, presenca, instrumento, professor e aula. Outros segmentos nao recebem esses modulos automaticamente. A migracao condicional so altera o tenant cujo onboarding registra `music-school` e cujo nome ainda e "Escola de Musica".
+
+A ficha de matricula e os demais requisitos do cliente ainda nao foram recebidos em PDF. Nenhum campo dessa ficha foi inventado ou incorporado ate aqui.

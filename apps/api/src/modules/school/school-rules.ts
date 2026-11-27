@@ -4,12 +4,16 @@ export const COURSE_KINDS = ["COURSE", "SUBJECT"] as const;
 export const PERSON_KINDS = ["STUDENT", "TEACHER"] as const;
 export const ATTENDANCE_STATUSES = ["PRESENT", "ABSENT", "JUSTIFIED", "MAKEUP", "CANCELLED"] as const;
 export const RELATIONSHIPS = ["MAE", "PAI", "RESPONSAVEL", "OUTRO"] as const;
-export const NOTICE_CHANNELS = ["WHATSAPP", "EMAIL"] as const;
+export const NOTICE_CHANNELS = ["WHATSAPP", "SMS", "EMAIL"] as const;
 export const MATERIAL_KINDS = ["LINK", "FILE", "YOUTUBE"] as const;
 export const SESSION_STATUSES = ["SCHEDULED", "HELD", "CANCELLED"] as const;
+export const TUITION_CYCLES = ["MONTHLY", "BIWEEKLY", "WEEKLY"] as const;
+export const PAYMENT_RECEIPT_SOURCES = ["CASH", "PROVIDER_CONFIRMED"] as const;
+export const CANCELLATION_DECISIONS = ["APPROVE", "REJECT"] as const;
 export const RECORD_KINDS = [
   "COURSE", "SUBJECT", "STUDENT", "TEACHER", "ROOM", "CLASS", "ENROLLMENT",
   "SESSION", "LESSON_PLAN", "GRADE", "GUARDIAN", "NOTICE", "MATERIAL",
+  "LESSON_SUMMARY", "BILLING_POLICY", "PAYMENT_RECEIPT", "MARK_OVERDUE", "CANCELLATION_DECISION",
 ] as const;
 
 export type CourseKind = (typeof COURSE_KINDS)[number];
@@ -213,6 +217,96 @@ export function attendanceStats(records: AttendanceLike[]): { students: Attendan
     return { sessions, present, absences, percentage: measured ? Math.round((present / measured) * 100) : 0 };
   };
   return { students: summarize("STUDENT"), teachers: summarize("TEACHER") };
+}
+
+export interface BillingPolicy {
+  paymentReminderDaysBefore: number;
+  remindOnDueDate: boolean;
+  remindDailyWhenOverdue: boolean;
+  channels: string[];
+  consentRequired: boolean;
+  teacherReminderMinutesBefore: number;
+  cancellationApprovalRequired: boolean;
+  overdueInstallmentsForCancellation: number;
+  breachPenaltyPercent: number;
+  paymentNoticeToManager: boolean;
+  paymentNoticeToAdmins: boolean;
+}
+
+export const DEFAULT_BILLING_POLICY: BillingPolicy = {
+  paymentReminderDaysBefore: 5,
+  remindOnDueDate: true,
+  remindDailyWhenOverdue: true,
+  channels: ["WHATSAPP", "SMS", "EMAIL"],
+  consentRequired: true,
+  teacherReminderMinutesBefore: 30,
+  cancellationApprovalRequired: true,
+  overdueInstallmentsForCancellation: 2,
+  breachPenaltyPercent: 20,
+  paymentNoticeToManager: true,
+  paymentNoticeToAdmins: true,
+};
+
+/** Multa por quebra: 20% (configurável) sobre total contratado menos o já recebido. */
+export function penaltyForBreach(contractTotalCents: number | null, paidCents: number, percent: number): number | null {
+  if (contractTotalCents === null) return null;
+  const remaining = Math.max(0, contractTotalCents - Math.max(0, paidCents));
+  return Math.round((remaining * percent) / 100);
+}
+
+/** Período da cobrança que uma baixa em espécime/suprimida deve quitar. */
+export function billingPeriodKey(paidDate: string, cycle: string): string | null {
+  const date = isoDate(paidDate);
+  if (!date) return null;
+  if (cycle === "MONTHLY") return date.slice(0, 7);
+  if (cycle === "BIWEEKLY") return `${date.slice(0, 7)}-${Number(date.slice(8, 10)) <= 15 ? "H1" : "H2"}`;
+  if (cycle === "WEEKLY") {
+    const day = new Date(`${date}T00:00:00.000Z`);
+    const dayNumber = (day.getUTCDay() + 6) % 7;
+    day.setUTCDate(day.getUTCDate() - dayNumber + 3);
+    const firstThursday = new Date(Date.UTC(day.getUTCFullYear(), 0, 4));
+    const firstDayNumber = (firstThursday.getUTCDay() + 6) % 7;
+    firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNumber + 3);
+    const week = 1 + Math.round((day.getTime() - firstThursday.getTime()) / (7 * 24 * 60 * 60 * 1000));
+    return `${day.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+  }
+  return null;
+}
+
+export interface ReminderOccurrence {
+  kind: "BEFORE_DUE" | "DUE_DATE" | "OVERDUE_DAILY";
+  scheduledFor: string;
+  channels: string[];
+}
+
+/** Agenda determinística de lembretes. Nenhum disparo é realizado aqui. */
+export function paymentReminderOccurrences(dueDate: string, policy: BillingPolicy, today = new Date()): ReminderOccurrence[] {
+  const due = new Date(`${dueDate}T00:00:00.000Z`);
+  if (Number.isNaN(due.getTime())) return [];
+  const current = new Date(`${today.toISOString().slice(0, 10)}T00:00:00.000Z`);
+  const occurrences: ReminderOccurrence[] = [];
+  const before = new Date(due);
+  before.setUTCDate(before.getUTCDate() - policy.paymentReminderDaysBefore);
+  if (before >= current) occurrences.push({ kind: "BEFORE_DUE", scheduledFor: before.toISOString().slice(0, 10), channels: policy.channels });
+  if (policy.remindOnDueDate && due >= current) occurrences.push({ kind: "DUE_DATE", scheduledFor: dueDate, channels: policy.channels });
+  if (policy.remindDailyWhenOverdue && due < current) {
+    for (let day = new Date(due); day < current; day.setUTCDate(day.getUTCDate() + 1)) {
+      const scheduledFor = day.toISOString().slice(0, 10);
+      if (scheduledFor === dueDate) continue;
+      occurrences.push({ kind: "OVERDUE_DAILY", scheduledFor, channels: policy.channels });
+    }
+  }
+  return occurrences;
+}
+
+/** Lembrete do professor: 30 minutos antes do início da aula. */
+export function teacherReminderAt(sessionDate: string, startTime: string, minutesBefore: number): string | null {
+  const date = isoDate(sessionDate);
+  if (!date || !TIME.test(startTime)) return null;
+  const [hours = 0, minutes = 0] = startTime.split(":").map(Number);
+  const moment = new Date(`${date}T00:00:00.000Z`);
+  moment.setUTCHours(hours, minutes - minutesBefore, 0, 0);
+  return moment.toISOString();
 }
 
 export function isManager(role: string): boolean {

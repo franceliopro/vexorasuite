@@ -149,6 +149,8 @@ model Tenant {
   schoolGuardians      SchoolGuardian[]
   schoolNotices        SchoolNotice[]
   schoolMaterials      SchoolMaterial[]
+  schoolBillingPolicies SchoolBillingPolicy[]
+  schoolPaymentReceipts SchoolPaymentReceipt[]
 
   @@map("tenants")
 }
@@ -1585,6 +1587,10 @@ model SchoolEnrollment {
   tuitionCycle        String?   @default("MONTHLY") @map("tuition_cycle")
   tuitionStatus       String    @default("SCHEDULED") @map("tuition_status")
   tuitionNextDueDate  DateTime? @db.Date @map("tuition_next_due_date")
+  contractTotalCents  Int?      @map("contract_total_cents")
+  overdueInstallments Int       @default(0) @map("overdue_installments")
+  cancellationStatus  String    @default("NONE") @map("cancellation_status")
+  penaltyCents        Int       @default(0) @map("penalty_cents")
   createdById         String    @map("created_by_id") @db.Uuid
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
@@ -1600,8 +1606,10 @@ model SchoolSession {
   id          String   @id @default(uuid()) @db.Uuid
   tenantId    String   @map("tenant_id") @db.Uuid
   classId     String   @map("class_id") @db.Uuid
-  sessionDate DateTime @db.Date @map("session_date")
-  status      String   @default("SCHEDULED")
+  sessionDate        DateTime  @db.Date @map("session_date")
+  status             String    @default("SCHEDULED")
+  summaryHtml        String?   @map("summary_html")
+  summaryRecordedAt  DateTime? @map("summary_recorded_at")
   createdById String   @map("created_by_id") @db.Uuid
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -1728,4 +1736,46 @@ model SchoolMaterial {
   @@index([tenantId, lessonPlanId])
   @@index([tenantId, courseId])
   @@map("school_materials")
+}
+
+model SchoolBillingPolicy {
+  id                              String   @id @default(uuid()) @db.Uuid
+  tenantId                        String   @map("tenant_id") @db.Uuid
+  paymentReminderDaysBefore       Int      @default(5) @map("payment_reminder_days_before")
+  remindOnDueDate                 Boolean  @default(true) @map("remind_on_due_date")
+  remindDailyWhenOverdue          Boolean  @default(true) @map("remind_daily_when_overdue")
+  channels                        Json     @default("[\"WHATSAPP\",\"SMS\",\"EMAIL\"]")
+  consentRequired                 Boolean  @default(true) @map("consent_required")
+  teacherReminderMinutesBefore    Int      @default(30) @map("teacher_reminder_minutes_before")
+  cancellationApprovalRequired    Boolean  @default(true) @map("cancellation_approval_required")
+  overdueInstallmentsForCancellation Int    @default(2) @map("overdue_installments_for_cancellation")
+  breachPenaltyPercent            Int      @default(20) @map("breach_penalty_percent")
+  paymentNoticeToManager          Boolean  @default(true) @map("payment_notice_to_manager")
+  paymentNoticeToAdmins           Boolean  @default(true) @map("payment_notice_to_admins")
+  updatedById                     String   @map("updated_by_id") @db.Uuid
+  createdAt                       DateTime @default(now()) @map("created_at")
+  updatedAt                       DateTime @updatedAt @map("updated_at")
+  tenant                          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId])
+  @@map("school_billing_policies")
+}
+
+model SchoolPaymentReceipt {
+  id                String   @id @default(uuid()) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  enrollmentId      String   @map("enrollment_id") @db.Uuid
+  amountCents       Int      @map("amount_cents")
+  paidAt            DateTime @db.Date @map("paid_at")
+  periodKey         String   @map("period_key")
+  source            String   @default("CASH")
+  externalReference String?  @map("external_reference")
+  notes             String?
+  recordedById      String   @map("recorded_by_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at")
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, enrollmentId])
+  @@index([tenantId, periodKey])
+  @@map("school_payment_receipts")
 }

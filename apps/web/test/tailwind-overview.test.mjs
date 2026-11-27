@@ -203,7 +203,7 @@ test("o bloco de boas-vindas traz vídeo opcional e atalhos úteis", () => {
 test("as seções da Visão geral são planas e os blocos de boas-vindas ficam lado a lado", () => {
   assert.ok(page.includes('const pageHeadingTw="flex flex-wrap items-start justify-between gap-4 bg-transparent hover:bg-transparent"'));
   assert.ok(page.includes('const [welcomeExpanded, setWelcomeExpanded] = useState(false);'));
-  assert.ok(page.includes('<div className={welcomeExpanded ? "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-1" : "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-2"}>'));
+  assert.ok(page.includes('welcomeExpanded || schoolProfile ? "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-1" : "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-2"'));
   assert.ok(page.includes('<OnboardingChecklist onNavigate={(target) => { setActive(target); setMenuOpen(false); }} onDismiss={() => setWelcomeExpanded(true)} />'));
   assert.ok(page.includes('<div className="bg-transparent"><h1>{greeting+'));
 

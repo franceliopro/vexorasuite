@@ -312,7 +312,7 @@ export default function HomePage() {
       const parent = activeNavigation.find((group) => group.items.some((item) => item.children?.some((child) => targetOf(child) === requested)));
       if (parent) {
         const parentItem = parent.items.find((item) => item.children?.some((child) => targetOf(child) === requested));
-        if (parentItem) setExpandedModules([parentItem.label]);
+        if (parentItem) setExpandedModules([targetOf(parentItem)]);
       }
     }
     setNavigationReady(true);

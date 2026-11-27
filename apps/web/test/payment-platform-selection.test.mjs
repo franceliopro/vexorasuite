@@ -30,8 +30,8 @@ test("menu mostra somente a plataforma escolhida, mesmo para admin da plataforma
   assert.match(authController, /paymentProvider:paymentProviderOf\(tenant\?\.entitlements\)/);
   assert.match(page, /const selectedPaymentProvider = session\?\.paymentProvider \|\| "ASAAS"/);
   assert.match(page, /const providerVisible = \(label: string\)/);
-  assert.match(page, /providerVisible\(item\.label\)/);
-  assert.match(page, /moduleVisible\(child\.label\)&&providerVisible\(child\.label\)/);
+  assert.match(page, /providerVisible\(target\)/);
+  assert.match(page, /moduleVisible\(targetOf\(child\)\)&&providerVisible\(targetOf\(child\)\)/);
   assert.match(page, /!moduleVisible\(active\)\|\|!providerVisible\(active\)/);
   assert.match(page, /if\(required==="SCHOOL"\)return session\?\.tenant\.kind!=="PLATFORM"/);
 });

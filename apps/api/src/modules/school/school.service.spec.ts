@@ -82,6 +82,7 @@ function fixture() {
     },
     schoolSession: {
       findFirst: jest.fn(async ({ where }: any) => state.sessions.find((row: any) => matches(row, where)) ?? null),
+      findMany: jest.fn(async ({ where }: any) => state.sessions.filter((row: any) => matches(row, where))),
       create: jest.fn(async ({ data }: any) => {
         const row = { id: SESSION, ...data };
         state.sessions.push(row);
@@ -279,7 +280,8 @@ describe("Gestão escolar — contrato da migração", () => {
     expect(sql).toMatch(/UNIQUE \("tenant_id", "session_id", "person_kind", "person_id"\)/);
     expect(sql).toMatch(/UNIQUE \("tenant_id", "class_id", "version"\)/);
     expect(sql).toMatch(/tuition_status" TEXT NOT NULL DEFAULT 'SCHEDULED'/);
-    expect(sql).toMatch(/status" TEXT NOT NULL DEFAULT 'SCHEDULED' CHECK \("status" IN \('SCHEDULED'\)\)/);
+    expect(sql).toMatch(/"status" TEXT NOT NULL DEFAULT 'SCHEDULED'/);
+    expect(sql).toMatch(/CONSTRAINT "school_notices_status_check" CHECK \("status" IN \('SCHEDULED'\)\)/);
     expect(sql).toMatch(/Nenhum envio é executado/);
   });
 });

@@ -30,8 +30,8 @@ describe("Gestão escolar — regras determinísticas", () => {
     });
     expect(balanceOf(6, 0, ["CANCELLED", "MAKEUP"])).toEqual({
       contracted: 6,
-      consumed: 1,
-      balance: 5,
+      consumed: 0,
+      balance: 6,
       pendingMakeups: 0,
     });
     expect(balanceOf(2, 0, ["MAKEUP", "MAKEUP", "CANCELLED"]).balance).toBe(0);

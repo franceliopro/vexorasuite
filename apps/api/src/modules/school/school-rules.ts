@@ -102,10 +102,12 @@ export function youtubeEmbed(value: unknown): string | null {
   }
 }
 
+/** Lista estática: `sanitizeHtml.defaults` não existe no build ESM/CJS usado na validação. */
 const RICH_TAGS = [
-  ...sanitizeHtml.defaults.allowedTags,
-  "h1", "h2", "h3", "h4", "table", "thead", "tbody", "tr", "th", "td",
-  "iframe", "figure", "figcaption", "u", "s", "strike",
+  "h1", "h2", "h3", "h4", "h5", "h6", "p", "div", "span", "br", "hr",
+  "b", "strong", "i", "em", "u", "s", "strike", "del", "code", "pre",
+  "blockquote", "ul", "ol", "li", "a", "img", "figure", "figcaption",
+  "table", "thead", "tbody", "tfoot", "tr", "th", "td", "iframe",
 ];
 const MAX_RICH_CHARS = 3_000_000;
 const MAX_DATA_URI = 2_000_000;
@@ -119,8 +121,8 @@ export function cleanRichText(value: unknown, label: string): string {
   return sanitizeHtml(raw, {
     allowedTags: RICH_TAGS,
     allowedAttributes: {
-      ...sanitizeHtml.defaults.allowedAttributes,
-      a: ["href", "target", "rel", "class"],
+      "*": ["class"],
+      a: ["href", "target", "rel", "class", "title"],
       img: ["src", "alt", "title", "class", "loading"],
       figure: ["class"],
       figcaption: ["class"],
@@ -130,27 +132,28 @@ export function cleanRichText(value: unknown, label: string): string {
     allowedSchemesByTag: { a: ["http", "https", "mailto", "tel", "data"], img: ["http", "https", "data"] },
     allowedSchemesAppliedToAttributes: ["href", "src"],
     transformTags: {
-      iframe: (tagName: string, attribs: Record<string, string>) => {
+      iframe: (tagName: string, attribs: Record<string, string>): { tagName: string; attribs: Record<string, string> } => {
         const src = youtubeEmbed(attribs.src || "");
-        return src
-          ? { tagName, attribs: { ...attribs, src, allowfullscreen: "true", title: "Vídeo do YouTube" } }
-          : { tagName: "span", attribs: {} };
+        if (!src) return { tagName: "span", attribs: {} };
+        const next: Record<string, string> = {
+          ...attribs, src, allowfullscreen: "true", title: "Vídeo do YouTube",
+        };
+        return { tagName, attribs: next };
       },
-      a: (tagName: string, attribs: Record<string, string>) => {
+      a: (tagName: string, attribs: Record<string, string>): { tagName: string; attribs: Record<string, string> } => {
         const href = attribs.href || "";
         if (href.startsWith("data:")) {
           if (!FILE_DATA_URI.test(href) || href.length > MAX_DATA_URI) return { tagName: "span", attribs: {} };
           return { tagName, attribs: { href, target: "_blank", rel: "noopener noreferrer" } };
         }
-        return { tagName, attribs: { ...attribs, rel: "noopener noreferrer" } };
+        const next: Record<string, string> = { ...attribs, rel: "noopener noreferrer" };
+        return { tagName, attribs: next };
       },
-      img: (tagName: string, attribs: Record<string, string>) => {
+      img: (tagName: string, attribs: Record<string, string>): { tagName: string; attribs: Record<string, string> } => {
         const src = attribs.src || "";
-        if (src.startsWith("data:")) {
-          if (!IMAGE_DATA_URI.test(src) || src.length > MAX_DATA_URI) return { tagName: "span", attribs: {} };
-          return { tagName, attribs: { src, alt: attribs.alt || "Imagem" } };
-        }
-        return { tagName, attribs };
+        if (!src.startsWith("data:")) return { tagName, attribs: { ...attribs } };
+        if (!IMAGE_DATA_URI.test(src) || src.length > MAX_DATA_URI) return { tagName: "span", attribs: {} };
+        return { tagName, attribs: { src, alt: attribs.alt || "Imagem" } };
       },
     },
   });

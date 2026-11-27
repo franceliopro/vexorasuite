@@ -148,7 +148,7 @@ test("os contratos funcionais das duas telas permanecem", () => {
     "createPortal(",
     "document.body",
     "zIndex: 2100",
-    "minWidth: 820",
+    "minWidth: 980",
   ]) {
     assert.ok(admin.includes(marker), `o admin perdeu ${marker}`);
   }

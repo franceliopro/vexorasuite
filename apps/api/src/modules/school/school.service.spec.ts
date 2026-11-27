@@ -251,7 +251,8 @@ describe("Gestão escolar — escrita tenant-scoped", () => {
     expect(state.sessions).toHaveLength(1);
     expect(state.sessions[0].status).toBe("HELD");
     const teacher = await service.recordAttendance({ sessionId: SESSION, personKind: "TEACHER", personId: TEACHER, status: "PRESENT" }, TENANT, "OWNER", USER);
-    expect(teacher.record).toMatchObject({ personKind: "TEACHER", personId: TEACHER, status: "PRESENT", balance: null });
+    expect(teacher.record).toMatchObject({ tenantId: TENANT, sessionId: SESSION, personKind: "TEACHER", personId: TEACHER, status: "PRESENT" });
+    expect(teacher.balance).toBeNull();
     await expect(service.recordAttendance({ sessionId: SESSION, personKind: "STUDENT", personId: STUDENT, status: "ABSENT" }, TENANT, "OWNER", USER)).rejects.toThrow("Já existe presença");
     await expect(service.recordAttendance({ sessionId: SESSION, personKind: "TEACHER", personId: OTHER_TEACHER, status: "PRESENT" }, TENANT, "OWNER", USER)).rejects.toThrow("não leciona");
     await expect(service.recordAttendance({ sessionId: SESSION, personKind: "STUDENT", personId: STUDENT, status: "PRESENT" }, OTHER, "OWNER", USER)).rejects.toThrow(/Registro não encontrado.*Aula/);
@@ -282,6 +283,6 @@ describe("Gestão escolar — contrato da migração", () => {
     expect(sql).toMatch(/tuition_status" TEXT NOT NULL DEFAULT 'SCHEDULED'/);
     expect(sql).toMatch(/"status" TEXT NOT NULL DEFAULT 'SCHEDULED'/);
     expect(sql).toMatch(/CONSTRAINT "school_notices_status_check" CHECK \("status" IN \('SCHEDULED'\)\)/);
-    expect(sql).toMatch(/Nenhum envio é executado/);
+    expect(sql).toMatch(/nenhum envio é executado por esta fatia/);
   });
 });

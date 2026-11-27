@@ -669,7 +669,9 @@ details>summary:hover{color:var(--tx)}
   .topbar{padding:0 14px;gap:8px}
   .mobile-menu{display:inline-grid;place-items:center;width:var(--ctl);height:var(--ctl)}
   .breadcrumbs span,.crumb-slash{display:none}
-  .topbar .search-box,.ai-assistant-trigger span,.topbar-company-button{display:none}
+  .topbar .search-box,.ai-assistant-trigger span{display:none}
+  .topbar .topbar-company-button{min-width:var(--ctl);width:var(--ctl);padding:0;justify-content:center}
+  .topbar .topbar-company-button span,.topbar .topbar-company-button svg:last-child{display:none}
   .mobile-bottom-nav{position:fixed;inset:auto 0 0;z-index:45;display:flex;min-height:var(--dock);padding:4px 8px env(safe-area-inset-bottom);background:var(--sb-bg);border-top:1px solid var(--sb-ln)}
   .mobile-bottom-nav button{flex:1;min-height:var(--dock-btn);display:grid;place-items:center;align-content:center;gap:2px;font-size:11px;color:var(--sb-mut)}
   .mobile-bottom-nav button svg{width:22px;height:22px}
@@ -1252,6 +1254,8 @@ details>summary:hover{color:var(--tx)}
 
 /* ===== Sidebar · rodape em duas linhas (cores do tema, avatar maior) ===== */
 .sidebar-bottom { display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 12px; border-top: 1px solid var(--sb-ln); }
+.sidebar.sidebar-compact [data-testid='logout-sidebar']{justify-content:center;padding-inline:0}
+.sidebar.sidebar-compact [data-testid='logout-sidebar'] span{display:none}
 .sidebar-utilities { display: flex; align-items: center; gap: 4px; }
 .sidebar-collapse { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 34px; height: 34px; border: 1px solid var(--sb-ln); border-radius: 9px; background: transparent; color: var(--sb-tx); cursor: pointer; }
 .sidebar-collapse:hover { background: var(--sb-on); border-color: var(--sb-tx); }

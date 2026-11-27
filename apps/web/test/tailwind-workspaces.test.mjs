@@ -65,7 +65,8 @@ test("os contratos dos workspaces permanecem intactos", () => {
   ]) assert.ok(departments.includes(token), `setores perdeu ${token}`);
   for (const token of [
     'aria-labelledby="company-heading"', 'id="company-heading"', 'aria-label="Gerenciar empresas"',
-    'aria-label="Fechar empresas"', 'role="dialog"', 'aria-modal="true"', "/api/backend/auth/companies",
+    'aria-label="Fechar empresas"', 'role="dialog"', 'aria-controls="company-dropdown"',
+    'data-testid="company-dropdown"', "createPortal(", "/api/backend/auth/companies",
   ]) assert.ok(companies.includes(token), `empresas perdeu ${token}`);
   for (const token of [
     "/api/backend/plans", "/api/backend/billing/activate", "Escolha o próximo passo",

@@ -132,7 +132,12 @@ test("o popover ancorado mantém posição, camada e contrato", () => {
     'window.addEventListener("resize", place)',
     'window.addEventListener("scroll", place, true)',
     'className={"fixed " + className}',
-    "style={{ ...position, zIndex: 260 }}",
+    "style={{",
+    "...position,",
+    'maxWidth: "calc(100vw - 16px)"',
+    'maxHeight: "calc(100vh - 16px)"',
+    'overflowY: "auto"',
+    "zIndex: 260,",
   ]) {
     assert.ok(source.includes(token), `o popover perdeu ${token}`);
   }

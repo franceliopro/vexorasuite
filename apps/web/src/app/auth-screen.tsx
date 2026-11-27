@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENTS, passwordProblem, resetTokenFromSearch } from "../lib/password-reset";
 
 const submitTw = "inline-flex min-h-control w-full items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
+const retryTw = "inline-flex min-h-control w-full items-center justify-center gap-2 rounded-token-sm border border-line bg-surface-2 px-4 text-body font-bold text-ink transition-colors hover:bg-hover";
 const brandMarkTw = "grid h-control w-control flex-none place-items-center rounded-brand bg-vx-brand-mark font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand";
 export type SegmentNavigationChild = { label: string; target?: string; icon?: string };
 export type SegmentNavigationItem = SegmentNavigationChild & { children?: SegmentNavigationChild[] };
@@ -25,7 +26,7 @@ function EyeToggle({visible,onToggle}:{visible:boolean;onToggle:()=>void}) {
   return <button className="absolute right-1 top-1 grid size-8 place-items-center text-ink-secondary" type="button" onClick={onToggle} aria-label={visible ? "Ocultar senha" : "Mostrar senha"} aria-pressed={visible} title={visible ? "Ocultar senha" : "Mostrar senha"}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{visible ? <><path d="M3 3l18 18" /><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" /><path d="M9.9 5.2A10.7 10.7 0 0 1 12 5c5 0 8.3 4.5 9 7-.3 1.1-1.1 2.3-2.2 3.3" /><path d="M6.2 6.2C4.4 7.4 3.3 9.2 3 12c.7 2.5 4 7 9 7 1.2 0 2.3-.3 3.3-.8" /></> : <><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>}</svg></button>;
 }
 
-export function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: AuthSession) => void }) {
+export function AuthScreen({ onAuthenticated, sessionNotice = "", onRetry }: { onAuthenticated: (session: AuthSession) => void; sessionNotice?: string; onRetry?: () => void | Promise<void> }) {
   const [registrationEnabled,setRegistrationEnabled]=useState(false);
   const [mode, setMode] = useState<Mode>("login");
   const [resetToken, setResetToken] = useState("");
@@ -163,9 +164,11 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (session: Aut
           {mode !== "reset" ? <label className="grid gap-1.5">E-mail<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} maxLength={254} required autoComplete="email" /></label> : null}
           {mode !== "forgot" ? <label className="grid gap-1.5">{mode === "reset" ? "Nova senha" : "Senha"}<div className="relative"><input className="pr-12" type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} minLength={mode === "login" ? 1 : PASSWORD_MIN_LENGTH} maxLength={128} required autoComplete={mode === "login" ? "current-password" : "new-password"} /><EyeToggle visible={showPassword} onToggle={() => setShowPassword((visible) => !visible)} /></div></label> : null}
           {mode === "reset" ? <label className="grid gap-1.5">Repita a nova senha<input type={showPassword ? "text" : "password"} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} minLength={PASSWORD_MIN_LENGTH} maxLength={128} required autoComplete="new-password" /></label> : null}
+          {sessionNotice ? <p data-testid="auth-session-notice" className="rounded-token-sm bg-blue-50 px-3.5 py-3 text-body text-blue-800" role="status">{sessionNotice}</p> : null}
           {notice ? <p className="rounded-token-sm bg-blue-50 px-3.5 py-3 text-body text-blue-800" role="status">{notice}</p> : null}
           {error ? <p className="text-body text-danger" role="alert">{error}</p> : null}
           <button data-testid="auth-submit" className={submitTw} type="submit" disabled={busy}>{busy ? "Aguarde..." : mode === "register" ? "Criar empresa e entrar" : mode === "forgot" ? "Enviar link" : mode === "reset" ? "Salvar nova senha" : "Entrar"}</button>
+          {sessionNotice && onRetry ? <button type="button" data-testid="auth-retry" className={retryTw} onClick={() => void onRetry()}>Tentar reconectar</button> : null}
         </form>
         {mode === "login" ? <div className="flex flex-wrap items-center gap-1.5 text-body text-ink-secondary"><button className="min-h-0 p-0 font-bold text-blue-600" type="button" onClick={() => switchMode("forgot")}>Esqueceu a senha?</button></div> : null}
         {mode === "forgot" || mode === "reset" ? <div className="flex flex-wrap items-center gap-1.5 text-body text-ink-secondary"><span>{mode === "forgot" ? "Lembrou a senha?" : "Não solicitou a troca?"}</span><button className="min-h-0 p-0 font-bold text-blue-600" type="button" onClick={() => switchMode("login")}>Voltar para entrar</button></div> : null}

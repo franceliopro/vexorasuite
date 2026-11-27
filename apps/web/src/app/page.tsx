@@ -30,6 +30,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { AuthScreen, type AuthSession, type SegmentNavigationItem } from "./auth-screen";
 import { SchoolDashboard } from "./school-dashboard";
+import { QuickBrandPanel } from "./quick-brand-panel";
 const InboxWorkspace=dynamic(()=>import("./inbox-workspace").then(module=>module.InboxWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const OperationsSettings=dynamic(()=>import("./operations-settings").then(module=>module.OperationsSettings),{loading:()=> <p role="status">Carregando módulo…</p>});
 const CrmWorkspace=dynamic(()=>import("./crm-workspace").then(module=>module.CrmWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
@@ -106,6 +107,8 @@ import {
   CheckCircle2,
   FileText,
   GraduationCap,
+  LogOut,
+  Palette,
   X,
 } from "lucide-react";
 
@@ -145,6 +148,7 @@ function Icon({ name, size = 18, className }: { name: keyof typeof iconMap; size
 const primaryButton="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-blue-950 shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const secondaryButton="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-zinc-100 px-4 py-2 text-sm font-bold text-slate-950 transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60";
 const authScreenTw="grid min-h-dvh place-items-center bg-zinc-50 p-5";
+const SESSION_EXPIRED_NOTICE="Sua sessão expirou. Entre novamente para continuar.";
 const authPanelTw="mx-auto grid w-full max-w-md content-center gap-4 p-8";
 const contrastOkTw="inline-flex self-start rounded-full border border-blue-700 bg-blue-50 px-3 py-1.5 text-xs font-bold tracking-wide text-blue-700";
 const contrastWarnTw="inline-flex self-start rounded-full border border-amber-600 bg-amber-100 px-3 py-1.5 text-xs font-bold tracking-wide text-amber-600";
@@ -267,6 +271,7 @@ const workspaceTabKey = (value: string) => ["Chatbots", "Workflows", "Agentes de
 export default function HomePage() {
   useGlobalPhoneMask();
   const [authStatus, setAuthStatus] = useState<"checking" | "anonymous" | "authenticated">("checking");
+  const [authNotice, setAuthNotice] = useState("");
   const [session, setSession] = useState<AuthSession | null>(null);
   const selectedPaymentProvider = session?.paymentProvider || "ASAAS";
   const paymentProviderLabel = selectedPaymentProvider === "STRIPE" ? "Stripe" : selectedPaymentProvider === "INFINITEPAY" ? "InfinitePay" : "Asaas";
@@ -281,15 +286,43 @@ export default function HomePage() {
     let mounted = true;
     fetch("/api/backend/auth/me", { cache: "no-store" })
       .then(async (response) => {
-        if (!response.ok) throw new Error("not authenticated");
+        if (response.status === 401) throw new Error(SESSION_EXPIRED_NOTICE);
+        if (!response.ok) throw new Error("Não foi possível conectar ao seu ambiente.");
         return response.json();
       })
       .then((value) => { if (mounted) { setSession(value); setAuthStatus("authenticated"); void refreshProfile(); } })
-      .catch(() => { if (mounted) setAuthStatus("anonymous"); });
+      .catch((error: unknown) => { if (mounted) { setAuthStatus("anonymous"); setAuthNotice(error instanceof Error ? error.message : "Não foi possível conectar."); } });
     return () => { mounted = false; };
   }, []);
 
-  const refreshProfile=async()=>{const r=await fetch('/api/backend/auth/me',{cache:'no-store'});if(r.ok)setSession(await r.json());};
+  const refreshProfile=async()=>{
+    const r=await fetch('/api/backend/auth/me',{cache:'no-store'});
+    if(r.ok){setSession(await r.json());return;}
+    if(r.status===401){setSession(null);setAuthStatus("anonymous");setAuthNotice(SESSION_EXPIRED_NOTICE);}
+  };
+  const retryAuth=async()=>{
+    setAuthNotice("");setAuthStatus("checking");
+    try{
+      const r=await fetch("/api/backend/auth/me",{cache:"no-store"});
+      if(r.status===401)throw new Error(SESSION_EXPIRED_NOTICE);
+      if(!r.ok)throw new Error("Não foi possível conectar ao seu ambiente.");
+      setSession(await r.json());setAuthStatus("authenticated");
+    }catch(error){
+      setAuthStatus("anonymous");
+      setAuthNotice(error instanceof Error?error.message:"Não foi possível conectar.");
+    }
+  };
+  const signOut=async()=>{
+    setMenuOpen(false);
+    let confirmed=true;
+    try{
+      await disableDeviceNotifications().catch(()=>{});
+      const response=await fetch("/api/backend/auth/logout",{method:"POST"});
+      if(!response.ok)confirmed=false;
+    }catch{confirmed=false}
+    setSession(null);setAuthStatus("anonymous");setActive("Visão geral");
+    setAuthNotice(confirmed?"":"Não foi possível confirmar a revogação da sessão no servidor. Tente entrar novamente.");
+  };
   useEffect(()=>{const refresh=()=>{void refreshProfile();};window.addEventListener("vexora:team-updated",refresh);return()=>window.removeEventListener("vexora:team-updated",refresh);},[]);
   useEffect(()=>{if(!session||session.user.mustChangePassword)return;const sync=()=>{if(document.visibilityState!=='visible')return;if(session.user.avatarSource==='GOOGLE')void fetch('/api/backend/profile/google-photo',{method:'POST'}).then(()=>refreshProfile());else void refreshProfile();};const timer=setInterval(sync,300000);window.addEventListener('focus',sync);return()=>{clearInterval(timer);window.removeEventListener('focus',sync)}},[session?.user.id,session?.user.avatarSource]);
   const [active, setActive] = useState("Visão geral");
@@ -380,8 +413,19 @@ export default function HomePage() {
   const [sidebarColorError,setSidebarColorError]=useState("");
   const [sidebarDraft,setSidebarDraft]=useState<{sidebarBackground:string;sidebarForeground:string;sidebarHover:string}|null>(null);
   const [brandAssets,setBrandAssets] = useState<BrandAssets>(defaultBrandAssets);
+  const [brandPanelAnchor,setBrandPanelAnchor] = useState<{x:number;y:number}|null>(null);
   const [greeting,setGreeting] = useState("Bom dia");
   const currentTheme = () => (typeof document !== "undefined" ? document.documentElement.dataset.theme || "hybrid" : "hybrid");
+  const openBrandPanel = (x: number, y: number) => {
+    if (!canConfigure) return;
+    setBrandPanelAnchor({ x: Math.max(8, Math.min(x, window.innerWidth - 320)), y: Math.max(8, Math.min(y, window.innerHeight - 440)) });
+  };
+  const onBrandSaved = (saved: import("../lib/brand-theme").BrandAssets) => {
+    const next = { ...defaultBrandAssets, ...saved } as BrandAssets;
+    setBrandAssets(next);
+    applyBrandAll(next, currentTheme());
+    brandApplyRef.current = (themeName: string) => applyBrandAll(next, themeName);
+  };
   const validOrEmpty = (v: string) => v === "" || /^#[0-9a-fA-F]{6}$/.test(v);
   const setSidebarField = (key: "sidebarBackground" | "sidebarForeground" | "sidebarHover", rawValue: string) => {
     setSidebarDraft(prev => {
@@ -487,7 +531,7 @@ export default function HomePage() {
     return <div className={authScreenTw}><div className={authPanelTw}><span className={BRAND_MARK_TW.default}>V</span><h1>Véxora Suite</h1><p>Conectando ao seu ambiente...</p></div></div>;
   }
   if (authStatus === "anonymous") {
-    return <AuthScreen onAuthenticated={(value) => { setSession(value); setAuthStatus("authenticated");void refreshProfile(); }} />;
+    return <AuthScreen sessionNotice={authNotice} onRetry={() => void retryAuth()} onAuthenticated={(value) => { setAuthNotice(""); setSession(value); setAuthStatus("authenticated");void refreshProfile(); }} />;
   }
 
   if(session?.user.mustChangePassword)return <ChangePasswordScreen/>;
@@ -529,8 +573,9 @@ export default function HomePage() {
           })}
         </nav>
         <div className="sidebar-bottom">
-          <div className="sidebar-utilities"><button type="button" className="sidebar-collapse" aria-label={sidebarCollapsed ? "Expansir menu" : "Recolher menu"} onClick={() => setSidebarCollapsed(v => !v)}>{sidebarCollapsed ? <ChevronRight size={16} aria-hidden="true" /> : <ChevronLeft size={16} aria-hidden="true" />}</button><button type="button" className="sidebar-icon" aria-label="Instalar Véxora" title="Instalar Véxora" onClick={()=>window.dispatchEvent(new Event('vexora:install'))}><Download size={18}/></button></div>
+          <div className="sidebar-utilities"><button type="button" className="sidebar-collapse" aria-label={sidebarCollapsed ? "Expansir menu" : "Recolher menu"} onClick={() => setSidebarCollapsed(v => !v)}>{sidebarCollapsed ? <ChevronRight size={16} aria-hidden="true" /> : <ChevronLeft size={16} aria-hidden="true" />}</button>{canConfigure?<button type="button" className="sidebar-icon" aria-label="Personalizar aparência" title="Personalizar aparência" onClick={(event) => { const rect = event.currentTarget.getBoundingClientRect(); openBrandPanel(rect.right - 320, rect.bottom + 8); }}><Palette size={18} aria-hidden="true" /></button>:null}<button type="button" className="sidebar-icon" aria-label="Instalar Véxora" title="Instalar Véxora" onClick={()=>window.dispatchEvent(new Event('vexora:install'))}><Download size={18}/></button></div>
           {session&&<SidebarProfile user={session.user} canManage={canManage&&moduleVisible("Atendentes")} onUpdated={refreshProfile} onTeam={()=>{setActive('Atendentes');setMenuOpen(false)}}/>}
+          {session&&<button type="button" data-testid="logout-sidebar" className="inline-flex min-h-control w-full items-center gap-profile-gap rounded-token-sm px-profile-row-x py-profile-row-y text-sidebar-muted transition-colors hover:bg-sidebar-on hover:text-sidebar-text" onClick={()=>void signOut()}><LogOut size={16} aria-hidden="true"/><span>Sair da conta</span></button>}
         </div>
       </aside>
       {sidebarColorMenu && sidebarDraft ? (
@@ -576,6 +621,14 @@ export default function HomePage() {
           {sidebarColorError ? <p className={colorErrorTw} role="alert">{sidebarColorError}</p> : null}
         </div>
       ) : null}
+      {brandPanelAnchor && canConfigure ? <QuickBrandPanel
+        anchor={brandPanelAnchor}
+        brand={brandAssets}
+        theme={theme}
+        onClose={() => setBrandPanelAnchor(null)}
+        onSaved={onBrandSaved}
+        onAdvanced={() => { setBrandPanelAnchor(null); preloadWorkspace("Configurações"); setSettingsAdvanced(true); setActive("Configurações"); setMenuOpen(false); }}
+      /> : null}
       {menuOpen ? <button type="button" className="mobile-sidebar-backdrop" aria-label="Fechar menu lateral" onClick={() => setMenuOpen(false)} /> : null}
 
       <main className="main-area">
@@ -596,7 +649,7 @@ export default function HomePage() {
             {moduleVisible("CRM") ? <label className="search-box"><span><Search size={18} aria-hidden="true" /></span><input ref={searchInputRef} aria-label="Buscar contatos" placeholder="Buscar contatos…" value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.nativeEvent.isComposing&&globalSearch.trim()){preloadWorkspace("CRM");setCrmSearch(globalSearch.trim());setActive("CRM");e.currentTarget.blur()}}} /><kbd>⌘ K</kbd></label> : null}
             <button className={themeToggleTw} onClick={() => setTheme(value => value==="hybrid"?"light":value==="light"?"dark":"hybrid")} aria-label={"Tema atual: "+({hybrid:"Híbrido",light:"Claro",dark:"Escuro"}[theme])+". Clique para alternar."} title={"Tema: "+({hybrid:"Híbrido",light:"Claro",dark:"Escuro"}[theme])+" · clique para alternar"}>{theme==="hybrid"?<SunMoon size={17}/>:theme==="light"?<Sun size={17}/>:<Moon size={17}/>}</button>
             
-            <button className="logout-button" onClick={async () => { await disableDeviceNotifications().catch(()=>{}); await fetch("/api/backend/auth/logout", { method: "POST" }); setSession(null); setAuthStatus("anonymous"); }} title="Sair da conta">Sair</button>
+            <button type="button" data-testid="logout-topbar" className="logout-button" aria-label="Sair da conta" title="Sair da conta" onClick={()=>void signOut()}><LogOut size={17} aria-hidden="true"/><span>Sair</span></button>
           </div>
         </header>
 
@@ -604,7 +657,10 @@ export default function HomePage() {
         <div className={pageContentClass(active === "Atendimento")}><WorkspaceAlerts admin={session?.role==='OWNER'||session?.role==='ADMIN'}/>
           {isOverview ? <section className={pageHeadingTw}>
             <div className="bg-transparent"><h1>{schoolProfile ? "Visão geral da escola" : greeting+", "+((session?.user?.name||"").trim().split(/\s+/)[0]||"você")+"! 👋"}</h1></div>
-            {inboxVisible ? <button className={primaryButton} onClick={() => setActive("Atendimento")}><Plus size={16} aria-hidden="true" /> Abrir atendimento</button> : null}
+            <div className="flex flex-wrap items-center gap-2">
+              {canConfigure ? <button type="button" data-testid="quick-brand-button" className={secondaryButton} onClick={(event) => { const rect = event.currentTarget.getBoundingClientRect(); openBrandPanel(rect.right - 320, rect.bottom + 8); }}><Palette size={16} aria-hidden="true" /> Aparência</button> : null}
+              {inboxVisible ? <button className={primaryButton} onClick={() => setActive("Atendimento")}><Plus size={16} aria-hidden="true" /> Abrir atendimento</button> : null}
+            </div>
           </section> : null}
           {isOverview && !schoolProfile ? <DashboardWidgets /> : null}
           {isOverview && !schoolProfile && session?.tenant.slug === "rastreabem" ? <section className={cardTw} aria-label="Site externo da Rastreabem">

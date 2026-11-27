@@ -29,7 +29,8 @@ const TeamWorkspace=dynamic(()=>import("./team-workspace").then(m=>m.TeamWorkspa
 import { Suspense, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { AuthScreen, type AuthSession, type SegmentNavigationItem } from "./auth-screen";
-import { SchoolDashboard } from "./school-dashboard";
+import { SchoolExperience } from "./school-experience";
+const SchoolEnrollmentsWorkspace=dynamic(()=>import("./school-enrollments-workspace").then(module=>module.SchoolEnrollmentsWorkspace),{loading:()=> <p role="status">Carregando matrículas…</p>});
 import { QuickBrandPanel } from "./quick-brand-panel";
 const InboxWorkspace=dynamic(()=>import("./inbox-workspace").then(module=>module.InboxWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const OperationsSettings=dynamic(()=>import("./operations-settings").then(module=>module.OperationsSettings),{loading:()=> <p role="status">Carregando módulo…</p>});
@@ -50,6 +51,7 @@ const workspacePreloaders:Partial<Record<string,()=>Promise<unknown>>>={
   "Calendários":()=>import("./calendar-workspace"),
   "Agenda":()=>import("./calendar-workspace"),
   "Gestão escolar":()=>import("./school-workspace"),
+  "Matrículas":()=>import("./school-enrollments-workspace"),
   "Tarefas":()=>import("./tasks-workspace"),
   "Chatbots":()=>import("./chatbot-workspace"),
   "Workflows":()=>import("./workflows-workspace"),
@@ -504,7 +506,7 @@ export default function HomePage() {
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
-  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Gestão escolar':'SCHOOL','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Relatórios':'INBOX','Clientes':'SETTINGS','Canais e integrações':'CHANNELS','E-mails':'EMAIL','Biblioteca de referências':'SETTINGS','Referências criativas':'SETTINGS','Google Drive':'SETTINGS','Planos e preços':'PLANS','Financeiro':'FINANCE','Asaas':'FINANCE','Stripe':'FINANCE','InfinitePay':'FINANCE','Documentos':'CRM','Conexões':'CHANNELS','Catálogo':'SETTINGS','Configurações':'SETTINGS'};
+  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Gestão escolar':'SCHOOL','Matrículas':'SCHOOL','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Relatórios':'INBOX','Clientes':'SETTINGS','Canais e integrações':'CHANNELS','E-mails':'EMAIL','Biblioteca de referências':'SETTINGS','Referências criativas':'SETTINGS','Google Drive':'SETTINGS','Planos e preços':'PLANS','Financeiro':'FINANCE','Asaas':'FINANCE','Stripe':'FINANCE','InfinitePay':'FINANCE','Documentos':'CRM','Conexões':'CHANNELS','Catálogo':'SETTINGS','Configurações':'SETTINGS'};
   const moduleVisible=(label:string)=>{
     if(label==="Visão geral")return true;
     const required=moduleForLabel[label];
@@ -674,7 +676,7 @@ export default function HomePage() {
           </div> : null}
 
           {!moduleVisible(active)||!providerVisible(active)?<section className={cardTw}><h2>Acesso não permitido</h2><p>Este módulo não está habilitado para sua empresa.</p><button type="button" className={secondaryButton} onClick={() => setActive("Visão geral")}>Ir para Visão geral</button></section>:isOverview ? (
-            schoolProfile ? <SchoolDashboard vocabulary={segmentProfile?.vocabulary} onNavigate={(target) => { preloadWorkspace(target); setActive(target); setMenuOpen(false); }} /> : (
+            schoolProfile ? <SchoolExperience userName={session?.user?.name || ""} /> : (
               <>
                 {overviewError&&!overview&&<p role="status">{overviewError}</p>}
                 <OverviewIntelligence data={overview} onOpenQueue={() => setActive("Atendimento")} />
@@ -686,6 +688,8 @@ export default function HomePage() {
             <CalendarWorkspace />
           ) : active === "Gestão escolar" ? (
             canConfigure ? <SchoolWorkspace /> : <section className={cardTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela empresa podem operar a Gestão escolar.</p></section>
+          ) : active === "Matrículas" ? (
+            canConfigure ? <SchoolEnrollmentsWorkspace /> : <section className={cardTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela empresa podem gerenciar matrículas.</p></section>
           ) : active === "CRM" ? (
             <CrmWorkspace key={(session?.tenant.id||"")+":"+crmSearch} initialSearch={crmSearch} />
           ) : active === "Asaas" || active === "Financeiro" || active === "Gestão" ? (

@@ -130,8 +130,19 @@ export class SchoolService {
             parent = await this.find(tx, "schoolCourse", { id: parentIdValue, tenantId, kind: "COURSE" }, "Curso");
             parentId = parent.id;
           }
+          const imageUrlRaw = optionalText(body?.imageUrl, 2000, "Foto do curso");
+          const imageUrl = imageUrlRaw ? httpsUrl(imageUrlRaw, "Foto do curso") : null;
+          const summary = optionalText(body?.summary, 2000, "Detalhes do curso");
+          const level = optionalText(body?.level, 40, "Nível");
+          const durationLabel = optionalText(body?.durationLabel, 40, "Duração");
+          const tuitionAmountCents = optionalInteger(body?.tuitionAmountCents, 0, 100_000_000, "Mensalidade em centavos");
           const row = await tx.schoolCourse.create({
-            data: { tenantId, kind, name, parentId, active: body?.active !== false, createdById: userId },
+            data: {
+              tenantId, kind, name, parentId,
+              active: body?.active !== false,
+              imageUrl, summary, level, durationLabel, tuitionAmountCents,
+              createdById: userId,
+            },
           });
           return { ...row, parentName: parent?.name ?? null };
         }

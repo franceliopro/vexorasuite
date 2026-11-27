@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, Banknote, CheckCircle2, Clock3, RefreshCcw, ShieldAlert } from "lucide-react";
+import { AlertTriangle, BarChart3, CheckCircle2, Clock3, RefreshCcw, Search, ShieldAlert, UsersRound } from "lucide-react";
 
 export type FinanceProviderKey = "ASAAS" | "STRIPE" | "INFINITEPAY";
 type ProviderTab = "overview" | "charges" | "customers" | "catalog" | "subscriptions";
@@ -67,6 +67,13 @@ const metricValueTw = "truncate text-lg font-extrabold tabular-nums text-slate-9
 const tableWrapTw = "w-full overflow-x-auto";
 const errorTw = "flex items-center gap-2 rounded-lg border border-red-600 bg-red-50 p-3 text-sm font-semibold text-red-600";
 const sourceTw = "flex items-center gap-2 rounded-lg border border-amber-600 bg-amber-100 p-3 text-sm text-amber-600";
+const chartWrapTw = "grid min-w-0 gap-3 rounded-lg border border-gray-200 bg-white p-3";
+const chartBarsTw = "flex flex-wrap items-end gap-3";
+const chartGroupTw = "grid w-16 justify-items-center gap-1";
+const chartTrackTw = "flex h-28 w-10 items-end justify-center gap-1 rounded-md bg-zinc-100";
+const chartBilledTw = "w-2 rounded-t bg-blue-600";
+const chartPaidTw = "w-2 rounded-t bg-emerald-600";
+const chartLabelTw = "w-full truncate text-center text-2xs text-slate-600";
 
 const TABS: { id: ProviderTab; label: string }[] = [
   { id: "overview", label: "Visão geral" },
@@ -75,6 +82,24 @@ const TABS: { id: ProviderTab; label: string }[] = [
   { id: "catalog", label: "Catálogo" },
   { id: "subscriptions", label: "Assinaturas" },
 ];
+
+/** Aceita rótulos da navegação e chaves canônicas da API sem cair no Asaas por acaso. */
+const PROVIDER_KEYS: Record<string, FinanceProviderKey> = {
+  ASAAS: "ASAAS",
+  Asaas: "ASAAS",
+  asaas: "ASAAS",
+  STRIPE: "STRIPE",
+  Stripe: "STRIPE",
+  stripe: "STRIPE",
+  INFINITEPAY: "INFINITEPAY",
+  INFINITE_PAY: "INFINITEPAY",
+  "infinite-pay": "INFINITEPAY",
+  InfinitePay: "INFINITEPAY",
+  infinitepay: "INFINITEPAY",
+};
+export function normalizeFinanceProvider(value: string | FinanceProviderKey): FinanceProviderKey {
+  return PROVIDER_KEYS[String(value).trim()] ?? "ASAAS";
+}
 
 const currency = (value: unknown) => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const text = (value: unknown) => value === null || value === undefined || value === "" ? "—" : String(value);
@@ -125,14 +150,34 @@ function capabilityAvailable(tab: ProviderTab, descriptor: Descriptor | null): b
   return key.source !== "UNSUPPORTED";
 }
 
+function TrendChart({ series }: { series: Dashboard["series"] }) {
+  const max = Math.max(1, ...series.flatMap((row) => [Number(row.billed || 0), Number(row.paid || 0)]));
+  return <div className={chartWrapTw}>
+    <div className={headTw}>
+      <div><h3 className={titleTw}>Faturado x pago por mês</h3><p className={subtitleTw}>Gráfico gerado somente a partir de <code>dashboard.series</code>; sem estimativa.</p></div>
+      <p className={noteTw}><span className="text-blue-600">■</span> Faturado <span className="text-emerald-600">■</span> Pago</p>
+    </div>
+    <div className={chartBarsTw} role="img" aria-label="Barras mensais de valores faturados e pagos">
+      {series.length === 0 ? <p className={noteTw}>Sem meses consultados neste período.</p> : series.map((row) => <div className={chartGroupTw} key={row.month} title={`${row.month}: faturado ${currency(row.billed)}, pago ${currency(row.paid)}`}>
+        <div className={chartTrackTw}>
+          <span className={chartBilledTw} style={{ height: `${Math.max(2, (Number(row.billed || 0) / max) * 100)}%` }} />
+          <span className={chartPaidTw} style={{ height: `${Math.max(2, (Number(row.paid || 0) / max) * 100)}%` }} />
+        </div>
+        <small className={chartLabelTw}>{row.month}</small>
+      </div>)}
+    </div>
+  </div>;
+}
+
 export function FinanceProviderWorkspace({ provider: providerRaw }: { provider: FinanceProviderKey | string }) {
-  const provider = (["ASAAS", "STRIPE", "INFINITEPAY"].includes(providerRaw) ? providerRaw : "ASAAS") as FinanceProviderKey;
+  const provider = normalizeFinanceProvider(providerRaw);
   const [tab, setTab] = useState<ProviderTab>("overview");
   const [months, setMonths] = useState(6);
   const [refresh, setRefresh] = useState(0);
   const [descriptor, setDescriptor] = useState<Descriptor | null>(null);
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [list, setList] = useState<ListData | null>(null);
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -151,6 +196,10 @@ export function FinanceProviderWorkspace({ provider: providerRaw }: { provider: 
       .finally(() => { if (live) setLoading(false); });
     return () => { live = false; };
   }, [provider, refresh]);
+
+  useEffect(() => {
+    if (tab !== "overview" && descriptor && !capabilityAvailable(tab, descriptor)) setTab("overview");
+  }, [descriptor, tab]);
 
   useEffect(() => {
     if (tab !== "overview" && descriptor && !capabilityAvailable(tab, descriptor)) return;
@@ -176,13 +225,17 @@ export function FinanceProviderWorkspace({ provider: providerRaw }: { provider: 
   const capabilityNote = descriptor && tab !== "overview" && tab !== "subscriptions"
     ? (tab === "catalog" ? descriptor.capabilities.catalog : tab === "customers" ? descriptor.capabilities.customers : descriptor.capabilities.charges).note
     : "";
+  const visibleTabs = TABS.filter((item) => item.id !== "subscriptions" || descriptor?.capabilities.subscriptions !== false);
+  const normalizedQuery = query.trim().toLowerCase();
+  const rows = (list?.items || []).filter((row) => !normalizedQuery
+    || Object.values(row).some((value) => String(value ?? "").toLowerCase().includes(normalizedQuery)));
 
   return <section className={pageTw} aria-label={`Financeiro ${descriptor?.label || provider}`}>
     <header className={cardTw}>
       <div className={headTw}>
         <div>
-          <h1 className={titleTw}>{descriptor?.label || "Financeiro"}</h1>
-          <p className={subtitleTw}>Painel do provedor selecionado. Cada número informa sua origem; nenhum indicador é estimado.</p>
+          <h1 className={titleTw}>{descriptor?.label || provider}</h1>
+          <p className={subtitleTw}>Ecossistema isolado do Asaas. Cada número informa sua origem; nenhum indicador é estimado.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <span className={descriptor?.configured ? badgeTw : warnBadgeTw}>{descriptor?.configured ? "Configuração salva" : "Sem credencial salva"}</span>
@@ -191,6 +244,7 @@ export function FinanceProviderWorkspace({ provider: providerRaw }: { provider: 
       </div>
       {descriptor ? <>
         <p className={noteTw}>Ambiente informado pela configuração: {text(descriptor.environment)}. {descriptor.verification.note}</p>
+        {descriptor.environment === "TEST" ? <p role="alert" className={sourceTw}><AlertTriangle size={15} aria-hidden="true" />Ambiente TEST: estes dados nunca devem ser apresentados como produção.</p> : null}
         <p className={noteTw}>{descriptor.caveat}</p>
         <details className={cardTw}>
           <summary className="cursor-pointer text-sm font-bold text-slate-700">Capacidades e limites documentados</summary>
@@ -210,7 +264,7 @@ export function FinanceProviderWorkspace({ provider: providerRaw }: { provider: 
     </header>
 
     <nav className={tabsTw} aria-label={`Áreas do ${descriptor?.label || provider}`}>
-      {TABS.map((item) => <button key={item.id} type="button" aria-current={tab === item.id ? "page" : undefined} className={tab === item.id ? tabActiveTw : tabTw} onClick={() => { setTab(item.id); setList(null); }}>{item.label}</button>)}
+      {visibleTabs.map((item) => <button key={item.id} type="button" aria-current={tab === item.id ? "page" : undefined} className={tab === item.id ? tabActiveTw : tabTw} onClick={() => { setTab(item.id); setList(null); setQuery(""); }}>{item.label}</button>)}
     </nav>
 
     {tab === "overview" ? <section className={cardTw}>
@@ -229,6 +283,7 @@ export function FinanceProviderWorkspace({ provider: providerRaw }: { provider: 
           <article className={metricTw}><span className={metricLabelTw}>Em aberto</span><strong className={metricValueTw}>{currency(dashboard.totals.open)}</strong></article>
           <article className={metricTw}><span className={metricLabelTw}>Recebimento</span><strong className={metricValueTw}>{dashboard.collectionRate === null ? "—" : `${dashboard.collectionRate}%`}</strong></article>
         </div>
+        <TrendChart series={dashboard.series || []} />
         <div className={tableWrapTw}>
           <table>
             <thead><tr><th>Mês</th><th>Faturado</th><th>Pago</th><th>Em aberto</th></tr></thead>
@@ -241,22 +296,29 @@ export function FinanceProviderWorkspace({ provider: providerRaw }: { provider: 
       <p className={noteTw}>{descriptor?.caveat || "A API documentada não expõe esta consulta."}</p>
     </section> : <section className={cardTw}>
       <div className={headTw}>
-        <div><h2 className={titleTw}>{TABS.find((item) => item.id === tab)?.label}</h2><p className={subtitleTw}>{capabilityNote || "Somente registros consultados na origem declarada."}</p></div>
+        <div>
+          <h2 className={titleTw}>{tab === "customers" ? "Gestão de clientes" : TABS.find((item) => item.id === tab)?.label}</h2>
+          <p className={subtitleTw}>{capabilityNote || "Somente registros consultados na origem declarada."}</p>
+        </div>
+        <label className="flex min-w-48 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3">
+          <Search size={15} aria-hidden="true" />
+          <input aria-label="Buscar registros" className="min-h-9 w-full bg-transparent text-sm outline-hidden" placeholder="Buscar nesta aba" value={query} onChange={(event) => setQuery(event.target.value)} />
+        </label>
       </div>
       {loading ? <p role="status">Consultando registros do provedor…</p> : error ? <p role="alert" className={errorTw}><AlertTriangle size={16} aria-hidden="true" />{error}</p> : list ? <>
         <p className={noteTw}>Origem: {sourceLabel(list.source)}{list.total === undefined ? "" : ` · ${list.total} registro(s) no total`}. {list.caveat || ""}</p>
         <div className={tableWrapTw}>
           <table>
             <thead><tr>{columnsFor(tab).map((column) => <th key={column.key}>{column.label}</th>)}</tr></thead>
-            <tbody>{list.items.map((row, index) => <tr key={text(first(row, "id", "externalId", "name")) + index}>{columnsFor(tab).map((column) => <td key={column.key}>{column.render ? column.render(row) : text(row[column.key])}</td>)}</tr>)}</tbody>
+            <tbody>{rows.map((row, index) => <tr key={text(first(row, "id", "externalId", "name")) + index}>{columnsFor(tab).map((column) => <td key={column.key}>{column.render ? column.render(row) : text(row[column.key])}</td>)}</tr>)}</tbody>
           </table>
         </div>
-        {list.items.length === 0 ? <p className={noteTw}>Nenhum registro encontrado nesta consulta.</p> : null}
+        {rows.length === 0 ? <p className={noteTw}>Nenhum registro encontrado nesta consulta.</p> : null}
       </> : null}
     </section>}
 
     <p className={noteTw}><ShieldAlert size={14} aria-hidden="true" /> Status de configuração não é confirmação de pagamento. Envios de cobrança continuam na inbox da Véxora; a leitura de dados é tenant-scoped.</p>
-    <p className={noteTw}><CheckCircle2 size={14} aria-hidden="true" /> Outras ferramentas do Financeiro (catálogo local, automações e histórico) permanecem em <strong>Financeiro</strong>.</p>
-    <p className={noteTw}><Banknote size={14} aria-hidden="true" /> <Clock3 size={14} aria-hidden="true" /> Valores em BRL. Nenhuma operação externa é executada por esta tela.</p>
+    <p className={noteTw}><UsersRound size={14} aria-hidden="true" /> Clientes, cobranças e catálogo ficam neste ecossistema. O catálogo é o mesmo da empresa, escolhido no Catálogo.</p>
+    <p className={noteTw}><BarChart3 size={14} aria-hidden="true" /> <CheckCircle2 size={14} aria-hidden="true" /> <Clock3 size={14} aria-hidden="true" /> Valores em BRL. Nenhuma operação externa é executada por esta tela.</p>
   </section>;
 }

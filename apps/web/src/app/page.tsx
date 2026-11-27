@@ -55,14 +55,15 @@ const workspacePreloaders:Partial<Record<string,()=>Promise<unknown>>>={
   "Referências criativas":()=>import("./creative-library-workspace"),
   "Google Drive":()=>import("./creative-library-workspace"),
   "Relatórios":()=>import("./reports-workspace"),
+  "Asaas":()=>import("./finance-workspace"),
   "Financeiro":()=>import("./finance-workspace"),
   "Gestão":()=>import("./finance-workspace"),
-  "Asaas":()=>import("./finance-provider-workspace"),
   "Stripe":()=>import("./finance-provider-workspace"),
   "InfinitePay":()=>import("./finance-provider-workspace"),
   "Conexões":()=>import("./channels-integrations"),
   "Configurações":()=>import("./operations-settings"),
   "Atendentes":()=>import("./team-workspace"),
+  "Catálogo":()=>import("./catalog-settings"),
 };
 function preloadWorkspace(label:string){
   const targets=label==="Automação"?["Chatbots","Workflows","Agentes de IA"]:[label];
@@ -90,6 +91,7 @@ import {
   Download,
   MoreHorizontal,
   Image,
+  Package,
   Globe,
   ExternalLink,
   Menu,
@@ -123,6 +125,7 @@ const iconMap = {
   more: MoreHorizontal,
   transfer: ArrowRightLeft,
   image: Image,
+  package: Package,
   globe: Globe,
   assume: UserRoundPlus,
   finalize: CheckCircle2,
@@ -236,10 +239,10 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
   { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Calendários", icon: "calendar" }, { label: "Tarefas", icon: "tasks" }, { label: "Relatórios", icon: "chart" }] },
   { section: "RESULTADOS", items: [
     { label: "Automação", icon: "workflow", children: [{ label: "Chatbots", icon: "sparkles" }, { label: "Workflows", icon: "workflow" }, { label: "Agentes de IA", icon: "sparkles" }] },
-    { label: "Financeiro", icon: "wallet", children: [{ label: "Asaas", icon: "wallet" }, { label: "Stripe", icon: "globe" }, { label: "InfinitePay", icon: "sparkles" }] },
+    { label: "Asaas", icon: "wallet", children: [{ label: "Stripe", icon: "globe" }, { label: "InfinitePay", icon: "sparkles" }] },
     { label: "Documentos", icon: "file-text" },
   ] },
-  { section: "ADMINISTRAÇÃO", items: [{ label: "Atendentes", icon: "users" }, { label: "Conexões", icon: "share" }, { label: "Curso", icon: "graduation-cap" }, { label: "Planos e preços", icon: "sparkles" }, { label: "Configurações", icon: "settings" }] },
+  { section: "ADMINISTRAÇÃO", items: [{ label: "Atendentes", icon: "users" }, { label: "Conexões", icon: "share" }, { label: "Catálogo", icon: "package" }, { label: "Curso", icon: "graduation-cap" }, { label: "Planos e preços", icon: "sparkles" }, { label: "Configurações", icon: "settings" }] },
 ];
 
 const workspaceTabs: Record<string, { label: string; target: string }[]> = {
@@ -277,7 +280,7 @@ export default function HomePage() {
     const validModules = new Set(["Atendentes","Conexões","Canais e integrações","Relatórios","Clientes","Planos e preços","Biblioteca de referências","Referências criativas","Google Drive",...navigation.flatMap((group) => group.items.flatMap((item) => [item.label, ...(item.children || []).map((child) => child.label)]))]);
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("module");
-    if (requested === "Gestão") setActive("Financeiro");
+    if (["Gestão", "Financeiro", "asaas", "ASAAS"].includes(requested || "")) setActive("Asaas");
     else if (requested === "Integrações (API)") setActive("Configurações");
     else if (requested === "Origem dos Leads") setActive("CRM");
     else if (requested === "Inteligência Operacional") { setActive("CRM"); params.set("crmTab", "reports"); }
@@ -320,13 +323,12 @@ export default function HomePage() {
   }, []);
   const [workspaceInfoOpen, setWorkspaceInfoOpen] = useState(false);
   const [settingsAdvanced, setSettingsAdvanced] = useState(false);
-  const [settingsCatalogOpen, setSettingsCatalogOpen] = useState(false);
-  const [catalogReturnTo, setCatalogReturnTo] = useState<"settings" | "finance-products" | "finance-subscriptions">("settings");
+  const [catalogReturnTo, setCatalogReturnTo] = useState<"settings" | "finance-subscriptions">("settings");
   const [catalogEditId, setCatalogEditId] = useState("");
-  const [financeInitialTab, setFinanceInitialTab] = useState<"overview" | "products" | "subscriptions">("products");
-  const catalogBackLabel = catalogReturnTo === "finance-products" ? "Voltar aos Produtos" : catalogReturnTo === "finance-subscriptions" ? "Voltar às Assinaturas" : "Voltar às Configurações";
-  function closeCatalog(){if(catalogReturnTo === "finance-products" || catalogReturnTo === "finance-subscriptions"){setFinanceInitialTab(catalogReturnTo === "finance-products" ? "products" : "subscriptions");setActive("Financeiro")}else setSettingsCatalogOpen(false);setCatalogReturnTo("settings");setCatalogEditId("")}
-  useEffect(() => { const openCatalog = (event: Event) => { if (!["OWNER", "ADMIN", "MANAGER"].includes(String(session?.role || "").toUpperCase())) return; const detail = (event as CustomEvent<{ origin?: string; itemId?: string }>).detail || {}; const raw = detail.origin || "settings"; const origin = raw === "finance-products:new" ? "finance-products" : raw; const itemId = typeof detail.itemId === "string" ? detail.itemId : ""; setCatalogReturnTo(origin === "finance-products" || origin === "finance-subscriptions" ? origin : "settings"); setCatalogEditId(itemId); if (origin === "finance-products") setFinanceInitialTab("products"); if (origin === "finance-subscriptions") setFinanceInitialTab("subscriptions"); preloadWorkspace("Configurações"); setActive("Configurações"); setSettingsAdvanced(false); setSettingsCatalogOpen(true); }; window.addEventListener("vexora:open-catalog", openCatalog); return () => window.removeEventListener("vexora:open-catalog", openCatalog); }, [session?.role]);
+  const [financeInitialTab, setFinanceInitialTab] = useState<"overview" | "subscriptions">("overview");
+  const catalogBackLabel = catalogReturnTo === "finance-subscriptions" ? "Voltar às Assinaturas" : "Voltar às Configurações";
+  function closeCatalog(){if(catalogReturnTo === "finance-subscriptions"){setFinanceInitialTab("subscriptions");setActive("Asaas")}else setActive("Configurações");setCatalogReturnTo("settings");setCatalogEditId("")}
+  useEffect(() => { const openCatalog = (event: Event) => { if (!["OWNER", "ADMIN", "MANAGER"].includes(String(session?.role || "").toUpperCase())) return; const detail = (event as CustomEvent<{ origin?: string; itemId?: string }>).detail || {}; const origin = detail.origin || "settings"; const itemId = typeof detail.itemId === "string" ? detail.itemId : ""; setCatalogReturnTo(origin === "finance-subscriptions" ? origin : "settings"); setCatalogEditId(itemId); if (origin === "finance-subscriptions") setFinanceInitialTab("subscriptions"); setSettingsAdvanced(false); preloadWorkspace("Catálogo"); setActive("Catálogo"); }; window.addEventListener("vexora:open-catalog", openCatalog); return () => window.removeEventListener("vexora:open-catalog", openCatalog); }, [session?.role]);
   useEffect(() => {
     if (!menuOpen && !workspaceInfoOpen) return;
     const closeOutside = (event: MouseEvent) => {
@@ -438,14 +440,14 @@ export default function HomePage() {
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
-  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Relatórios':'INBOX','Clientes':'SETTINGS','Canais e integrações':'CHANNELS','E-mails':'EMAIL','Biblioteca de referências':'SETTINGS','Referências criativas':'SETTINGS','Google Drive':'SETTINGS','Planos e preços':'PLANS','Financeiro':'FINANCE','Asaas':'FINANCE','Stripe':'FINANCE','InfinitePay':'FINANCE','Documentos':'CRM','Conexões':'CHANNELS','Configurações':'SETTINGS'};
+  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Relatórios':'INBOX','Clientes':'SETTINGS','Canais e integrações':'CHANNELS','E-mails':'EMAIL','Biblioteca de referências':'SETTINGS','Referências criativas':'SETTINGS','Google Drive':'SETTINGS','Planos e preços':'PLANS','Financeiro':'FINANCE','Asaas':'FINANCE','Stripe':'FINANCE','InfinitePay':'FINANCE','Documentos':'CRM','Conexões':'CHANNELS','Catálogo':'SETTINGS','Configurações':'SETTINGS'};
   const moduleVisible=(label:string)=>label==="Visão geral"||session?.user.isPlatformAdmin===true||!moduleForLabel[label]||(session?.allowedModules||[]).includes(moduleForLabel[label]!);
   const platformPanel=session?.tenant.kind==="PLATFORM"&&session?.user.isPlatformAdmin===true;
   // Planos e preços é capacidade da plataforma: cliente só vê quando a Véxora libera o módulo PLANS.
   // Mesmo um admin da plataforma olhando um tenant cliente não faz o item reaparecer sem a liberação.
   const plansMenuVisible = session?.tenant.kind !== "PLATFORM" && (session?.allowedModules || []).includes("PLANS");
   const isOverview = active === "Visão geral";
-  useEffect(() => { if (active !== "Configurações") { setSettingsAdvanced(false); setSettingsCatalogOpen(false); setCatalogReturnTo("settings"); setCatalogEditId(""); } }, [active]);
+  useEffect(() => { if (active !== "Configurações" && active !== "Catálogo") { setSettingsAdvanced(false); setCatalogReturnTo("settings"); setCatalogEditId(""); } }, [active]);
   const currentWorkspaceTab = workspaceTabKey(active);
   const canManage = ["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase());
   const canConfigure = ["OWNER", "ADMIN", "MANAGER"].includes((session?.role || "").toUpperCase());
@@ -466,7 +468,7 @@ export default function HomePage() {
         </a></div>
         <nav className="side-nav" aria-label="Navegação principal">
           {navigation.map((group) => {
-            const visibleItems = group.items.filter((item) => (item.label !== "Planos e preços" || plansMenuVisible) && moduleVisible(item.label) && (!["Financeiro","Relatórios","Planos e preços"].includes(item.label) || canManage) && (!["Configurações","Conexões"].includes(item.label) || canConfigure));
+            const visibleItems = group.items.filter((item) => (item.label !== "Planos e preços" || plansMenuVisible) && moduleVisible(item.label) && (!["Asaas","Financeiro","Relatórios","Planos e preços"].includes(item.label) || canManage) && (!["Configurações","Conexões"].includes(item.label) || canConfigure));
             if (!visibleItems.length) return null;
             return <div className="nav-group" key={group.section}>
               <p className="nav-section">{group.section}</p>
@@ -479,6 +481,7 @@ export default function HomePage() {
                     onClick={() => {
                       if (item.children) {
                         setExpandedModules((current) => current.includes(item.label) ? [] : [item.label]);
+                        if (item.label === "Asaas") { preloadWorkspace("Asaas"); setActive("Asaas"); setMenuOpen(false); }
                       } else {
                         setExpandedModules([]);preloadWorkspace(item.label);setActive(item.label); setMenuOpen(false);
                       }
@@ -592,10 +595,10 @@ export default function HomePage() {
             <CalendarWorkspace />
           ) : active === "CRM" ? (
             <CrmWorkspace key={(session?.tenant.id||"")+":"+crmSearch} initialSearch={crmSearch} />
-          ) : active === "Financeiro" || active === "Gestão" ? (
+          ) : active === "Asaas" || active === "Financeiro" || active === "Gestão" ? (
             canManage ? <FinanceWorkspace initialTab={financeInitialTab} /> : <section className={placeholderTw}><h2>Acesso restrito</h2><p>Somente a administração pode consultar dados financeiros.</p></section>
-          ) : active === "Asaas" || active === "Stripe" || active === "InfinitePay" ? (
-            canManage ? <FinanceProviderWorkspace provider={active} /> : <section className={placeholderTw}><h2>Acesso restrito</h2><p>Somente a administração pode consultar dados financeiros.</p></section>
+          ) : active === "Stripe" || active === "InfinitePay" ? (
+            canManage ? <FinanceProviderWorkspace provider={active === "Stripe" ? "STRIPE" : "INFINITEPAY"} /> : <section className={placeholderTw}><h2>Acesso restrito</h2><p>Somente a administração pode consultar dados financeiros.</p></section>
           ) : active === "Documentos" ? (
             <DocumentsWorkspace />
           ) : active === "Curso" ? (
@@ -623,11 +626,12 @@ export default function HomePage() {
             <InboxWorkspace key={session?.tenant.id} tenantId={session?.tenant.id||""} userId={session?.user.id||""} canManageChannels={canConfigure} />
           ) : active === "Conexões" || active === "Canais e integrações" ? (
             canConfigure ? <ChannelsIntegrations /> : <section className={placeholderTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
+          ) : active === "Catálogo" ? (
+            canConfigure ? <CatalogSettings canManage={canManage} initialItemId={catalogEditId} backLabel={catalogBackLabel} onBack={closeCatalog} /> : <section className={placeholderTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar o Catálogo.</p></section>
           ) : active === "Configurações" ? (
             canConfigure ? (
-              settingsCatalogOpen ? <><button type="button" className={settingsBackLinkTw} onClick={closeCatalog}>← {catalogBackLabel}</button><CatalogSettings canManage={canManage} initialItemId={catalogEditId} backLabel={catalogBackLabel} onBack={closeCatalog} /></>
-                : settingsAdvanced ? <><button type="button" className={settingsBackLinkTw} onClick={() => setSettingsAdvanced(false)}>← Voltar para Configurações</button><OperationsSettings canConfigureAsaas={["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase())} companyName={session?.tenant.name||"Sua empresa"} isPlatformAdmin={session?.user.isPlatformAdmin===true} /></>
-                  : <SettingsCatalog onNavigate={(target) => { preloadWorkspace(target); setActive(target); }} onAdvanced={() => setSettingsAdvanced(true)} onCompanies={() => window.dispatchEvent(new Event("vexora:open-companies"))} onCatalog={() => { setCatalogReturnTo("settings"); setCatalogEditId(""); setSettingsCatalogOpen(true); }} />
+              settingsAdvanced ? <><button type="button" className={settingsBackLinkTw} onClick={() => setSettingsAdvanced(false)}>← Voltar para Configurações</button><OperationsSettings canConfigureAsaas={["OWNER", "ADMIN"].includes((session?.role || "").toUpperCase())} companyName={session?.tenant.name||"Sua empresa"} isPlatformAdmin={session?.user.isPlatformAdmin===true} /></>
+                : <SettingsCatalog onNavigate={(target) => { preloadWorkspace(target); setActive(target); }} onAdvanced={() => setSettingsAdvanced(true)} onCompanies={() => window.dispatchEvent(new Event("vexora:open-companies"))} onCatalog={() => { setCatalogReturnTo("settings"); setCatalogEditId(""); setActive("Catálogo"); }} />
             ) : <section className={placeholderTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
           ) : (
             <section className={placeholderTw}>

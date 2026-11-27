@@ -13,8 +13,6 @@ import {
   Clock3,
   History,
   LayoutDashboard,
-  Package,
-  Pencil,
   Plus,
   Receipt,
   RefreshCcw,
@@ -41,16 +39,6 @@ const tabsTw="flex max-w-full gap-1 overflow-x-auto rounded-fin-pill border bord
 const tabTw="inline-flex min-h-8 shrink-0 items-center gap-2 rounded-fin-pill px-3.5 text-small font-bold text-ink-secondary transition-colors hover:text-ink";
 const tabActiveTw="inline-flex min-h-8 shrink-0 items-center gap-2 rounded-fin-pill bg-blue-600 px-3.5 text-small font-bold text-blue-900 shadow-token-sm";
 const portfolioCardTw="grid min-w-0 gap-3 self-start rounded-token border border-line bg-surface p-pad shadow-token";
-const catalogCardTw="grid min-w-0 gap-3 self-start rounded-token border border-line bg-surface p-pad shadow-token";
-const productGridTw="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4";
-const productCardTw="grid min-w-0 gap-0 self-start overflow-hidden rounded-token border border-line bg-surface-2 shadow-token-sm transition-transform hover:-translate-y-0.5 hover:shadow-token";
-const productImageFrameTw="grid aspect-square place-items-center overflow-hidden rounded-fin-card bg-surface-3";
-const productImageTw="size-full object-cover";
-const productPlaceholderTw="grid size-full place-items-center gap-2 text-small text-ink-secondary";
-const productBodyTw="grid gap-2 p-pad";
-const productBadgeTw="inline-flex w-fit items-center rounded-fin-chip bg-blue-50 px-2 text-2xs font-bold text-blue-700";
-const productMetaTw="inline-flex w-fit items-center rounded-fin-chip bg-surface-3 px-2 text-2xs font-bold text-ink-secondary";
-const productPriceTw="text-fin-metric font-extrabold tabular-nums text-ink";
 const listingCardTw="grid min-w-0 gap-3 self-start rounded-token border border-line bg-surface p-pad shadow-token";
 const actionRowTw="flex flex-wrap gap-2.5";
 const metaTw="m-0 text-asaas-muted text-ink-secondary";
@@ -204,10 +192,8 @@ const newSubscriptionFooterTw="mt-0 flex flex-none justify-end gap-2.5 border-t 
 
 const currency = (n:number)=>n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const dateBR = (value:string)=>/^\d{4}-\d{2}-\d{2}$/.test(value)?value.split("-").reverse().join("/") : value;
-/** Abre Configurações → Catálogo lembrando de onde o usuário veio, para o Voltar ser contextual. */
-function openCatalogSettings(origin:"finance-products"|"finance-products:new"|"finance-subscriptions"="finance-products",itemId?:string){if(typeof window!=="undefined")window.dispatchEvent(new CustomEvent("vexora:open-catalog",{detail:{origin,itemId:itemId||""}}));}
-/** Imagens do catálogo são privadas: só renderizamos URLs HTTP(S) ou locais da própria API. */
-const catalogImageUrl=(value:unknown):string=>typeof value==="string"&&(/^https?:\/\//i.test(value.trim())||value.trim().startsWith("/api/"))?value.trim():"";
+/** O catálogo é compartilhado por todos os provedores e tem processo próprio; o Voltar leva às assinaturas. */
+function openCatalogSettings(itemId?:string){if(typeof window!=="undefined")window.dispatchEvent(new CustomEvent("vexora:open-catalog",{detail:{origin:"finance-subscriptions",itemId:itemId||""}}));}
 const statusBR:Record<string,string>={PENDING:"Pendente",OVERDUE:"Vencido",RECEIVED:"Recebido",CONFIRMED:"Confirmado",RECEIVED_IN_CASH:"Recebido em dinheiro",REFUNDED:"Estornado",CANCELLED:"Cancelado",CHARGEBACK_REQUESTED:"Contestação solicitada",CHARGEBACK_DISPUTE:"Em contestação"};
 
 type PortfolioItem = { id:string;customerId:string;customerName?:string|null;customerDocument?:string|null;description:string|null;value:number;dueDate:string;status:string;billingType:string|null;subscriptionId:string|null;invoiceUrl?:string|null };
@@ -260,38 +246,6 @@ function PortfolioView({initialStatus=""}:{initialStatus?:string}={}){
  </section>;
 }
 
-type CatalogData={source:string;environment:string;products:{id:string;name:string;description:string;value:number;status:string;billingType:string|null}[];subscriptions:{id:string;customerId:string;description:string;value:number;cycle:string;status:string}[];hasMoreProducts:boolean;hasMoreSubscriptions:boolean;offset:number;limit:number};
-function CatalogView({mode}:{mode:"catalog"|"subscriptions"}){
- const [data,setData]=useState<CatalogData|null>(null),[error,setError]=useState(""),[loading,setLoading]=useState(false),[offset,setOffset]=useState(0),[refresh,setRefresh]=useState(0);
- useEffect(()=>{let active=true;setLoading(true);setError("");fetch("/api/backend/finance/catalog?offset="+offset+"&limit=50",{cache:"no-store"}).then(async r=>{const body=await r.json();if(!r.ok)throw Error(body.message||"Não foi possível consultar o catálogo.");return body as CatalogData}).then(d=>{if(active)setData(d)}).catch(e=>{if(active){setData(null);setError(e.message)}}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[offset,refresh]);
- const isCatalog=mode==="catalog",items=isCatalog?data?.products:data?.subscriptions,hasMore=isCatalog?data?.hasMoreProducts:data?.hasMoreSubscriptions;
- return <section className={catalogCardTw}><header><div><h2>{isCatalog?"Produtos e serviços":"Assinaturas"}</h2><p>Dados consultados diretamente no Asaas · {data?.environment||"ambiente não confirmado"}</p></div><button className={secondaryButton} type="button" onClick={()=>setRefresh(n=>n+1)}><RefreshCcw size={15}/> Sincronizar agora</button></header>
-
- {loading?<p role="status">Consultando Asaas…</p>:error?<p role="alert">{error}</p>:data?<><div className={tableScrollTw}><table><thead><tr>{isCatalog?<><th>Produto ou serviço</th><th>Valor</th><th>Tipo</th><th>Clientes vinculados*</th><th>Receita recorrente estimada*</th><th>Situação</th></>:<><th>Descrição</th><th>Valor</th><th>Periodicidade</th><th>Situação</th></>}</tr></thead><tbody>{isCatalog?data.products.map(p=><tr key={p.id}><td><strong>{p.name}</strong><small className={customerDocTw}>{p.description}</small></td><td>{currency(p.value)}</td><td>{p.billingType||"Produto / serviço"}</td><td>{(()=>{const related=data.subscriptions.filter(s=>s.status==="ACTIVE"&&s.description?.trim().toLowerCase()===p.name.trim().toLowerCase());return related.length?new Set(related.map(s=>s.customerId)).size:"—"})()}</td><td>{(()=>{const related=data.subscriptions.filter(s=>s.status==="ACTIVE"&&s.description?.trim().toLowerCase()===p.name.trim().toLowerCase());return related.length?currency(related.reduce((sum,s)=>sum+s.value,0)):"—"})()}</td><td>{p.status}</td></tr>):data.subscriptions.map(s=><tr key={s.id}><td>{s.description||"Assinatura"}</td><td>{currency(s.value)}</td><td>{s.cycle}</td><td>{s.status}</td></tr>)}</tbody></table></div>{isCatalog?<p className={catalogNoteTw}>* Vínculos estimados apenas por correspondência exata entre nome do produto e descrição das assinaturas ativas retornadas nesta página do Asaas. Não representa todos os clientes nem receita mensal consolidada; periodicidades podem variar. Sem correspondência, exibimos —, nunca zero fictício.</p>:null}{!items?.length?<p>Nenhum registro retornado pelo Asaas.</p>:null}<div className={paginationTw}><button disabled={!offset} onClick={()=>setOffset(v=>Math.max(0,v-50))}>Anterior</button><button disabled={!hasMore} onClick={()=>setOffset(v=>v+50)}>Próxima</button></div></>:null}
- </section>;
-}
-
-type CatalogProduct={id:string;name:string;description:string;priceCents:number;currency:string;imageUrl:string|null;kind:string;category:string|null};
-function CatalogProductsView(){
-  const [items,setItems]=useState<CatalogProduct[]|null>(null);
-  const [loading,setLoading]=useState(true);
-  const [error,setError]=useState("");
-  const [refresh,setRefresh]=useState(0);
-  /** A vitrine mostra todos os itens ativos da empresa, qualquer que seja a categoria. */
-  useEffect(()=>{let live=true;setLoading(true);setError("");fetch("/api/backend/catalog?limit=200",{cache:"no-store"}).then(async r=>{const body=await r.json();if(!r.ok)throw Error(body.message||"Não foi possível consultar o catálogo.");return body as {items?:CatalogProduct[]}}).then(body=>{if(live)setItems(Array.isArray(body.items)?body.items:[])}).catch(e=>{if(live){setItems(null);setError(e instanceof Error?e.message:"Falha ao consultar o catálogo.")}}).finally(()=>{if(live)setLoading(false)});return()=>{live=false}},[refresh]);
-
-  return <section className={catalogCardTw} aria-labelledby="finance-products-title">
-   <div className={panelHeadingTw}><div><h2 id="finance-products-title">Produtos</h2><p className={metaTw}>Produtos da empresa. Use Editar em cada card para abrir o cadastro em modo de edição.</p></div><div className={headingActionsTw}><button type="button" className={subtleButtonTw} title="Cadastrar um novo produto" onClick={() => openCatalogSettings("finance-products:new")}><Plus size={15} aria-hidden="true"/> Novo produto</button><button type="button" className={iconButtonTw} aria-label="Atualizar produtos" title="Atualizar" onClick={()=>setRefresh(n=>n+1)}><RefreshCcw size={15}/></button></div></div>
-    {error?<p role="alert">{error}</p>:loading?<p role="status">Consultando catálogo…</p>:items&&items.length?<div className={productGridTw}>{items.map(item=>{const image=catalogImageUrl(item.imageUrl);return <article className={productCardTw} key={item.id}>
-      <div className={productImageFrameTw}>{image?<img className={productImageTw} src={image} alt={item.name} loading="lazy"/>:<div className={productPlaceholderTw} role="img" aria-label="Imagem não informada"><Package size={26} aria-hidden="true"/><span>Sem imagem</span></div>}</div>
-      <div className={productBodyTw}><div className="flex flex-wrap items-center gap-1.5"><span className={productBadgeTw} data-kind={item.kind}>{item.kind==="PRODUCT"?"Produto digital":"Serviço"}</span>{item.category?<span className={productMetaTw}>{item.category}</span>:null}</div><h3 className="m-0 text-body font-extrabold text-ink">{item.name}</h3>
-      <p className={catalogNoteTw}>{item.description||"Sem descrição cadastrada."}</p>
-      <strong className={productPriceTw}>{(item.priceCents/100).toLocaleString("pt-BR",{style:"currency",currency:item.currency||"BRL"})}</strong>
-      <button type="button" className={subtleButtonTw} aria-label={"Editar "+item.name} onClick={()=>openCatalogSettings("finance-products",item.id)}><Pencil size={15} aria-hidden="true"/> Editar</button></div>
-     </article>})}</div>:<div className={emptyPanelTw}><p className={emptyTw}>Nenhum produto cadastrado nesta empresa.</p><button type="button" className={subtleButtonTw} onClick={() => openCatalogSettings("finance-products:new")}><Plus size={15} aria-hidden="true"/> Novo produto</button></div>}
-    <p className={catalogNoteTw}>Imagem e descrição ficam na Véxora. Nada aqui é enviado para WhatsApp, e-mail ou outros canais externos.</p>
-   </section>;
-}
 type FinanceListing={source:string;environment:string;kind:string;offset:number;limit:number;hasMore:boolean;totalCount:number|null;items:{id:string;customerId:string;customerName:string;description:string;value:number;cycle:string|null;status:string;billingType:string|null;dueDate:string|null;invoiceUrl:string|null}[]};
 function FinanceAsaasListing({kind}:{kind:"subscriptions"|"detached"}){
  const [data,setData]=useState<FinanceListing|null>(null),[offset,setOffset]=useState(0),[refresh,setRefresh]=useState(0),[search,setSearch]=useState(""),[status,setStatus]=useState(""),[cycle,setCycle]=useState(""),[filters,setFilters]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState("");
@@ -503,8 +457,8 @@ function NewSubscriptionModal({contactId,onClose,onCreated}:{contactId?:string;o
       <section className={newSubscriptionPanelTw}>
        <h3 className={newSubscriptionSectionTitleTw}>Produto/serviço</h3>
        <label className={fieldTw}><span>Produto/serviço do catálogo *</span><select required data-testid="new-subscription-service" value={catalogItemId} onChange={e=>setCatalogItemId(e.target.value)}><option value="">Selecione um produto/serviço</option>{catalog.map(item=><option key={item.id} value={item.id}>{item.name} · {currency(item.value)}</option>)}<option value="__create__">Criar produto/serviço…</option></select></label>
-       {catalogItemId==="__create__"?<p className={partialTw}>Cadastre o novo produto/serviço em Configurações / Catálogo; depois volte aqui para selecioná-lo. <button type="button" className={linkTw} onClick={()=>openCatalogSettings("finance-subscriptions")}>Abrir Configurações / Catálogo</button></p>:null}
-       {catalog.length===0&&catalogItemId!=="__create__"?<p className={catalogNoteTw}>Nenhum produto/serviço ativo no catálogo. <button type="button" className={linkTw} onClick={()=>openCatalogSettings("finance-subscriptions")}>Criar em Configurações / Catálogo</button></p>:null}
+       {catalogItemId==="__create__"?<p className={partialTw}>Cadastre o novo item no Catálogo; depois volte aqui para selecioná-lo. <button type="button" className={linkTw} onClick={()=>openCatalogSettings()}>Abrir Catálogo</button></p>:null}
+       {catalog.length===0&&catalogItemId!=="__create__"?<p className={catalogNoteTw}>Nenhum item ativo no Catálogo. <button type="button" className={linkTw} onClick={()=>openCatalogSettings()}>Criar no Catálogo</button></p>:null}
        <div className={subGridTw}>
         <label className={fieldTw}><span>Valor</span><input readOnly data-testid="new-subscription-value" value={selectedItem?currency(selectedItem.value):"—"}/></label>
         <label className={fieldTw}><span>Periodicidade</span><select value={cycle} onChange={e=>setCycle(e.target.value)}><option value="WEEKLY">Semanal</option><option value="BIWEEKLY">Quinzenal</option><option value="MONTHLY">Mensal</option><option value="QUARTERLY">Trimestral</option><option value="SEMIANNUALLY">Semestral</option><option value="YEARLY">Anual</option></select></label>
@@ -520,17 +474,16 @@ function NewSubscriptionModal({contactId,onClose,onCreated}:{contactId?:string;o
    </div>
   </div>,window.document.body);
 }
-const FINANCE_TABS=[{id:"overview",label:"Visão geral",icon:LayoutDashboard},{id:"products",label:"Produtos",icon:Package},{id:"charges",label:"Cobranças",icon:Receipt},{id:"subscriptions",label:"Assinaturas",icon:Repeat2},{id:"detached",label:"Avulsas",icon:Zap},{id:"automation",label:"Automação",icon:Workflow},{id:"history",label:"Histórico de avisos",icon:History}] as const;
-export type FinanceTab="overview"|"products"|"charges"|"subscriptions"|"detached"|"automation"|"history";
-export function FinanceWorkspace({initialTab="products"}:{initialTab?:FinanceTab}={}){
+const FINANCE_TABS=[{id:"overview",label:"Visão geral",icon:LayoutDashboard},{id:"charges",label:"Cobranças",icon:Receipt},{id:"subscriptions",label:"Assinaturas",icon:Repeat2},{id:"detached",label:"Avulsas",icon:Zap},{id:"automation",label:"Automação",icon:Workflow},{id:"history",label:"Histórico de avisos",icon:History}] as const;
+export type FinanceTab="overview"|"charges"|"subscriptions"|"detached"|"automation"|"history";
+export function FinanceWorkspace({initialTab="overview"}:{initialTab?:FinanceTab}={}){
  const [tab,setTab]=useState<FinanceTab>(initialTab);
   useEffect(()=>setTab(initialTab),[initialTab]);
  const [portfolioStatus,setPortfolioStatus]=useState("");
  return <section className={moduleTw}>
-  <header className={pageHeadingTw}><div><h1>Financeiro</h1><p className={pageSubtitleTw}>Indicadores e cobranças reais integrados ao Asaas. Nada é estimado sem base.</p></div></header>
-  <nav className={tabsTw} aria-label="Áreas do Financeiro">{FINANCE_TABS.map(item=>{const Icon=item.icon;return <button type="button" key={item.id} aria-selected={tab===item.id} className={tab===item.id?tabActiveTw:tabTw} aria-current={tab===item.id?"page":undefined} onClick={()=>setTab(item.id)}><Icon size={15} aria-hidden="true"/>{item.label}</button>})}</nav>
+  <header className={pageHeadingTw}><div><h1>Asaas</h1><p className={pageSubtitleTw}>Indicadores e cobranças reais integrados ao Asaas. Nada é estimado sem base.</p></div></header>
+  <nav className={tabsTw} aria-label="Áreas do Asaas">{FINANCE_TABS.map(item=>{const Icon=item.icon;return <button type="button" key={item.id} aria-selected={tab===item.id} className={tab===item.id?tabActiveTw:tabTw} aria-current={tab===item.id?"page":undefined} onClick={()=>setTab(item.id)}><Icon size={15} aria-hidden="true"/>{item.label}</button>})}</nav>
   {tab==="overview"?<ExecutiveOverview onOpenCharges={(status)=>{setPortfolioStatus(status);setTab("charges")}}/>:null}
-  {tab==="products"?<CatalogProductsView/>:null}
    {tab==="charges"?<PortfolioView initialStatus={portfolioStatus}/>:null}
   {tab==="subscriptions"||tab==="detached"?<FinanceAsaasListing kind={tab}/>:null}
   {tab==="automation"?<FinanceAutomationWorkspace/>:null}

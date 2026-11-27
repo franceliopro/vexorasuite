@@ -258,6 +258,55 @@ export class StripeService {
     return { source: "PROVIDER_LIVE", provider: "STRIPE", environment, hasMore: products.has_more === true, limit, items };
   }
 
+  /** Publicação real na Stripe: Product + Price. Nunca reenvia a descrição interna da Véxora. */
+  async publishCatalogItem(
+    tenantId: string,
+    item: { id: string; name: string; publicDescription?: string | null; priceCents: number; currency: string; sku?: string | null },
+    existing?: { externalId?: string | null; metadata?: Record<string, unknown> } | null,
+  ) {
+    const { environment } = await this.credentials(tenantId);
+    const currency = firstString(item.currency).toUpperCase() || "BRL";
+    if (!/^[A-Z]{3}$/.test(currency)) throw new BadRequestException("Moeda inválida para publicar na Stripe.");
+    if (!Number.isSafeInteger(item.priceCents) || item.priceCents < 0) throw new BadRequestException("Preço inválido para publicar na Stripe.");
+    const idempotencyBase = `vexora-catalog-${item.id}`;
+    let productId = firstString(existing?.externalId);
+    if (!productId) {
+      const body = new URLSearchParams({
+        name: item.name.slice(0, 120),
+        "metadata[vexoraCatalogItemId]": item.id,
+      });
+      const description = firstString(item.publicDescription).slice(0, 500);
+      if (description) body.set("description", description);
+      if (item.sku) body.set("metadata[sku]", firstString(item.sku).slice(0, 80));
+      const product = await this.request<{ id?: string }>(tenantId, "/products", body, "POST", `${idempotencyBase}-product`);
+      productId = firstString(product.id);
+      if (!productId) throw new ServiceUnavailableException("A Stripe não devolveu um produto utilizável.");
+    }
+    const priceBody = new URLSearchParams({
+      product: productId,
+      unit_amount: String(item.priceCents),
+      currency: currency.toLowerCase(),
+      "metadata[vexoraCatalogItemId]": item.id,
+    });
+    let priceId = "";
+    let degraded: string | null = null;
+    try {
+      const price = await this.request<{ id?: string }>(tenantId, "/prices", priceBody, "POST", `${idempotencyBase}-price`);
+      priceId = firstString(price.id);
+      if (!priceId) degraded = "O produto foi criado na Stripe, mas o preço não foi confirmado.";
+    } catch {
+      degraded = "O produto foi criado na Stripe, mas o preço não foi confirmado.";
+    }
+    return {
+      objectType: "PRODUCT",
+      externalId: productId,
+      externalUrl: null,
+      environment,
+      priceId: priceId || null,
+      degraded,
+    };
+  }
+
   async listFinanceSubscriptions(tenantId: string, limit = 50) {
     const { environment } = await this.credentials(tenantId);
     const data = await this.request<{ data?: Record<string, any>[]; has_more?: boolean }>(

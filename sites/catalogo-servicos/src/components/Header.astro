@@ -1,0 +1,64 @@
+---
+import { site } from "../data/site.config";
+import { displayOr, whatsappHref } from "../lib/config";
+
+const pathname = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === "/" ? pathname === "/" : pathname.startsWith(href);
+const brand = displayOr(site.name, "Sua marca");
+const talkHref = whatsappHref(site.whatsapp, site.whatsappMessage) ?? "/contato/";
+---
+
+<header class="site-header">
+  <div class="container nav">
+    <a class="brand" href="/" aria-label={`${brand} — início`}>
+      <span class="brand-mark" aria-hidden="true">V</span>
+      <span>{brand}</span>
+    </a>
+
+    <nav class="nav-links" data-nav aria-label="Navegação principal">
+      {
+        site.navigation.map((item) => (
+          <a href={item.href} aria-current={isActive(item.href) ? "page" : undefined}>
+            {item.label}
+          </a>
+        ))
+      }
+      <a class="nav-mobile-cta" href={talkHref}>Fale conosco</a>
+    </nav>
+
+    <div class="nav-actions">
+      <a class="btn btn-primary" href={talkHref}>Fale conosco</a>
+      <button
+        class="menu-toggle"
+        type="button"
+        data-menu-toggle
+        aria-label="Abrir menu"
+        aria-controls="primary-nav"
+        aria-expanded="false"
+      >
+        <span aria-hidden="true">☰</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<script>
+  const toggle = document.querySelector<HTMLButtonElement>("[data-menu-toggle]");
+  const nav = document.querySelector<HTMLElement>("[data-nav]");
+  nav?.setAttribute("id", "primary-nav");
+
+  toggle?.addEventListener("click", () => {
+    const open = nav?.classList.toggle("is-open") ?? false;
+    toggle.setAttribute("aria-expanded", String(open));
+    toggle.setAttribute("aria-label", open ? "Fechar menu" : "Abrir menu");
+  });
+
+  nav?.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", () => {
+      nav.classList.remove("is-open");
+      toggle?.setAttribute("aria-expanded", "false");
+      toggle?.setAttribute("aria-label", "Abrir menu");
+    });
+  });
+</script>

@@ -22,6 +22,12 @@ describe('published flow contract', () => {
   step.options=[];
   expect(validateRuntimeFlow(f).join()).toContain('use exatamente uma saída de continuação');
  });
+ it('accepts catalog.list with one continuation and no itemId',()=>{
+  const f=flow();const step=f.steps[1]!;delete step.action;step.kind='catalog.list';step.options=['Continuar'];step.transitions={Continuar:'menu'};
+  expect(validateRuntimeFlow(f)).toEqual([]);
+  step.options=[];
+  expect(validateRuntimeFlow(f).join()).toContain('use exatamente uma saída de continuação');
+ });
  it('blocks unsupported skills',()=>{const f=flow();f.steps[1]!.action='asaas.payment.pix';expect(validateRuntimeFlow(f).join()).toContain('ainda não executável');});
  it('rejects dangling transitions',()=>{const f=flow();f.steps[0]!.transitions={Suporte:'missing'};expect(validateRuntimeFlow(f).join()).toContain('destino inválido');});
  it('rejects malformed options without crashing',()=>{const f=flow();f.steps[0]!.options=[null] as any;expect(validateRuntimeFlow(f).length).toBeGreaterThan(0);});

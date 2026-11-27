@@ -186,6 +186,16 @@ async function main() {
     expect("GET /api/integrations/infinitepay without token", (await call(baseUrl, "GET", "/api/integrations/infinitepay")).status, 401);
     expect("POST /api/integrations/infinitepay/checkout without token", (await call(baseUrl, "POST", "/api/integrations/infinitepay/checkout", {})).status, 401);
     expect("POST /api/finance/payments without token", (await call(baseUrl, "POST", "/api/finance/payments", {})).status, 401);
+    // Vitrine pública: rota aberta, mas token inválido precisa ser recusado antes de qualquer leitura.
+    expect("GET /api/public/storefront/invalid token", (await call(baseUrl, "GET", "/api/public/storefront/invalid")).status, 401);
+    expect("GET /api/storefront/share without token", (await call(baseUrl, "GET", "/api/storefront/share")).status, 401);
+    expect("GET /api/storefront/tokens without token", (await call(baseUrl, "GET", "/api/storefront/tokens")).status, 401);
+    expect("POST /api/storefront/tokens without token", (await call(baseUrl, "POST", "/api/storefront/tokens", {})).status, 401);
+    // Publicação e importação do catálogo: somente administradores autenticados, nunca anônimas.
+    expect("GET /api/catalog/publications/:itemId without token", (await call(baseUrl, "GET", `/api/catalog/publications/${routeId}`)).status, 401);
+    expect("POST /api/catalog/publications/:itemId/publish without token", (await call(baseUrl, "POST", `/api/catalog/publications/${routeId}/publish`, {})).status, 401);
+    expect("GET /api/catalog/publications/import/preview without token", (await call(baseUrl, "GET", "/api/catalog/publications/import/preview?provider=ASAAS")).status, 401);
+    expect("POST /api/catalog/publications/import without token", (await call(baseUrl, "POST", "/api/catalog/publications/import", {})).status, 401);
 
     // Sanity: unknown routes still answer 404, so the 401s above are meaningful.
     expect("GET /api/rota-inexistente", (await call(baseUrl, "GET", "/api/rota-inexistente")).status, 404);

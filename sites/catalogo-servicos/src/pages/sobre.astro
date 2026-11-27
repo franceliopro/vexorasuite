@@ -1,0 +1,31 @@
+---
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import CtaBand from "../components/CtaBand.astro";
+import { site } from "../data/site.config";
+
+const pages = await getCollection("pages");
+const entry = pages.find((item) => item.id === "sobre");
+const Content = entry ? (await render(entry)).Content : null;
+const title = entry?.data.title ?? "Sobre";
+const description = entry?.data.description;
+---
+
+<BaseLayout title={`${title} | ${site.name}`} description={description}>
+  <div class="container page-top">
+    <Breadcrumb items={[{ label: "Início", href: "/" }, { label: "Sobre", href: "/sobre/" }]} />
+  </div>
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <span class="eyebrow">Sobre</span>
+        <h1>{title}</h1>
+      </div>
+      <div class="prose">
+        {Content && <Content />}
+      </div>
+    </div>
+  </section>
+  <CtaBand />
+</BaseLayout>

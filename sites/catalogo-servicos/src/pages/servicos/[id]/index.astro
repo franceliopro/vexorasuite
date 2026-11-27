@@ -1,0 +1,92 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import Breadcrumb from "../../../components/Breadcrumb.astro";
+import CatalogNotice from "../../../components/CatalogNotice.astro";
+import {
+  formatPrice,
+  itemPath,
+  proposalHref,
+  publicImageHref,
+  readyItems,
+} from "../../../lib/catalog";
+import type { CatalogItem } from "../../../lib/catalog";
+
+export function getStaticPaths() {
+  return readyItems.map((item) => ({
+    params: { id: item.id },
+    props: { item },
+  }));
+}
+
+interface Props {
+  item: CatalogItem;
+}
+
+const { item } = Astro.props;
+const image = publicImageHref(item);
+const proposal = proposalHref(item);
+---
+
+<BaseLayout
+  title={`${item.name} | Serviços Véxora`}
+  description={item.publicDescription || `Informações sobre ${item.name}.`}
+>
+  <div class="container catalog-page page-top">
+    <Breadcrumb
+      items={[
+        { label: "Início", href: "/" },
+        { label: "Serviços", href: "/servicos/" },
+        { label: item.name, href: itemPath(item.id) },
+      ]}
+    />
+
+    <CatalogNotice />
+
+    <div class="catalog-detail">
+      <div class="catalog-cover">
+        {image ? (
+          <img src={image} alt={`Imagem de ${item.name}`} />
+        ) : (
+          <span class="catalog-cover-empty">Imagem não informada</span>
+        )}
+      </div>
+
+      <div class="catalog-detail-info">
+        <span class="eyebrow">{item.category}</span>
+        <h1>{item.name}</h1>
+        <p class="catalog-price">{formatPrice(item.priceCents, item.currency)}</p>
+
+        <dl class="catalog-facts">
+          <div>
+            <dt>Código</dt>
+            <dd>{item.sku || "Não informado"}</dd>
+          </div>
+          <div>
+            <dt>Categoria</dt>
+            <dd>{item.category}</dd>
+          </div>
+          <div>
+            <dt>Unidade</dt>
+            <dd>{item.unit || "Não informada"}</dd>
+          </div>
+        </dl>
+
+        <h2>Sobre o serviço</h2>
+        <p class="catalog-copy">{item.publicDescription || "Descrição não informada."}</p>
+
+        <div class="catalog-detail-actions">
+          {
+            proposal ? (
+              <a class="btn btn-primary" href={proposal} target="_blank" rel="noopener noreferrer">
+                Solicitar proposta
+              </a>
+            ) : (
+              <p class="catalog-link-note">O link para solicitar proposta ainda não foi informado no catálogo.</p>
+            )
+          }
+          <a class="catalog-back" href="/servicos/">Voltar aos serviços</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

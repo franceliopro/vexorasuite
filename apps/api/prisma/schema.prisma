@@ -85,6 +85,7 @@ model Tenant {
   userNotificationPreferences UserNotificationPreference[]
   pipelines            CrmPipeline[]
   catalogItems         CatalogItem[]
+  catalogPublications  CatalogPublication[]
   documentTemplates    DocumentTemplate[]
   generatedDocuments   GeneratedDocument[]
   internalWorkflows    InternalWorkflow[]
@@ -118,6 +119,7 @@ model Tenant {
   calendarAssignments  CalendarAssignment[]
   creativeReferences   CreativeReference[]
   publicApiTokens      PublicApiToken[]
+  storefrontTokens     StorefrontToken[]
   webhookSubscriptions WebhookSubscription[]
   webhookDeliveries    WebhookDelivery[]
   integrations         Json                  @default("{}")
@@ -702,6 +704,23 @@ model PublicApiToken {
   @@map("public_api_tokens")
 }
 
+/// Token somente leitura para a vitrine pública do catálogo ativo do tenant.
+model StorefrontToken {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @map("tenant_id") @db.Uuid
+  name       String
+  /** URL HTTPS do site onde a vitrine deste token é publicada; nunca inventada pelo bot. */
+  siteUrl    String?   @map("site_url")
+  tokenHash  String    @unique @map("token_hash")
+  lastUsedAt DateTime? @map("last_used_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, revokedAt])
+  @@map("storefront_tokens")
+}
+
 model WebhookSubscription {
   id               String            @id @default(uuid()) @db.Uuid
   tenantId         String            @map("tenant_id") @db.Uuid
@@ -1107,24 +1126,57 @@ model GeneratedDocument {
   @@map("generated_documents")
 }
 model CatalogItem {
-  id          String   @id @default(uuid()) @db.Uuid
-  tenantId    String   @map("tenant_id") @db.Uuid
-  kind        String   @default("PRODUCT")
-  name        String
-  description String   @default("")
-  sku         String?
-  priceCents  Int      @map("price_cents")
-  currency    String   @default("BRL")
-  unit        String   @default("un")
-  imageUrl    String?  @map("image_url")
-  category    String?  @default("ASAAS")
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  kind             String   @default("PRODUCT")
+  name             String
+  /** Descrição interna da Véxora. Nunca publicada no feed da vitrine. */
+  description      String   @default("")
+  sku              String?
+  priceCents       Int      @map("price_cents")
+  currency         String   @default("BRL")
+  unit             String   @default("un")
+  /** Imagem interna da Véxora. Nunca publicada no feed da vitrine. */
+  imageUrl         String?  @map("image_url")
+  /** Campos aprovados para a vitrine pública; não reaproveitam os internos. */
+  publicDescription String? @map("public_description")
+  publicImageUrl    String? @map("public_image_url")
+  publicLink        String? @map("public_link")
+  category         String?  @default("ASAAS")
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  publications     CatalogPublication[]
 
   @@index([tenantId, active, kind])
   @@map("catalog_items")
+}
+
+/** Espelho técnico por plataforma. O CatalogItem continua sendo a única fonte canônica. */
+model CatalogPublication {
+  id             String      @id @default(uuid()) @db.Uuid
+  tenantId       String      @map("tenant_id") @db.Uuid
+  catalogItemId  String      @map("catalog_item_id") @db.Uuid
+  provider       String      @db.VarChar(24)
+  status         String      @default("NOT_PUBLISHED") @db.VarChar(24)
+  source         String      @default("VEXORA_TO_PROVIDER") @db.VarChar(24)
+  objectType     String      @default("PAYMENT_LINK") @map("object_type") @db.VarChar(24)
+  externalId     String?     @map("external_id") @db.VarChar(200)
+  externalUrl    String?     @map("external_url")
+  environment    String?     @db.VarChar(24)
+  lastError      String?     @map("last_error")
+  metadata       Json        @default("{}")
+  publishedAt    DateTime?   @map("published_at")
+  importedAt     DateTime?   @map("imported_at")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+  catalogItem    CatalogItem @relation(fields: [catalogItemId], references: [id], onDelete: Cascade)
+  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, catalogItemId, provider])
+  @@index([tenantId, provider, status])
+  @@map("catalog_publications")
 }
 
 enum SiteStatus {

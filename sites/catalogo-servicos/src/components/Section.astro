@@ -1,0 +1,24 @@
+---
+interface Props {
+  id?: string;
+  tone?: "plain" | "soft";
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+}
+
+const { id, tone = "plain", eyebrow, title, description } = Astro.props;
+---
+
+<section class={tone === "soft" ? "section soft" : "section"} id={id}>
+  <div class="container">
+    {(eyebrow || title || description) && (
+      <div class="section-head">
+        {eyebrow && <span class="eyebrow">{eyebrow}</span>}
+        {title && <h2>{title}</h2>}
+        {description && <p>{description}</p>}
+      </div>
+    )}
+    <slot />
+  </div>
+</section>

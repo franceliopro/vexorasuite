@@ -5,6 +5,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { AuthGuard } from "../auth/auth.guard";
 import { AuthenticatedRequest } from "../auth/auth.types";
 import { administrative } from "../auth/module-policy";
+import { requirePublicHttpsUrl } from "./storefront-links";
 
 const trim = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
 /** A vitrine exige ASAAS; itens antigos sem categoria também devem aparecer nela. */
@@ -38,10 +39,10 @@ export class CatalogController {
     const includeInactive = includeInactiveRaw === "true" && administrative(req.user.role);
     const and: any[] = [];
     if (category) and.push(category === PAYMENT_CATEGORY ? { OR: PAYMENT_CATEGORY_FILTER } : { category });
-    if (q) and.push({ OR: [{ name: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }, { sku: { contains: q, mode: "insensitive" } }] });
+    if (q) and.push({ OR: [{ name: { contains: q, mode: "insensitive" } }, { description: { contains: q, mode: "insensitive" } }, { publicDescription: { contains: q, mode: "insensitive" } }, { sku: { contains: q, mode: "insensitive" } }] });
     const items = await this.prisma.catalogItem.findMany({
       where: { tenantId: req.user.tenantId, ...(includeInactive ? {} : { active: true }), ...(kind ? { kind } : {}), ...(and.length ? { AND: and } : {}) },
-      select: { id: true, kind: true, name: true, description: true, sku: true, priceCents: true, currency: true, unit: true, imageUrl: true, category: true, active: true },
+      select: { id: true, kind: true, name: true, description: true, sku: true, priceCents: true, currency: true, unit: true, imageUrl: true, publicDescription: true, publicImageUrl: true, publicLink: true, category: true, active: true },
       orderBy: [{ kind: "asc" }, { name: "asc" }] ,
       take: limit,
     });
@@ -69,8 +70,11 @@ export class CatalogController {
     if (currency.length !== 3) throw new BadRequestException("Moeda inválida.");
     const unit = trim(input?.unit, 10) || "un";
     const imageUrl = safeImageUrl(input?.imageUrl);
+    const publicDescription = trim(input?.publicDescription, 2000) || null;
+    const publicImageUrl = requirePublicHttpsUrl(input?.publicImageUrl, "Imagem pública");
+    const publicLink = requirePublicHttpsUrl(input?.publicLink, "Link público");
     const category = trim(input?.category, 80) || PAYMENT_CATEGORY;
-    const item = await this.prisma.catalogItem.create({ data: { tenantId: req.user.tenantId, kind, name, description, sku, priceCents: Math.round(price), currency, unit, imageUrl, category } });
+    const item = await this.prisma.catalogItem.create({ data: { tenantId: req.user.tenantId, kind, name, description, sku, priceCents: Math.round(price), currency, unit, imageUrl, publicDescription, publicImageUrl, publicLink, category } });
     return { item };
   }
 
@@ -88,11 +92,14 @@ export class CatalogController {
     if (input?.currency !== undefined) { const currency = trim(input.currency, 3).toUpperCase(); if (currency.length !== 3) throw new BadRequestException("Moeda inválida."); data.currency = currency; }
     if (input?.unit !== undefined) data.unit = trim(input.unit, 10) || "un";
     if (input?.imageUrl !== undefined) data.imageUrl = safeImageUrl(input.imageUrl) || null;
+    if (input?.publicDescription !== undefined) data.publicDescription = trim(input.publicDescription, 2000) || null;
+    if (input?.publicImageUrl !== undefined) data.publicImageUrl = requirePublicHttpsUrl(input.publicImageUrl, "Imagem pública");
+    if (input?.publicLink !== undefined) data.publicLink = requirePublicHttpsUrl(input.publicLink, "Link público");
     if (input?.category !== undefined) data.category = trim(input.category, 80) || PAYMENT_CATEGORY;
     // Reativar um item legado (PUT {active:true}) também o traz para a vitrine.
     else if (!existing.category) data.category = PAYMENT_CATEGORY;
     if (input?.active !== undefined) data.active = input.active === true;
-    const item = await this.prisma.catalogItem.update({ where: { id }, data, select: { id: true, kind: true, name: true, priceCents: true, unit: true, imageUrl: true, active: true } });
+    const item = await this.prisma.catalogItem.update({ where: { id }, data, select: { id: true, kind: true, name: true, priceCents: true, unit: true, imageUrl: true, publicDescription: true, publicImageUrl: true, publicLink: true, active: true } });
     return { item };
   }
 

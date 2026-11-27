@@ -120,6 +120,8 @@ export class AssistantController {
       { id: "payment.status", name: "Consultar pagamento Stripe ou InfinitePay", category: "Financeiro", cost: "zero", implemented: true, permission: "finance.read" },
       { id: "calendar.availability", name: "Consultar horário na agenda", category: "Agenda", cost: "zero", implemented: true, permission: "calendar.read" },
       { id: "task.reminder", name: "Criar lembrete para o atendente", category: "Tarefas", cost: "zero", implemented: true, permission: "tasks.write" },
+      { id: "catalog.item", name: "Enviar 1 item da vitrine", category: "Catálogo", cost: "zero", implemented: true, permission: "catalog.read" },
+      { id: "catalog.list", name: "Enviar catálogo completo", category: "Catálogo", cost: "zero", implemented: true, permission: "catalog.read" },
       { id: "crm.deal.finalize", name: "Registrar ganho ou perda", category: "CRM", cost: "zero", implemented: true, permission: "crm.write" },
       { id: "chatbot.flow.direct", name: "Execução direta de fluxo do chatbot", category: "Automação", cost: "model", implemented: true, permission: "automation.execute" },
       { id: "drive.files.search", name: "Buscar arquivos na pasta de referências", category: "Conhecimento", cost: "external", implemented: true, permission: "drive.read" },

@@ -17,6 +17,34 @@ test("o painel do catálogo pode inserir o snapshot escolhido na mensagem", () =
   assert.ok(panel.includes('data-testid="catalog-quote-insert"'));
 });
 
+test("a vitrine pública insere texto no compositor sem enviar mensagem", () => {
+  for (const marker of [
+    'data-testid="catalog-quote-share"',
+    'data-testid="catalog-quote-share-item"',
+    'data-testid="catalog-quote-share-all"',
+    'data-testid="catalog-quote-share-notice"',
+    'data-testid="catalog-quote-share-error"',
+    'Inserir link do item',
+    'Inserir catálogo completo',
+    '/api/backend/storefront/share',
+    '?itemId=${encodeURIComponent(itemId)}',
+    'onInsert(share.text)',
+    'share.status === "UNCONFIGURED"',
+    'Vitrine sem URL HTTPS configurada',
+    '${share.notice || ""}',
+    'Os botões só inserem texto no compositor; o envio continua humano.',
+  ]) {
+    assert.ok(panel.includes(marker), `perdeu ${marker}`);
+  }
+  assert.match(panel, /data-testid="catalog-quote-share-item"[\s\S]{0,220}disabled=\{shareBusy \|\| selectedItems\.length !== 1\}/);
+  assert.match(panel, /data-testid="catalog-quote-share-all" className=\{shareButton\} disabled=\{shareBusy\}/);
+  assert.match(panel, /typeof share\.text !== "string" \|\| !share\.text\.trim\(\)/);
+  assert.doesNotMatch(panel, /\/servicos\//);
+  const share = panel.match(/async function insertStorefrontLink\(itemId\?: string\) \{[\s\S]*?\n {2}\}/)?.[0] || "";
+  assert.ok(share.length > 200);
+  assert.doesNotMatch(share, /send-whatsapp|documents\/generate|onClose\(\)/);
+});
+
 test("o composer insere no caret sem trocar o texto existente", () => {
   assert.match(inbox, /function insertCatalogText\(text: string\)/);
   assert.match(inbox, /composerCaretRef\.current \?\? composerRef\.current\?\.selectionStart \?\? value\.length/);

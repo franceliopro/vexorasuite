@@ -175,6 +175,7 @@ export function FinanceProviderWorkspace({ provider: providerRaw }: { provider: 
   const [months, setMonths] = useState(6);
   const [refresh, setRefresh] = useState(0);
   const [descriptor, setDescriptor] = useState<Descriptor | null>(null);
+  const [catalogProvider, setCatalogProvider] = useState<string>("ASAAS");
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [list, setList] = useState<ListData | null>(null);
   const [query, setQuery] = useState("");
@@ -201,6 +202,24 @@ export function FinanceProviderWorkspace({ provider: providerRaw }: { provider: 
     if (tab !== "overview" && descriptor && !capabilityAvailable(tab, descriptor)) setTab("overview");
   }, [descriptor, tab]);
 
+  // A aba Catálogo só existe na plataforma escolhida no Catálogo do menu.
+  useEffect(() => {
+    let live = true;
+    fetch("/api/backend/finance/catalog-provider", { cache: "no-store" })
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok) throw Error(body.message || "Não foi possível consultar a preferência do catálogo.");
+        return body as { selected?: string };
+      })
+      .then((body) => { if (live && body.selected) setCatalogProvider(body.selected); })
+      .catch(() => { if (live) setCatalogProvider("ASAAS"); });
+    return () => { live = false; };
+  }, [refresh]);
+
+  useEffect(() => {
+    if (tab === "catalog" && catalogProvider !== provider) setTab("overview");
+  }, [catalogProvider, provider, tab]);
+
   useEffect(() => {
     if (tab !== "overview" && descriptor && !capabilityAvailable(tab, descriptor)) return;
     let live = true;
@@ -225,7 +244,9 @@ export function FinanceProviderWorkspace({ provider: providerRaw }: { provider: 
   const capabilityNote = descriptor && tab !== "overview" && tab !== "subscriptions"
     ? (tab === "catalog" ? descriptor.capabilities.catalog : tab === "customers" ? descriptor.capabilities.customers : descriptor.capabilities.charges).note
     : "";
-  const visibleTabs = TABS.filter((item) => item.id !== "subscriptions" || descriptor?.capabilities.subscriptions !== false);
+  const visibleTabs = TABS.filter((item) =>
+    (item.id !== "subscriptions" || descriptor?.capabilities.subscriptions !== false)
+    && (item.id !== "catalog" || catalogProvider === provider));
   const normalizedQuery = query.trim().toLowerCase();
   const rows = (list?.items || []).filter((row) => !normalizedQuery
     || Object.values(row).some((value) => String(value ?? "").toLowerCase().includes(normalizedQuery)));

@@ -1,0 +1,76 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Breadcrumb from "../components/Breadcrumb.astro";
+import ContactForm from "../components/ContactForm.astro";
+import { site } from "../data/site.config";
+import { displayOr, isPlaceholder, mailtoHref, whatsappHref } from "../lib/config";
+
+const emailHref = mailtoHref(site.email);
+const waHref = whatsappHref(site.whatsapp, site.whatsappMessage);
+---
+
+<BaseLayout title={`Contato | ${site.name}`} description={`Fale com ${site.name}.`}>
+  <div class="container page-top">
+    <Breadcrumb
+      items={[
+        { label: "Início", href: "/" },
+        { label: "Contato", href: "/contato/" },
+      ]}
+    />
+  </div>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <span class="eyebrow">Contato</span>
+        <h1>Vamos conversar?</h1>
+        <p>Conte o que você precisa. Retornamos pelo canal informado.</p>
+      </div>
+
+      <div class="grid cols-2 contact-layout">
+        <ContactForm heading="Envie sua mensagem" />
+
+        <aside class="contact-info" aria-label="Canais de atendimento">
+          <h2>Canais de atendimento</h2>
+          <div class="info-row">
+            <span class="info-label">Endereço</span>
+            <strong>{displayOr(site.address, "A confirmar antes da publicação")}</strong>
+          </div>
+          <div class="info-row">
+            <span class="info-label">E-mail</span>
+            {emailHref ? (
+              <strong><a href={emailHref}>{site.email}</a></strong>
+            ) : (
+              <strong>A confirmar antes da publicação</strong>
+            )}
+          </div>
+          <div class="info-row">
+            <span class="info-label">Telefone</span>
+            <strong>{displayOr(site.phone, "A confirmar antes da publicação")}</strong>
+          </div>
+          {
+            waHref && (
+              <div class="info-row">
+                <span class="info-label">WhatsApp</span>
+                <strong>
+                  <a href={waHref} target="_blank" rel="noopener noreferrer">
+                    Iniciar conversa
+                  </a>
+                </strong>
+              </div>
+            )
+          }
+          {
+            !emailHref && !waHref && isPlaceholder(site.phone) && (
+              <p class="form-note">
+                Os canais oficiais deste site serão confirmados antes da publicação.
+                O formulário acima continua utilizável assim que um endpoint ou
+                WhatsApp for configurado.
+              </p>
+            )
+          }
+        </aside>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

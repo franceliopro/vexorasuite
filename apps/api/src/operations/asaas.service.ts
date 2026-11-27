@@ -193,6 +193,40 @@ export class AsaasService {
     return {source:"ASAAS_LIVE",environment:credentials.sandbox?"SANDBOX":"PRODUCTION",products:(products.data||[]).map(p=>({id:p.id,name:p.name,description:p.description||"",value:Number(p.value),status:p.status||"ACTIVE",billingType:p.billingType||null})),subscriptions:(subscriptions.data||[]).map(s=>({id:s.id,customerId:s.customer,description:s.description||"",value:Number(s.value),cycle:s.cycle,status:s.status})),hasMoreProducts:!!products.hasMore,hasMoreSubscriptions:!!subscriptions.hasMore,offset,limit};
   }
 
+  /** Publicação documentada no Asaas: link de pagamento, não produto do catálogo interno. */
+  async publishCatalogItem(tenantId: string, item: { id: string; name: string; description?: string | null; publicDescription?: string | null; priceCents: number; currency: string }, externalReference: string) {
+    if (item.currency.toUpperCase() !== "BRL") throw new BadRequestException("Somente itens em BRL podem ser publicados no Asaas.");
+    if (!Number.isSafeInteger(item.priceCents) || item.priceCents <= 0) throw new BadRequestException("Informe um preço maior que zero para publicar no Asaas.");
+    const credentials = await this.credentials(tenantId);
+    const result = await this.request<{ id?: string; url?: string; active?: boolean }>(tenantId, "/paymentLinks", {
+      method: "POST",
+      body: JSON.stringify({
+        name: item.name.slice(0, 120),
+        description: (item.publicDescription || "").slice(0, 500) || undefined,
+        value: item.priceCents / 100,
+        billingType: "UNDEFINED",
+        chargeType: "DETACHED",
+        externalReference: externalReference.slice(0, 200),
+      }),
+    });
+    const externalId = typeof result.id === "string" ? result.id.trim() : "";
+    if (!externalId || !/^[A-Za-z0-9_-]{1,80}$/.test(externalId)) {
+      throw new ServiceUnavailableException("O Asaas não devolveu um identificador utilizável para o link.");
+    }
+    let url: string | null = null;
+    try {
+      const parsed = new URL(String(result.url || ""));
+      if (parsed.protocol === "https:" && !parsed.username && !parsed.password) url = parsed.toString();
+    } catch { /* URL ausente não invalida o identificador devolvido. */ }
+    return {
+      objectType: "PAYMENT_LINK",
+      externalId,
+      externalUrl: url,
+      environment: credentials.sandbox ? "SANDBOX" : "PRODUCTION",
+      active: result.active !== false,
+    };
+  }
+
   /** Clientes direto da conta Asaas do tenant; documentos são sempre mascarados na resposta. */
   async listFinanceCustomers(tenantId: string, offset = 0, limit = 50) {
     const query = new URLSearchParams({ offset: String(offset), limit: String(limit), sort: "name", order: "asc" });

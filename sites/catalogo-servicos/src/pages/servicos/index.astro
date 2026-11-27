@@ -1,0 +1,94 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Breadcrumb from "../../components/Breadcrumb.astro";
+import CatalogNotice from "../../components/CatalogNotice.astro";
+import {
+  catalogStateMessage,
+  formatPrice,
+  groupByCategory,
+  itemPath,
+  proposalHref,
+  publicImageHref,
+  readyItems,
+} from "../../lib/catalog";
+
+const groups = groupByCategory(readyItems);
+---
+
+<BaseLayout
+  title="Serviços | Véxora Serviços"
+  description="Catálogo público dos serviços divulgados pela Véxora, com preços e informações de proposta."
+>
+  <div class="container catalog-page page-top">
+    <Breadcrumb
+      items={[
+        { label: "Início", href: "/" },
+        { label: "Serviços", href: "/servicos/" },
+      ]}
+    />
+
+    <div class="catalog-head">
+      <span class="eyebrow">Catálogo</span>
+      <h1>Serviços Véxora</h1>
+      <p>Conheça os serviços divulgados e solicite uma proposta quando o link estiver disponível.</p>
+    </div>
+
+    <CatalogNotice />
+
+    {
+      groups.length === 0 ? (
+        <div class="catalog-empty">
+          <h2>Nenhum serviço disponível no momento</h2>
+          <p>{catalogStateMessage()}</p>
+        </div>
+      ) : (
+        groups.map((group, index) => (
+          <section class="catalog-group" aria-labelledby={`catalogo-grupo-${index}`}>
+            <h2 id={`catalogo-grupo-${index}`}>{group.category}</h2>
+            <div class="catalog-grid">
+              {group.items.map((item) => {
+                const image = publicImageHref(item);
+                const proposal = proposalHref(item);
+                return (
+                  <article class="catalog-card">
+                    <div class="catalog-cover">
+                      {image ? (
+                        <img src={image} alt={`Imagem de ${item.name}`} loading="lazy" />
+                      ) : (
+                        <span class="catalog-cover-empty">Imagem não informada</span>
+                      )}
+                    </div>
+                    <div>
+                      <h3>
+                        <a href={itemPath(item.id)}>{item.name}</a>
+                      </h3>
+                      <p class="catalog-meta">
+                        {item.sku && <span>SKU {item.sku}</span>}
+                        <span>{item.category}</span>
+                        <span>Unidade: {item.unit || "não informada"}</span>
+                      </p>
+                      <p class="catalog-price">{formatPrice(item.priceCents, item.currency)}</p>
+                    </div>
+                    <p class="catalog-copy">
+                      {item.publicDescription || "Descrição não informada."}
+                    </p>
+                    <div class="catalog-card-footer">
+                      {proposal ? (
+                        <a class="btn btn-primary catalog-cta" href={proposal} target="_blank" rel="noopener noreferrer">
+                          Solicitar proposta
+                        </a>
+                      ) : (
+                        <p class="catalog-link-note">O link para solicitar proposta ainda não foi informado.</p>
+                      )}
+                      <a class="catalog-details" href={itemPath(item.id)}>Ver detalhes</a>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        ))
+      )
+    }
+  </div>
+</BaseLayout>

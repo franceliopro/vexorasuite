@@ -12,6 +12,7 @@ export class TestEnvironmentController {
   reset(@Req() request: AuthenticatedRequest, @Body() body: {
     confirmation?: unknown;
     clientSlug?: unknown;
+    confirmSlug?: unknown;
     resetPlatformConversations?: unknown;
     disconnectProviders?: unknown;
     deleteCompany?: unknown;

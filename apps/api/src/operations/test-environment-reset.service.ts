@@ -8,6 +8,7 @@ import { EventsService } from "./events.service";
 type ResetBody = {
   confirmation?: unknown;
   clientSlug?: unknown;
+  confirmSlug?: unknown;
   resetPlatformConversations?: unknown;
   disconnectProviders?: unknown;
   deleteCompany?: unknown;
@@ -24,8 +25,9 @@ export class TestEnvironmentResetService {
   constructor(private readonly prisma: PrismaService, private readonly waha: WahaService, private readonly events: EventsService) {}
 
   async reset(request: AuthenticatedRequest, body: ResetBody) {
-    if (body.confirmation !== "REINICIAR AMBIENTE DE TESTE") {
-      throw new BadRequestException("Digite REINICIAR AMBIENTE DE TESTE para confirmar.");
+    const deleteCompany = body.deleteCompany === true;
+    if (deleteCompany ? body.confirmation !== "EXCLUIR EMPRESA" : body.confirmation !== "REINICIAR AMBIENTE DE TESTE") {
+      throw new BadRequestException(deleteCompany ? "Digite EXCLUIR EMPRESA para confirmar." : "Digite REINICIAR AMBIENTE DE TESTE para confirmar.");
     }
     const clientSlug = typeof body.clientSlug === "string" ? body.clientSlug.trim().toLowerCase() : "";
     if (!/^[a-z0-9][a-z0-9-]{2,79}$/.test(clientSlug)) {
@@ -34,7 +36,6 @@ export class TestEnvironmentResetService {
     if (body.resetPlatformConversations !== true) {
       throw new BadRequestException("Confirme também a limpeza das conversas da Matriz.");
     }
-    const deleteCompany = body.deleteCompany === true;
     const rawProviders = body.disconnectProviders === undefined ? ["WAHA", "ZERNIO"] : body.disconnectProviders;
     if (!Array.isArray(rawProviders)) throw new BadRequestException("Selecione as integrações a desconectar.");
     const providers = [...new Set(rawProviders.map(value => String(value).toUpperCase()))];
@@ -42,24 +43,22 @@ export class TestEnvironmentResetService {
       throw new BadRequestException("Integração de reset inválida.");
     }
 
-    if (!request.user.isPlatformAdmin) throw new BadRequestException("O reset só pode ser executado pela administração da plataforma.");
+    if (request.user.isPlatformAdmin !== true) throw new ForbiddenException("Somente a administração da Véxora pode executar esta operação.");
+    if (!["OWNER", "ADMIN"].includes(request.user.role)) throw new ForbiddenException("Somente a administração da Véxora pode excluir empresas.");
     const platform = await this.prisma.tenant.findFirst({
-      where: {
-        kind: "PLATFORM",
-        status: "ACTIVE",
-        OR: [
-          { id: request.user.tenantId },
-          { memberships: { some: { userId: request.user.sub, role: { in: ["OWNER", "ADMIN"] } } } },
-        ],
-      },
+      where: { id: request.user.tenantId, kind: "PLATFORM", status: "ACTIVE" },
       select: { id: true, integrations: true },
     });
-    if (!platform) throw new BadRequestException("Nenhum ambiente de plataforma ativo foi encontrado para este administrador.");
+    if (!platform) throw new ForbiddenException("Esta operação só pode ser executada dentro da Véxora.");
     const client = await this.prisma.tenant.findFirst({
       where: { slug: clientSlug, kind: "COMPANY", status: "ACTIVE" },
       select: { id: true, name: true, slug: true },
     });
     if (!client) throw new NotFoundException("Empresa cliente não encontrada ou já removida.");
+    if (deleteCompany) {
+      const confirmSlug = typeof body.confirmSlug === "string" ? body.confirmSlug.trim().toLowerCase() : "";
+      if (confirmSlug !== client.slug) throw new BadRequestException("Digite o identificador exato da empresa selecionada para excluí-la.");
+    }
 
     const channels = await this.prisma.channelConnection.findMany({
       // O reset da empresa cliente nunca consulta nem altera canais da plataforma.
@@ -149,20 +148,17 @@ export class TestEnvironmentResetService {
   }
 
   async resetPlatform(request: AuthenticatedRequest, body: { confirmation?: unknown; disconnectProviders?: unknown; deleteData?: unknown }) {
-    if (!request.user.isPlatformAdmin) throw new BadRequestException("A operação só pode ser executada pela administração da plataforma.");
+    if (request.user.isPlatformAdmin !== true) throw new ForbiddenException("A operação só pode ser executada pela administração da plataforma.");
     if (body.confirmation !== "REINICIAR PLATAFORMA DE TESTE") throw new BadRequestException("Digite REINICIAR PLATAFORMA DE TESTE para confirmar.");
     const rawProviders = body.disconnectProviders === undefined ? ["WAHA", "ZERNIO"] : body.disconnectProviders;
     if (!Array.isArray(rawProviders)) throw new BadRequestException("Selecione as integrações a desconectar.");
     const providers = [...new Set(rawProviders.map(value => String(value).toUpperCase()))];
     if (providers.some(value => !["WAHA", "ZERNIO"].includes(value))) throw new BadRequestException("Integração de reset inválida.");
     const platform = await this.prisma.tenant.findFirst({
-      where: { kind: "PLATFORM", status: "ACTIVE", OR: [
-        { id: request.user.tenantId },
-        { memberships: { some: { userId: request.user.sub, role: { in: ["OWNER", "ADMIN"] } } } },
-      ]},
+      where: { id: request.user.tenantId, kind: "PLATFORM", status: "ACTIVE" },
       select: { id: true, integrations: true },
     });
-    if (!platform) throw new BadRequestException("Nenhum ambiente de plataforma ativo foi encontrado.");
+    if (!platform) throw new ForbiddenException("Esta operação só pode ser executada dentro da Véxora.");
     const channels = await this.prisma.channelConnection.findMany({
       where: { tenantId: platform.id, provider: { in: providers }, isActive: true },
       select: { id: true, tenantId: true, provider: true, sessionName: true },

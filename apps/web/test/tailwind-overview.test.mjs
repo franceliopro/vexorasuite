@@ -203,9 +203,9 @@ test("o bloco de boas-vindas traz vídeo opcional e atalhos úteis", () => {
 test("as seções da Visão geral são planas e os blocos de boas-vindas ficam lado a lado", () => {
   assert.ok(page.includes('const pageHeadingTw="flex flex-wrap items-start justify-between gap-4 bg-transparent hover:bg-transparent"'));
   assert.ok(page.includes('const [welcomeExpanded, setWelcomeExpanded] = useState(false);'));
-  assert.ok(page.includes('<div className={welcomeExpanded ? "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-1" : "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-2"}>'));
-  assert.ok(page.includes('<OnboardingChecklist onNavigate={(target) => { setActive(target); setMenuOpen(false); }} onDismiss={() => setWelcomeExpanded(true)} />'));
-  assert.ok(page.includes('<div className="bg-transparent"><h1>{greeting+'));
+  assert.ok(page.includes('welcomeExpanded || schoolProfile ? "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-1" : "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-2"'));
+  assert.ok(page.includes('<OnboardingChecklist profile={segmentProfile} onNavigate={(target) => { preloadWorkspace(target); setActive(target); setMenuOpen(false); }} onDismiss={() => setWelcomeExpanded(true)} />'));
+  assert.ok(page.includes('<div className="bg-transparent"><h1>{schoolProfile ? "Visão geral da escola" : greeting+'));
 
   for (const [source, label] of [
     [onboarding, 'aria-label="Primeiros passos na Véxora"'],
@@ -227,7 +227,7 @@ test("as seções da Visão geral são planas e os blocos de boas-vindas ficam l
   }
 
   assert.ok(onboarding.includes('dark:border-slate-700 dark:bg-slate-800'));
-  assert.ok(onboarding.includes('ACCENT_STEPS = new Set(["empresa", "documento"])'));
+  assert.ok(onboarding.includes('ACCENT_STEPS = new Set(["empresa", "documento", "escola", "alunos", "aula", "regras"])'));
   assert.ok(welcome.includes('dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:hover:bg-slate-700'));
   assert.ok(onboarding.includes("onDismissRef.current?.();"), "o fechamento do checklist avisa a Visão geral");
   assert.doesNotMatch(onboarding, /bg-linear-to-br from-blue-50 to-indigo-100/);

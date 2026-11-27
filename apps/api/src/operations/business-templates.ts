@@ -15,9 +15,23 @@ export type Segment = {
   /** Vocabulario aprovado para os fluxos e atendentes deste segmento. */
   vocabulary?: Record<string, string>;
 };
+export type SegmentNavChild = { label: string; target?: string; icon?: string };
+export type SegmentNavItem = SegmentNavChild & { children?: SegmentNavChild[] };
+export type SegmentProfile = {
+  id: string;
+  name: string;
+  overview: 'GENERIC' | 'SCHOOL';
+  vocabulary: Record<string, string>;
+  modules: string[];
+  departments: string[];
+  flows: string[];
+  aiUses: string[];
+  brand?: Record<string, string>;
+  navigation: { section: string; items: SegmentNavItem[] }[];
+};
 export const SEGMENTS: Segment[] = [
  {id:'vehicle-tracking',name:'Rastreamento veicular',requests:['Suporte ao rastreador','Instalação e manutenção','Planos e contratação'],guidance:'Identifique veículo e plataforma. Encaminhe incidentes urgentes à equipe. Nunca execute bloqueio ou desbloqueio sem autorização e integração validada.'},
-  {id:'music-school',name:'Escola de Música e Instrumentos',requests:['Aula experimental','Matrículas e cursos','Instrumentos e acessórios'],guidance:'Pergunte instrumento, nível, faixa etária e disponibilidade. Confirme vagas e professor antes de prometer horários.',modules:['SCHOOL','CALENDAR','INBOX','CRM','FINANCE','TASKS'],vocabulary:{aluno:'aluno',responsavel:'responsável',turma:'turma',matricula:'matrícula',presenca:'presença',instrumento:'instrumento',professor:'professor',aula:'aula'}},
+  {id:'music-school',name:'Escola de Música e Instrumentos',requests:['Consultar débito','Consultar aulas','Consultar inadimplência','Regras da escola'],guidance:'Escola em modo solo: o dono também é professor. Responda somente rotina com dados cadastrados e confirmados. Não encaminhe a atendente humano, não prometa pagamento, envio, publicação ou cancelamento e não invente disponibilidade.',modules:['SCHOOL','CALENDAR','FINANCE','AUTOMATION','SETTINGS'],vocabulary:{aluno:'aluno',responsavel:'responsável',turma:'turma',matricula:'matrícula',presenca:'presença',instrumento:'instrumento',professor:'professor',aula:'aula',mensalidade:'mensalidade',planoDeAula:'plano de aula',diarioDeClasse:'diário de classe',inadimplencia:'inadimplência'}},
  {id:'aesthetics',name:'Clínica de estética',requests:['Avaliação','Agendamento','Procedimentos'],guidance:'Informe serviços cadastrados e encaminhe avaliação à equipe habilitada.'},
  {id:'medical',name:'Clínica médica',requests:['Agendar consulta','Convênios','Retorno'],guidance:'Colete somente os dados necessários ao agendamento. Encaminhe dúvidas clínicas ao profissional responsável.'},
  {id:'barbershop',name:'Barbearia',requests:['Agendar horário','Serviços e preços','Profissionais'],guidance:'Consulte serviço, profissional e disponibilidade antes de confirmar.'},
@@ -54,9 +68,63 @@ export function vocabularyForSegment(id:string):Record<string,string> {
   const segment=SEGMENTS.find(item=>item.id===id);
   return {...(segment?.vocabulary||{})};
 }
+/**
+ * Perfil do segmento: vocabulário, módulos, fluxos e navegação. A empresa pode
+ * personalizar depois; o segmento apenas fornece o ponto de partida genérico.
+ */
+const SCHOOL_PROFILE_OVERRIDES: Partial<SegmentProfile> = {
+  overview: 'SCHOOL',
+  departments: ['Diretoria', 'Gestão', 'Docente', 'Coordenação', 'Secretaria', 'Tesouraria'],
+  flows: ['Matrícula', 'Aula', 'Presença', 'Resumo da aula', 'Mensalidade', 'Lembrete', 'Baixa'],
+  aiUses: ['Resumo da aula', 'Rascunho de lembrete', 'Explicação de regras', 'Sugestão de cobrança'],
+  navigation: [
+    { section: 'ESCOLA', items: [
+      { label: 'Visão geral', target: 'Visão geral', icon: 'layout-dashboard' },
+      { label: 'Gestão escolar', target: 'Gestão escolar', icon: 'graduation-cap', children: [
+        { label: 'Alunos', target: 'Gestão escolar', icon: 'users' },
+        { label: 'Turmas e aulas', target: 'Gestão escolar', icon: 'calendar' },
+        { label: 'Presença', target: 'Gestão escolar', icon: 'tasks' },
+        { label: 'Planos de aula', target: 'Gestão escolar', icon: 'file-text' },
+      ] },
+      { label: 'Agenda de aulas', target: 'Calendários', icon: 'calendar' },
+    ] },
+    { section: 'FINANCEIRO', items: [
+      { label: 'Mensalidades', target: 'Financeiro', icon: 'wallet' },
+      { label: 'Inadimplência', target: 'Financeiro', icon: 'chart' },
+      { label: 'Lembretes', target: 'Automação', icon: 'workflow' },
+    ] },
+    { section: 'SISTEMA', items: [
+      { label: 'Chatbot da escola', target: 'Chatbots', icon: 'sparkles' },
+      { label: 'Regras da escola', target: 'Configurações', icon: 'settings' },
+    ] },
+  ],
+};
+export function profileForSegment(id:string):SegmentProfile {
+  const segment=SEGMENTS.find(item=>item.id===id);
+  const base:SegmentProfile={
+    id: id,
+    name: segment?.name || 'Segmento',
+    overview: 'GENERIC',
+    vocabulary: vocabularyForSegment(id),
+    modules: modulesForSegment(id),
+    departments: Object.keys(DEPARTMENT_PRESETS),
+    flows: segment?.requests || [],
+    aiUses: [],
+    navigation: [],
+  };
+  if (id === 'music-school') return {...base, ...SCHOOL_PROFILE_OVERRIDES, id, name: base.name, vocabulary: base.vocabulary, modules: base.modules};
+  return base;
+}
 export function segmentAgentPrompt(id:string, department?:keyof typeof DEPARTMENT_PRESETS):string {
  const segment=SEGMENTS.find(item=>item.id===id);
  if(!segment)return '';
+ if(id==='music-school')return [
+  'Você é o assistente de rotina da escola de música. O dono também é o professor e não há equipe de atendimento humano.',
+  'Responda apenas sobre aulas, débitos, inadimplência, presença e regras cadastradas pela escola.',
+  'Use somente dados consultados no sistema. Se o dado não estiver disponível, diga que o dono irá verificar.',
+  'Nunca afirme que cobrou, recebeu, enviou mensagem, cancelou ou publicou algo sem confirmação do sistema.',
+  'Nunca encaminhe para atendente humano, nunca prometa horário ou vaga sem consulta e nunca solicite senha ou código de autenticação.',
+ ].join('\n\n');
  const team=department?DEPARTMENT_PRESETS[department].name:'Atendimento';
  return [
   'Você é a pessoa especialista de atendimento de '+segment.name+' da empresa.',
@@ -74,6 +142,15 @@ export function segmentAgentPrompt(id:string, department?:keyof typeof DEPARTMEN
 }
 export function templateFlow(id:string, department?:keyof typeof DEPARTMENT_PRESETS):RuntimeFlow {
  const segment=SEGMENTS.find(s=>s.id===id);
+ if(id==='music-school'){
+  const options=[...(segment?.requests||[]),'Voltar ao menu'];
+  const steps:RuntimeFlow['steps']=[{id:'menu',title:'Menu da escola',message:'Como posso ajudar?',kind:'buttons',options,transitions:Object.fromEntries(options.map((option,index)=>[option,option==='Voltar ao menu'?'menu':'answer_'+index]))}];
+  options.forEach((option,index)=>{
+   if(option==='Voltar ao menu')return;
+   steps.push({id:'answer_'+index,title:option,message:'Consulte os dados cadastrados da escola antes de responder. Nunca confirme pagamento, envio, cancelamento ou disponibilidade sem evidência no sistema.',kind:'text',options:['Voltar'],transitions:{Voltar:'menu'}});
+  });
+  return {name:segment?.name||'Escola de Música',welcome:'Olá! Posso ajudar com aulas, débitos, inadimplência e regras da escola.',steps,channelIds:[],triggers:[{kind:'message'}]};
+ }
  const requests=department ? [DEPARTMENT_PRESETS[department].name,'Falar com atendente'] : [...(segment?.requests||['Suporte','Comercial']), 'Financeiro','Falar com atendente'];
  const steps:RuntimeFlow['steps']=[{id:'menu',title:'Menu principal',message:'Como podemos ajudar?',kind:'buttons',options:requests,transitions:Object.fromEntries(requests.map((r,i)=>[r,'request_'+i]))}];
  requests.forEach((request,i)=>{

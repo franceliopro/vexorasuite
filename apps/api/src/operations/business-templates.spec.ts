@@ -1,5 +1,5 @@
 import {BusinessTemplatesController} from './business-templates.controller';
-import {SEGMENTS,segmentAgentPrompt,templateFlow} from './business-templates';
+import {SEGMENTS,modulesForSegment,profileForSegment,segmentAgentPrompt,templateFlow} from './business-templates';
 import {validateRuntimeFlow} from '../ai/flow-runtime';
 describe('department presets',()=>{
  const req:any={user:{tenantId:'a',role:'OWNER',sub:'owner'}};
@@ -46,6 +46,19 @@ describe('department presets',()=>{
   expect(aesthetics).toContain('Suporte');
   expect(aesthetics).toContain('Use somente preços');
   expect(segmentAgentPrompt('restaurant','SALES')).toContain('Restaurante');
+ });
+ it('uses a school profile without human handoff for music-school',()=>{
+  const modules=modulesForSegment('music-school');
+  expect(modules).toEqual(expect.arrayContaining(['SCHOOL','CALENDAR','FINANCE','AUTOMATION','SETTINGS']));
+  expect(modules).not.toEqual(expect.arrayContaining(['INBOX','CRM','TASKS']));
+  const profile=profileForSegment('music-school');
+  expect(profile.overview).toBe('SCHOOL');
+  expect(profile.vocabulary.aluno).toBe('aluno');
+  expect(profile.navigation.some(group=>group.section==='ESCOLA')).toBe(true);
+  expect(profile.navigation.some(group=>group.items.some(item=>item.label==='Atendimento'||item.label==='CRM'))).toBe(false);
+  const flow=templateFlow('music-school');
+  expect(flow.steps.some(step=>step.action==='human.handoff')).toBe(false);
+  expect(segmentAgentPrompt('music-school')).toContain('não há equipe de atendimento humano');
  });
  it.each(SEGMENTS.map(s=>[s.id]))('generates an executable draft for %s after channel selection',(id)=>{
  const flow=templateFlow(id);flow.channelIds=['channel'];

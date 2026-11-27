@@ -1,6 +1,7 @@
 import {AssistantController} from '../ai/assistant.controller';
 import {randomUUID} from 'node:crypto';
 import {provisionCompany} from './company-blueprint';
+import {entitlementsForSegment} from './entitlements';
 import {AuthService} from './auth.service';
 describe('company onboarding and switching',()=>{
  const originalSecret=process.env.JWT_ACCESS_SECRET;
@@ -13,6 +14,10 @@ describe('company onboarding and switching',()=>{
   expect(tx.departmentMember.create).toHaveBeenCalledTimes(3);
   const root=tx.tenant.update.mock.calls[0][0].data.integrations;
   expect(root.onboarding.segmentId).toBe('music-school');
+   expect(root.segment).toHaveProperty('id','music-school');
+   expect(String(root.segment.name)).toContain('Instrumentos');
+   expect(root.segment.vocabulary).toHaveProperty('matricula');
+   expect(root.assistant.agents.some((a:any)=>String(a.instructions||'').includes('Vocabulario aprovado do segmento'))).toBe(true);
   expect(Object.keys(root.businessFlows)).toHaveLength(3);
   expect(root.assistant.agents).toHaveLength(9);expect(root.assistant.agents.some((a:any)=>a.id==='vexora:web-designer')).toBe(true);expect(root.assistant.enabled).toBe(false);
   expect(root.google).toBeUndefined();expect(root.asaas).toBeUndefined();
@@ -54,5 +59,13 @@ describe('multiple platforms inside one client company',()=>{
   expect(departments.filter((d:any)=>d.routingCategory==='SUPPORT')).toHaveLength(3);
   const root=tx.tenant.update.mock.calls[0][0].data.integrations;
   for(const value of Object.values(root.businessFlows) as any[]){for(const step of value.draft.steps.filter((s:any)=>s.action==='human.handoff'))expect(departments.some((d:any)=>d.key===JSON.parse(step.config).departmentKey)).toBe(true);}
+ });
+});
+
+describe('segment-scoped entitlements',()=>{
+ it('grants SCHOOL only to the segment that contracts it',()=>{
+  expect(entitlementsForSegment(null,'music-school')).toMatchObject({modules:expect.arrayContaining(['SCHOOL','INBOX','CALENDAR'])});
+  expect(entitlementsForSegment(null,'vehicle-tracking')).toBeNull();
+  expect(entitlementsForSegment({modules:['INBOX','CRM'],bots:2},'music-school')).toMatchObject({modules:expect.arrayContaining(['INBOX','CRM','SCHOOL','SETTINGS']),bots:2});
  });
 });

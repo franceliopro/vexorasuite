@@ -8,6 +8,7 @@
  * tem acesso total — a migração nunca tranca ninguém para fora do que já usava.
  */
 import { canonicalPaymentProvider, type PaymentProvider } from "../operations/payment-providers";
+import { modulesForSegment } from "../operations/business-templates";
 
 export type { PaymentProvider } from "../operations/payment-providers";
 export type Entitlements = {
@@ -63,6 +64,25 @@ export function entitlementsFromPlanLimits(limits: Record<string, unknown> | nul
   const merged = limits && typeof limits === "object" ? { ...limits } : {};
   if (!Array.isArray(merged.modules)) merged.modules = FULL_ENTITLEMENTS.modules;
   return resolveEntitlements(merged);
+}
+/**
+ * Módulos contratados por segmento entram no snapshot da empresa no ato do provisionamento.
+ * Sem plano e sem módulos extras, a empresa permanece no modo legado (sem restrição materializada).
+ */
+export function entitlementsForSegment(
+  limits: Record<string, unknown> | null | undefined,
+  segmentId: string,
+): Record<string, unknown> | null {
+  const extras = modulesForSegment(segmentId);
+  const hasPlanSnapshot = !!limits && typeof limits === "object" && Array.isArray((limits as Record<string, unknown>).modules);
+  if (!extras.length && !hasPlanSnapshot) return null;
+  const base = hasPlanSnapshot
+    ? { ...(limits as Record<string, unknown>) }
+    : { ...FULL_ENTITLEMENTS };
+  const current = Array.isArray(base.modules)
+    ? base.modules.filter((m): m is string => typeof m === "string")
+    : [...FULL_ENTITLEMENTS.modules];
+  return { ...base, modules: [...new Set([...current, "SETTINGS", ...extras])] };
 }
 /** Converte o snapshot salvo na empresa de volta para exibição/admin. */
 export function entitlementsView(raw: unknown): Entitlements {

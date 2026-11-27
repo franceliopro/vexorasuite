@@ -8,14 +8,19 @@ const workspace = read("../src/app/music-school-workspace.tsx");
 const policy = read("../../api/src/auth/module-policy.ts");
 const service = read("../../api/src/modules/music-school/music-school.service.ts");
 
-test("Escola de Música é item único do menu e herda CALENDAR", () => {
-  assert.match(page, /\{ label: "Escola de Música", icon: "graduation-cap" \}/);
-  assert.ok(page.includes('"Escola de Música":()=>import("./music-school-workspace")'));
-  assert.match(page, /'Escola de Música':'CALENDAR'/);
-  assert.match(page, /active === "Escola de Música" \? \(/);
-  assert.match(page, /canConfigure \? <MusicSchoolWorkspace \/>/);
-  assert.ok(policy.includes('^music-school(?:\\/|$)'), "a política deve mapear music-school para CALENDAR");
-  assert.match(policy, /return \["CALENDAR"\]/);
+test("Gestão escolar é item único do menu e exige SCHOOL", () => {
+  assert.match(page, /\{ label: "Gestão escolar", icon: "graduation-cap" \}/);
+  assert.ok(page.includes('"Gestão escolar":()=>import("./school-workspace")'));
+  assert.match(page, /'Gestão escolar':'SCHOOL'/);
+  assert.match(page, /active === "Gestão escolar" \? \(/);
+  assert.match(page, /canConfigure \? <SchoolWorkspace \/>/);
+  assert.ok(
+    page.includes('if(required==="SCHOOL")return session?.tenant.kind!=="PLATFORM"&&(session?.allowedModules||[]).includes("SCHOOL")'),
+    "a home deve negar SCHOOL à PLATFORM e a quem não o possui",
+  );
+  assert.ok(policy.includes('/^music-school(?:\\/|$)/'), "a política legada deve mapear music-school para SCHOOL");
+  assert.ok(policy.includes('/^school(?:\\/|$)/'), "a política deve mapear school para SCHOOL");
+  assert.match(policy, /return \["SCHOOL"\]/);
 });
 
 test("workspace usa somente endpoints tenant-scoped da Escola de Música", () => {

@@ -7,6 +7,9 @@
  * Regra fundamental: empresa SEM entitlements materializados (legado, pré-planos)
  * tem acesso total — a migração nunca tranca ninguém para fora do que já usava.
  */
+import { canonicalPaymentProvider, type PaymentProvider } from "../operations/payment-providers";
+
+export type { PaymentProvider } from "../operations/payment-providers";
 export type Entitlements = {
   modules: string[];
   attendants: number;
@@ -21,13 +24,16 @@ export type Entitlements = {
   crm: boolean;
   dynamicSites: boolean;
   forms: boolean;
+  paymentProvider: PaymentProvider;
 };
 export const FULL_ENTITLEMENTS: Entitlements = {
   modules: ["INBOX","CRM","AUTOMATION","CHANNELS","CALENDAR","TASKS","FINANCE","MARKETING","SITES","SETTINGS"],
   attendants: 999, bots: 99, iaLimit: 999999, iaTier: "standard", sites: 0, socialAccounts: 999,
   marketingPublishing: true, followups: true, finance: true, crm: true, dynamicSites: true, forms: true,
+  paymentProvider: "ASAAS",
 };
-const ALL_MODULE_IDS = FULL_ENTITLEMENTS.modules;
+/** SCHOOL é opcional e nunca entra no snapshot padrão: apenas a administração Véxora o oferece. */
+const ALL_MODULE_IDS = [...FULL_ENTITLEMENTS.modules, "SCHOOL"];
 const bool = (value: unknown): boolean => value === true;
 const num = (value: unknown, fallback: number): number => (typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : fallback);
 export function resolveEntitlements(raw: unknown): Entitlements {
@@ -49,12 +55,13 @@ export function resolveEntitlements(raw: unknown): Entitlements {
     crm: bool(source.crm),
     dynamicSites: bool(source.dynamic) || bool(source.dynamicSites),
     forms: bool(source.forms),
+    paymentProvider: canonicalPaymentProvider(source.paymentProvider) || "ASAAS",
   };
 }
 /** Snapshot a partir do plans.limits jsonb + módulos derivados quando ausente. */
 export function entitlementsFromPlanLimits(limits: Record<string, unknown> | null | undefined): Entitlements {
   const merged = limits && typeof limits === "object" ? { ...limits } : {};
-  if (!Array.isArray(merged.modules)) merged.modules = ALL_MODULE_IDS;
+  if (!Array.isArray(merged.modules)) merged.modules = FULL_ENTITLEMENTS.modules;
   return resolveEntitlements(merged);
 }
 /** Converte o snapshot salvo na empresa de volta para exibição/admin. */
@@ -69,7 +76,8 @@ export function hasNoEntitlementRestrictions(raw: unknown): boolean {
 }
 /** Quais módulos da Véxora a empresa pode ver/usar. PLATFORM é sempre total. */
 export function allowedModulesOf(kind: string, raw: unknown): string[] {
-  if (kind === "PLATFORM") return ALL_MODULE_IDS;
+  // A Véxora oferece SCHOOL aos clientes, mas não usa o módulo na própria empresa.
+  if (kind === "PLATFORM") return ALL_MODULE_IDS.filter((module) => module !== "SCHOOL");
   return resolveEntitlements(raw).modules;
 }
 /**
@@ -96,4 +104,32 @@ export function withPlansAccess(raw: unknown, enabled: boolean): Record<string, 
 /** Mantém a liberação explícita quando um plano é (re)atribuído. */
 export function preservePlansAccess(previousRaw: unknown, nextRaw: unknown): Record<string, unknown> {
   return withPlansAccess(nextRaw, hasPlansAccess(previousRaw));
+}
+/** Plataforma de pagamento de cada empresa; Asaas é o padrão recomendado até a Véxora escolher outra. */
+export function paymentProviderOf(raw: unknown): PaymentProvider {
+  const source = raw && typeof raw === "object" && !Array.isArray(raw)
+    ? (raw as Record<string, unknown>)
+    : {};
+  return canonicalPaymentProvider(source.paymentProvider) || "ASAAS";
+}
+/** Só altera a plataforma de pagamento escolhida, preservando todos os outros entitlements. */
+export function withPaymentProvider(raw: unknown, provider: unknown): Record<string, unknown> {
+  const canonical = canonicalPaymentProvider(provider);
+  if (!canonical) throw Error("Plataforma de pagamento inválida.");
+  const source = raw && typeof raw === "object" && !Array.isArray(raw)
+    ? { ...(raw as Record<string, unknown>) }
+    : {};
+  return { ...source, paymentProvider: canonical };
+}
+/** Reatribuir plano nunca troca a plataforma de pagamento já escolhida pela Véxora. */
+export function preservePaymentProvider(previousRaw: unknown, nextRaw: unknown): Record<string, unknown> {
+  const source = nextRaw && typeof nextRaw === "object" && !Array.isArray(nextRaw)
+    ? { ...(nextRaw as Record<string, unknown>) }
+    : {};
+  const previous = canonicalPaymentProvider(
+    previousRaw && typeof previousRaw === "object" && !Array.isArray(previousRaw)
+      ? (previousRaw as Record<string, unknown>).paymentProvider
+      : null,
+  );
+  return { ...source, paymentProvider: previous || paymentProviderOf(source) };
 }

@@ -6,7 +6,7 @@ import { PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENTS, passwordProblem, resetToken
 const submitTw = "inline-flex min-h-control w-full items-center justify-center gap-2 rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 shadow-token-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
 const brandMarkTw = "grid h-control w-control flex-none place-items-center rounded-brand bg-vx-brand-mark font-display text-brand-mark font-extrabold text-blue-900 shadow-vx-brand";
 export interface AuthSession {
-  allowedModules?:string[]; departmentIds?:string[];
+  allowedModules?:string[]; departmentIds?:string[]; paymentProvider?: "ASAAS" | "STRIPE" | "INFINITEPAY";
   user: { id: string; name: string; email: string; avatarUrl?:string|null; avatarSource?:string|null;isPlatformAdmin?:boolean;mustChangePassword?:boolean };
   tenant: { id: string; name: string; slug: string;kind?:string; plan?: { name: string; code: string; priceCents: number; cycle: string } | null };
   role: string;

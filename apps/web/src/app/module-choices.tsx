@@ -12,6 +12,7 @@ export const moduleLabels: Record<string, string> = {
   MARKETING: "Marketing e Drive",
   FINANCE: "Financeiro",
   CHANNELS: "Conexões",
+  SCHOOL: "Gestão escolar",
   SETTINGS: "Configurações",
 };
 export function ModuleChoices({

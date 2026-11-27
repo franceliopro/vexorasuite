@@ -37,6 +37,7 @@ const FinanceProviderWorkspace=dynamic(()=>import("./finance-provider-workspace"
 const ChannelsIntegrations=dynamic(()=>import("./channels-integrations").then(module=>module.ChannelsIntegrations),{loading:()=> <p role="status">Carregando módulo…</p>});
 const CalendarWorkspace=dynamic(()=>import("./calendar-workspace").then(module=>module.CalendarWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const MusicSchoolWorkspace=dynamic(()=>import("./music-school-workspace").then(module=>module.MusicSchoolWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
+const SchoolWorkspace=dynamic(()=>import("./school-workspace").then(module=>module.SchoolWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const TasksWorkspace=dynamic(()=>import("./tasks-workspace").then(module=>module.TasksWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const ChatbotWorkspace=dynamic(()=>import("./chatbot-workspace").then(module=>module.ChatbotWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const AiAgentsWorkspace=dynamic(()=>import("./ai-agents-workspace").then(module=>module.AiAgentsWorkspace));
@@ -48,6 +49,7 @@ const workspacePreloaders:Partial<Record<string,()=>Promise<unknown>>>={
   "Calendários":()=>import("./calendar-workspace"),
   "Agenda":()=>import("./calendar-workspace"),
   "Escola de Música":()=>import("./music-school-workspace"),
+  "Gestão escolar":()=>import("./school-workspace"),
   "Tarefas":()=>import("./tasks-workspace"),
   "Chatbots":()=>import("./chatbot-workspace"),
   "Workflows":()=>import("./workflows-workspace"),
@@ -238,7 +240,7 @@ function mobileNavClass(isOverview:boolean){return isOverview?MOBILE_NAV_STATE_T
 type NavigationChild = { label: string; icon?: keyof typeof iconMap };
 type NavigationItem = { label: string; icon: keyof typeof iconMap; children?: NavigationChild[] };
 const navigation: { section: string; items: NavigationItem[] }[] = [
-  { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Calendários", icon: "calendar" }, { label: "Escola de Música", icon: "graduation-cap" }, { label: "Tarefas", icon: "tasks" }, { label: "Relatórios", icon: "chart" }] },
+  { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Calendários", icon: "calendar" }, { label: "Escola de Música", icon: "graduation-cap" }, { label: "Gestão escolar", icon: "graduation-cap" }, { label: "Tarefas", icon: "tasks" }, { label: "Relatórios", icon: "chart" }] },
   { section: "RESULTADOS", items: [
     { label: "Automação", icon: "workflow", children: [{ label: "Chatbots", icon: "sparkles" }, { label: "Workflows", icon: "workflow" }, { label: "Agentes de IA", icon: "sparkles" }] },
     { label: "Financeiro", icon: "wallet", children: [{ label: "Asaas", icon: "wallet" }, { label: "InfinitePay", icon: "sparkles" }, { label: "Stripe", icon: "globe" }] },
@@ -442,7 +444,7 @@ export default function HomePage() {
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
-  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Escola de Música':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Relatórios':'INBOX','Clientes':'SETTINGS','Canais e integrações':'CHANNELS','E-mails':'EMAIL','Biblioteca de referências':'SETTINGS','Referências criativas':'SETTINGS','Google Drive':'SETTINGS','Planos e preços':'PLANS','Financeiro':'FINANCE','Asaas':'FINANCE','Stripe':'FINANCE','InfinitePay':'FINANCE','Documentos':'CRM','Conexões':'CHANNELS','Catálogo':'SETTINGS','Configurações':'SETTINGS'};
+  const moduleForLabel:Record<string,string>={'Visão geral':'INBOX','Atendentes':'SETTINGS','Atendimento':'INBOX','CRM':'CRM','Calendários':'CALENDAR','Agenda':'CALENDAR','Escola de Música':'CALENDAR','Gestão escolar':'CALENDAR','Tarefas':'TASKS','Automação':'AUTOMATION','Chatbots':'AUTOMATION','Workflows':'AUTOMATION','Agentes de IA':'AUTOMATION','Relatórios':'INBOX','Clientes':'SETTINGS','Canais e integrações':'CHANNELS','E-mails':'EMAIL','Biblioteca de referências':'SETTINGS','Referências criativas':'SETTINGS','Google Drive':'SETTINGS','Planos e preços':'PLANS','Financeiro':'FINANCE','Asaas':'FINANCE','Stripe':'FINANCE','InfinitePay':'FINANCE','Documentos':'CRM','Conexões':'CHANNELS','Catálogo':'SETTINGS','Configurações':'SETTINGS'};
   const moduleVisible=(label:string)=>label==="Visão geral"||session?.user.isPlatformAdmin===true||!moduleForLabel[label]||(session?.allowedModules||[]).includes(moduleForLabel[label]!);
   const platformPanel=session?.tenant.kind==="PLATFORM"&&session?.user.isPlatformAdmin===true;
   // Planos e preços é capacidade da plataforma: cliente só vê quando a Véxora libera o módulo PLANS.
@@ -597,6 +599,8 @@ export default function HomePage() {
             <CalendarWorkspace />
           ) : active === "Escola de Música" ? (
             canConfigure ? <MusicSchoolWorkspace /> : <section className={cardTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela empresa podem operar a Escola de Música.</p></section>
+          ) : active === "Gestão escolar" ? (
+            canConfigure ? <SchoolWorkspace /> : <section className={cardTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela empresa podem operar a Gestão escolar.</p></section>
           ) : active === "CRM" ? (
             <CrmWorkspace key={(session?.tenant.id||"")+":"+crmSearch} initialSearch={crmSearch} />
           ) : active === "Asaas" || active === "Financeiro" || active === "Gestão" ? (

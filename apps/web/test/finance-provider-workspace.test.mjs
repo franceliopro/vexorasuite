@@ -30,7 +30,7 @@ test("Financeiro é o menu; Asaas, InfinitePay e Stripe são o submenu e herdam 
 
 test("o Catálogo integrado devolve ao Asaas na aba de catálogo", () => {
   assert.match(page, /useState<"settings" \| "finance-subscriptions" \| "finance-catalog">/);
-  assert.match(page, /catalogReturnTo === "finance-catalog" \? "Voltar ao Asaas"/);
+  assert.ok(page.includes('catalogReturnTo === "finance-catalog" ? `Voltar ao ${paymentProviderLabel}`'));
   assert.match(page, /origin === "finance-subscriptions" \|\| origin === "finance-catalog"/);
   assert.match(page, /else if \(origin === "finance-catalog"\) setFinanceInitialTab\("catalog"\)/);
 });

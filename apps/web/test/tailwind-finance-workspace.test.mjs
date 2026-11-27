@@ -350,9 +350,9 @@ test("a home retorna ao Asaas na aba de origem depois do catálogo", () => {
   assert.match(homePage, /useState<"overview" \| "subscriptions" \| "catalog">\("overview"\)/);
   assert.match(homePage, /if \(origin === "finance-subscriptions"\) setFinanceInitialTab\("subscriptions"\)/);
   assert.match(homePage, /else if \(origin === "finance-catalog"\) setFinanceInitialTab\("catalog"\)/);
-  assert.match(homePage, /setActive\("Asaas"\)/);
+  assert.match(homePage, /setActive\(paymentProviderLabel\)/);
   assert.match(homePage, /function closeCatalog\(/);
-  assert.ok(homePage.includes('catalogReturnTo === "finance-catalog" ? "Voltar ao Asaas"'));
+  assert.ok(homePage.includes('catalogReturnTo === "finance-catalog" ? `Voltar ao ${paymentProviderLabel}`'));
   assert.ok(homePage.includes('catalogReturnTo === "finance-subscriptions" ? "Voltar às Assinaturas"'));
 });
 

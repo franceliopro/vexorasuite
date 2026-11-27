@@ -32,11 +32,13 @@ describe('explicit module denial',()=>{
 
 it('uses calendar permission for Google calendar actions in the inbox',()=>{expect(routeModules('/api/integrations/google/calendar/account/events','POST')).toEqual(['CALENDAR']);});
 
-it('aplica CALENDAR à gestão escolar sem ignorar negação individual',()=>{
- expect(routeModules('/api/school/snapshot','GET')).toEqual(['CALENDAR']);
- expect(routeModules('/api/school/records','POST')).toEqual(['CALENDAR']);
- expect(effectiveModules('AGENT',['CALENDAR'],[{modules:['CALENDAR']}],[],['CALENDAR'])).toEqual([]);
- expect(effectiveModules('OWNER',[],[],[],['CALENDAR'])).not.toContain('CALENDAR');
+it('aplica SCHOOL à gestão escolar sem herdar CALENDAR e sem ignorar negação individual',()=>{
+ expect(routeModules('/api/school/snapshot','GET')).toEqual(['SCHOOL']);
+ expect(routeModules('/api/school/records','POST')).toEqual(['SCHOOL']);
+ expect(routeModules('/api/music-school/students','GET')).toEqual(['SCHOOL']);
+ expect(routeModules('/api/calendar/events','GET')).toEqual(['CALENDAR']);
+ expect(effectiveModules('AGENT',['SCHOOL'],[{modules:['SCHOOL']}],[],['SCHOOL'])).toEqual([]);
+ expect(effectiveModules('OWNER',[],[],[],['SCHOOL'])).not.toContain('SCHOOL');
 });
 
 it('mantém WORDPRESS apenas como chave de negação e EMAIL como módulo ativo',()=>{

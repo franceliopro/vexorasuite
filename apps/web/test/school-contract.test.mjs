@@ -8,14 +8,17 @@ const workspace = read("../src/app/school-workspace.tsx");
 const policy = read("../../api/src/auth/module-policy.ts");
 const service = read("../../api/src/modules/school/school.service.ts");
 
-test("Gestão escolar é item único do menu e herda CALENDAR", () => {
+test("Gestão escolar é item único do menu, não herda CALENDAR e não aparece como Escola de Música", () => {
   assert.match(page, /\{ label: "Gestão escolar", icon: "graduation-cap" \}/);
   assert.ok(page.includes('"Gestão escolar":()=>import("./school-workspace")'));
-  assert.match(page, /'Gestão escolar':'CALENDAR'/);
+  assert.match(page, /'Gestão escolar':'SCHOOL'/);
   assert.match(page, /active === "Gestão escolar" \? \(/);
   assert.match(page, /canConfigure \? <SchoolWorkspace \/>/);
-  assert.ok(policy.includes('^school(?:\\/|$)'), "a política deve mapear school para CALENDAR");
-  assert.match(policy, /return \["CALENDAR"\]/);
+  assert.doesNotMatch(page, /Escola de Música|music-school-workspace/);
+  assert.ok(policy.includes('^school(?:\\/|$)'), "a política deve mapear school para SCHOOL");
+  assert.match(policy, /return \["SCHOOL"\]/);
+  assert.ok(policy.includes('"SCHOOL"'), "SCHOOL deve ser um módulo explícito");
+  assert.doesNotMatch(policy, /Escola de Música herda CALENDAR/);
 });
 
 test("workspace usa somente endpoints tenant-scoped da Gestão escolar", () => {

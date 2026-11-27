@@ -109,7 +109,7 @@ test("os contratos de diálogo, backdrop, testids e estados foram preservados", 
     "editorOpen",
     "saving",
     'disabled={saving || !draft.name.trim() || !draft.code.trim()}',
-    "minWidth: 820",
+    "minWidth: 980",
   ]) {
     assert.ok(admin.includes(expected), `o admin perdeu ${expected}`);
   }

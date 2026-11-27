@@ -7,10 +7,10 @@ const CONTACT = "66666666-6666-4666-8666-666666666666";
 describe("Escola de Música — leituras", () => {
   it("devolve apenas departamentos ativos e contatos do tenant autenticado", async () => {
     const department = {
-      findMany: jest.fn(async () => [{ id: DEPT, name: "Piano" }]),
+      findMany: jest.fn(async (_args: unknown) => [{ id: DEPT, name: "Piano" }]),
     };
     const contact = {
-      findMany: jest.fn(async () => [{ id: CONTACT, name: "Ana" }]),
+      findMany: jest.fn(async (_args: unknown) => [{ id: CONTACT, name: "Ana" }]),
     };
     const service = new MusicSchoolReadService({ department, contact } as any);
     const result = await service.options(TENANT);

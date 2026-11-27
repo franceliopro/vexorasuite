@@ -48,8 +48,15 @@ function fixture() {
       }),
     },
   };
+  // O banco serializa as transações com SELECT ... FOR UPDATE; o mock precisa
+  // fazer o mesmo, ou duas matrículas concorrentes passariam pela checagem.
+  let transactions: Promise<unknown> = Promise.resolve();
   const prisma: any = {
-    $transaction: (fn: any) => fn(tx),
+    $transaction: (fn: any) => {
+      const running: Promise<unknown> = transactions.then(() => fn(tx));
+      transactions = running.then(() => undefined, () => undefined);
+      return running;
+    },
     department: {
       findFirst: jest.fn(async ({ where }: any) =>
         where.tenantId === TENANT && where.id === DEPT ? { id: DEPT, name: "Piano" } : null,

@@ -91,6 +91,6 @@ describe("Gestão escolar — regras determinísticas", () => {
     expect(withFiles).toContain("data:application/pdf;base64,JVBERi0x");
     const unsafe = cleanRichText('<a href="data:text/html;base64,PHNjcmlwdD4="> Abrir </a>', "Materiais");
     expect(unsafe).not.toContain("data:text/html");
-    expect(() => cleanRichText("x".repeat(60001), "Objetivo")).toThrow("60000");
+    expect(() => cleanRichText("x".repeat(3_000_001), "Objetivo")).toThrow("3000000");
   });
 });

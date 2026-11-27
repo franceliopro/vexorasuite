@@ -107,6 +107,7 @@ const RICH_TAGS = [
   "h1", "h2", "h3", "h4", "table", "thead", "tbody", "tr", "th", "td",
   "iframe", "figure", "figcaption", "u", "s", "strike",
 ];
+const MAX_RICH_CHARS = 3_000_000;
 const MAX_DATA_URI = 2_000_000;
 const IMAGE_DATA_URI = /^data:image\/(?:png|jpeg|gif|webp);base64,[A-Za-z0-9+/=]+$/;
 const FILE_DATA_URI = /^data:(?:image\/(?:png|jpeg|gif|webp)|application\/(?:pdf|msword|octet-stream|vnd\.openxmlformats-officedocument[\w.-]+)|text\/(?:plain|csv));base64,[A-Za-z0-9+/=]+$/;
@@ -114,7 +115,7 @@ const FILE_DATA_URI = /^data:(?:image\/(?:png|jpeg|gif|webp)|application\/(?:pdf
 /** Richtext do Tiptap: HTML comum, imagens/arquivos pequenos e apenas iframes do YouTube. */
 export function cleanRichText(value: unknown, label: string): string {
   const raw = typeof value === "string" ? value : "";
-  if (raw.length > 60000) throw new Error(`${label} excede o limite de 60000 caracteres.`);
+  if (raw.length > MAX_RICH_CHARS) throw new Error(`${label} excede o limite de ${MAX_RICH_CHARS} caracteres.`);
   return sanitizeHtml(raw, {
     allowedTags: RICH_TAGS,
     allowedAttributes: {

@@ -76,6 +76,8 @@ export function routeModules(path: string, method: string): string[] {
     return ["INBOX", "AUTOMATION", "MARKETING", "CHANNELS"];
   if (/^channels(?:\/|$)/.test(p)) return ["CHANNELS"];
   if (/^integrations\/google\/calendar(?:\/|$)/.test(p)) return ["CALENDAR"];
+  // Escola de Música é extensão da Agenda: herda CALENDAR e respeita negativas individuais.
+  if (/^music-school(?:\/|$)/.test(p)) return ["CALENDAR"];
   if (/^calendar|^google-calendar/.test(p)) return ["CALENDAR"];
   if (/^tasks(?:\/|$)/.test(p)) return ["TASKS"];
   // Geração de imagem por bloco já existia sob MARKETING antes do módulo SITES; manter a

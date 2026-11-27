@@ -127,6 +127,7 @@ test("requisitos Fermata são regras determinísticas e configuração, sem disp
   assert.match(service, /penaltyForBreach/);
   assert.match(service, /billingPeriodKey/);
   assert.match(service, /recordPairedAttendance/);
-  assert.match(service, /cancellationStatus: "SUGGESTED"/);
+  assert.match(service, /cancellationStatus: status/);
+  assert.match(service, /"SUGGESTED"/);
   assert.match(service, /notified: false/);
 });

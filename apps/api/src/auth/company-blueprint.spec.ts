@@ -7,19 +7,23 @@ describe('company onboarding and switching',()=>{
  const originalSecret=process.env.JWT_ACCESS_SECRET;
  beforeAll(()=>{process.env.JWT_ACCESS_SECRET='company-test-secret-with-at-least-thirty-two-bytes';});
  afterAll(()=>{if(originalSecret===undefined)delete process.env.JWT_ACCESS_SECRET;else process.env.JWT_ACCESS_SECRET=originalSecret;});
- it('prepares isolated departments and drafts without copying credentials',async()=>{
+ it('prepares an isolated school profile without human queues or copied credentials',async()=>{
   const tx:any={department:{create:jest.fn(async({data})=>({id:randomUUID(),...data}))},departmentMember:{create:jest.fn()},crmPipeline:{create:jest.fn(async()=>({id:randomUUID()}))},internalWorkflow:{create:jest.fn(async()=>({id:randomUUID()}))},tenant:{update:jest.fn()}};
   await provisionCompany(tx,{id:randomUUID()},randomUUID(),'music-school',randomUUID());
-  expect(tx.department.create).toHaveBeenCalledTimes(3);
-  expect(tx.departmentMember.create).toHaveBeenCalledTimes(3);
+  expect(tx.department.create).not.toHaveBeenCalled();
+  expect(tx.departmentMember.create).not.toHaveBeenCalled();
+  expect(tx.crmPipeline.create).not.toHaveBeenCalled();
+  expect(tx.internalWorkflow.create).not.toHaveBeenCalled();
   const root=tx.tenant.update.mock.calls[0][0].data.integrations;
   expect(root.onboarding.segmentId).toBe('music-school');
-   expect(root.segment).toHaveProperty('id','music-school');
-   expect(String(root.segment.name)).toContain('Instrumentos');
-   expect(root.segment.vocabulary).toHaveProperty('matricula');
-   expect(root.assistant.agents.some((a:any)=>String(a.instructions||'').includes('Vocabulario aprovado do segmento'))).toBe(true);
-  expect(Object.keys(root.businessFlows)).toHaveLength(3);
-  expect(root.assistant.agents).toHaveLength(9);expect(root.assistant.agents.some((a:any)=>a.id==='vexora:web-designer')).toBe(true);expect(root.assistant.enabled).toBe(false);
+  expect(root.onboarding.version).toBe(3);
+  expect(root.segment).toHaveProperty('id','music-school');
+  expect(String(root.segment.name)).toContain('Instrumentos');
+  expect(root.segment.vocabulary).toHaveProperty('matricula');
+  expect(root.assistant.agents.some((a:any)=>String(a.instructions||'').includes('não há equipe de atendimento humano'))).toBe(true);
+  expect(Object.keys(root.businessFlows)).toHaveLength(1);
+  for(const flow of Object.values(root.businessFlows) as any[])expect(flow.draft.steps.some((s:any)=>s.action==='human.handoff')).toBe(false);
+  expect(root.assistant.agents).toHaveLength(7);expect(root.assistant.agents.some((a:any)=>a.id==='vexora:web-designer')).toBe(true);expect(root.assistant.enabled).toBe(false);
   expect(root.google).toBeUndefined();expect(root.asaas).toBeUndefined();
   const saved:any={$queryRaw:jest.fn(),tenant:{findUniqueOrThrow:jest.fn(async()=>({integrations:root})),update:jest.fn()}};
   const db:any={$transaction:(fn:any)=>fn(saved)};

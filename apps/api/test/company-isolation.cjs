@@ -15,12 +15,12 @@ async function main(){
   const input={name:'Escola de música CI',segmentId:'music-school',requestId};
   const results=await Promise.all([service.createCompany(userId,sourceId,input),service.createCompany(userId,sourceId,input)]);
   const targetId=results[0].tenant.id;assert.equal(results[1].tenant.id,targetId);
-  assert.notEqual(targetId,sourceId);assert.equal(await db.department.count({where:{tenantId:targetId}}),3);
-  assert.equal(await db.crmPipeline.count({where:{tenantId:targetId}}),3);
-  assert.equal(await db.internalWorkflow.count({where:{tenantId:targetId}}),3);
+  assert.notEqual(targetId,sourceId);assert.equal(await db.department.count({where:{tenantId:targetId}}),0);
+  assert.equal(await db.crmPipeline.count({where:{tenantId:targetId}}),0);
+  assert.equal(await db.internalWorkflow.count({where:{tenantId:targetId}}),0);
   assert.equal(await db.department.count({where:{tenantId:sourceId}}),0);
   const tenant=await db.tenant.findUniqueOrThrow({where:{id:targetId}});
-  assert.equal(tenant.integrations.onboarding.segmentId,'music-school');assert.equal(tenant.integrations.assistant.agents.length,9);assert.equal(tenant.integrations.assistant.agents.some(a=>a.id==='vexora:web-designer'),true);
+  assert.equal(tenant.integrations.onboarding.segmentId,'music-school');assert.equal(Object.keys(tenant.integrations.businessFlows).length,1);assert.equal(tenant.integrations.assistant.agents.length,7);assert.equal(tenant.integrations.assistant.agents.some(a=>a.id==='vexora:web-designer'),true);
   await assert.rejects(()=>service.companySession(userId,randomUUID()));
   console.log('Company creation, concurrent idempotency and isolation OK');
  }finally{

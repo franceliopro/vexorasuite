@@ -130,7 +130,7 @@ test("os contratos funcionais da home permanecem", () => {
   assert.ok(page.includes('label: "Planos e preços"'), "o rótulo da capacidade permanece no catálogo de módulos");
   assert.ok(page.includes("'Planos e preços':'PLANS'"), "Planos e preços deve usar o módulo PLANS, não SETTINGS");
   assert.ok(page.includes('const plansMenuVisible = session?.tenant.kind !== "PLATFORM" && (session?.allowedModules || []).includes("PLANS")'), "o menu de clientes precisa do gate explícito de PLANS");
-  assert.ok(page.includes('(item.label !== "Planos e preços" || plansMenuVisible)'), "Planos e preços não pode aparecer por padrão no menu do cliente");
+  assert.ok(page.includes('(target !== "Planos e preços" || plansMenuVisible)'), "Planos e preços não pode aparecer por padrão no menu do cliente");
   assert.ok(page.includes('{!moduleVisible(active)||!providerVisible(active)?<section className={cardTw}><h2>Acesso não permitido</h2>'), "URL direta também precisa respeitar o gate");
 });
 

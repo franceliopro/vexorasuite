@@ -104,8 +104,7 @@ test("as abas, feedbacks e ações preservam os contratos", () => {
     "onClick={()=>void loadInitialSettings()}",
     "onClick={()=>void resetPlatformEnvironment(false)}",
     "onClick={()=>void resetPlatformEnvironment(true)}",
-    "onClick={()=>void resetTestEnvironment(false)}",
-    "onClick={()=>void resetTestEnvironment(true)}",
+    "onClick={()=>void deleteSelectedCompany()}",
   ]) {
     assert.ok(ops.includes(acao), `perdeu ${acao}`);
   }

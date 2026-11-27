@@ -1,5 +1,5 @@
 import {ForbiddenException} from '@nestjs/common';
-import {SEGMENTS} from '../operations/business-templates';
+import {SEGMENTS,profileForSegment} from '../operations/business-templates';
 import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "./auth.guard";
 import { AuthService } from "./auth.service";
@@ -106,9 +106,12 @@ export class AuthController {
     });
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: request.user.tenantId },
-      select: { id: true, name: true, slug: true,kind:true, planId:true, entitlements: true, plan:{select:{name:true,code:true,priceCents:true,cycle:true}} },
+      select: { id: true, name: true, slug: true,kind:true, planId:true, entitlements: true, integrations: true, plan:{select:{name:true,code:true,priceCents:true,cycle:true}} },
     });
     const membership=await this.prisma.membership.findFirst({where:{tenantId:request.user.tenantId,userId:request.user.sub},select:{knownBy:true}});
-    return { user:user?{...user,fullName:user.name,knownBy:membership?.knownBy||"",name:membership?.knownBy?.trim()||user.name}:user, tenant, role: request.user.role, allowedModules:request.user.allowedModules||[], departmentIds:request.user.departmentIds||[], paymentProvider:paymentProviderOf(tenant?.entitlements) };
+    const integrations=(tenant as any)?.integrations as Record<string,any>|undefined;
+    const tenantView=tenant?{id:tenant.id,name:tenant.name,slug:tenant.slug,kind:tenant.kind,planId:tenant.planId,entitlements:tenant.entitlements,plan:tenant.plan}:null;
+    const segmentId=typeof integrations?.onboarding?.segmentId==='string'?integrations.onboarding.segmentId:typeof integrations?.segment?.id==='string'?integrations.segment.id:'';
+    return { user:user?{...user,fullName:user.name,knownBy:membership?.knownBy||"",name:membership?.knownBy?.trim()||user.name}:user, tenant:tenantView, role: request.user.role, allowedModules:request.user.allowedModules||[], departmentIds:request.user.departmentIds||[], paymentProvider:paymentProviderOf(tenant?.entitlements), segmentProfile:segmentId?profileForSegment(segmentId):null };
   }
 }

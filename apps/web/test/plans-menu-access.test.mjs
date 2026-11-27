@@ -9,7 +9,7 @@ const platform = read("src/app/platform-admin-workspace.tsx");
 test("Planos e preços fica fora do menu do cliente por padrão", () => {
   assert.ok(home.includes("'Planos e preços':'PLANS'"));
   assert.ok(home.includes('const plansMenuVisible = session?.tenant.kind !== "PLATFORM" && (session?.allowedModules || []).includes("PLANS")'));
-  assert.ok(home.includes('(item.label !== "Planos e preços" || plansMenuVisible)'));
+  assert.ok(home.includes('(target !== "Planos e preços" || plansMenuVisible)'));
   assert.ok(home.includes("plansMenuVisible && canManage ? <ClientPlansWorkspace"));
   assert.ok(!home.includes("'Planos e preços':'SETTINGS'"));
 });

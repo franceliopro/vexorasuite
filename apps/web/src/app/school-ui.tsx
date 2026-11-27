@@ -185,7 +185,6 @@ export function CourseCard({ course, classInfo, onOpen, onEnroll }: {
     <article className={schoolTw.card} data-testid={`course-card-${course.id}`}>
       <div className="grid h-36 place-items-center overflow-hidden rounded-xl border border-gray-100 bg-gradient-to-br from-amber-100 via-blue-50 to-slate-100">
         {course.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img src={course.imageUrl} alt={`Foto do curso ${course.name}`} className="size-full object-cover" />
         ) : (
           <span className="grid place-items-center gap-1 text-amber-600">

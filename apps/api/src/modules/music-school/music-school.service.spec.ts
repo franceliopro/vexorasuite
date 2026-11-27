@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import { MusicSchoolService } from "./music-school.service";
 
 const TENANT = "11111111-1111-4111-8111-111111111111";
@@ -150,7 +151,7 @@ describe("Escola de Música — escrita tenant-scoped", () => {
 
 describe("Escola de Música — contrato da migração", () => {
   const sql = fs.readFileSync(
-    new URL("../../../prisma/migrations/20261127100000_music_school/migration.sql", import.meta.url),
+    path.join(process.cwd(), "prisma/migrations/20261127100000_music_school/migration.sql"),
     "utf8",
   );
 

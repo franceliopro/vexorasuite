@@ -1453,7 +1453,7 @@ model MusicEnrollment {
   billingAmountCents Int?                @map("billing_amount_cents")
   billingCycle       String              @default("MONTHLY") @map("billing_cycle")
   billingStatus      String              @default("SCHEDULED") @map("billing_status")
-  billingNextDueDate DateTime?           @date @map("billing_next_due_date")
+  billingNextDueDate DateTime?           @db.Date @map("billing_next_due_date")
   createdById        String              @map("created_by_id") @db.Uuid
   createdAt          DateTime            @default(now()) @map("created_at")
   updatedAt          DateTime            @updatedAt @map("updated_at")
@@ -1472,7 +1472,7 @@ model MusicAttendance {
   tenantId     String          @map("tenant_id") @db.Uuid
   classId      String          @map("class_id") @db.Uuid
   enrollmentId String          @map("enrollment_id") @db.Uuid
-  sessionDate  DateTime        @date @map("session_date")
+  sessionDate  DateTime        @db.Date @map("session_date")
   outcome      String
   note         String?
   recordedById String          @map("recorded_by_id") @db.Uuid

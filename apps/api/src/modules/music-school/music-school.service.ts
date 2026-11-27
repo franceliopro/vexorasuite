@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { PrismaService } from "../../common/prisma.service";
+import { PrismaService } from "../../prisma/prisma.service";
 import { MusicSchoolReadService } from "./music-school-read.service";
 import { integer, isManager, isUuid, isoDate, optionalInteger, OUTCOMES, text, utcDate, Outcome } from "./music-school-rules";
 

@@ -48,9 +48,9 @@ test("a fatia usa só utilities do preset, sem remendos", () => {
   for (const utility of [
     "grid min-w-0 gap-token",
     "flex flex-wrap items-start justify-between gap-4 rounded-token-lg border border-line bg-linear-to-br from-blue-50 to-surface p-6 shadow-token-sm",
-    "flex w-full shrink-0 flex-col gap-2 self-start lg:w-52",
-    "grid gap-2 rounded-token border border-line bg-surface p-2",
-    "flex w-full shrink-0 flex-col gap-1 rounded-token border border-line bg-surface-2 p-1.5",
+    "flex w-full shrink-0 flex-col gap-3 self-start lg:sticky lg:top-4 lg:w-60",
+    "grid gap-2.5 rounded-token border border-line bg-surface p-3 shadow-token",
+    "flex w-full shrink-0 flex-col gap-1 rounded-token border border-line bg-surface-2 p-1.5 shadow-token",
     "mt-3 grid w-full max-w-full grid-cols-ai-agents gap-2",
     "fixed right-4 bottom-4 z-50 flex max-h-ai-panel w-ai-panel flex-col overflow-hidden rounded-token border border-line bg-surface shadow-token-lg",
     "grid gap-3 rounded-ai-phone border border-line bg-surface-2 p-3",
@@ -87,6 +87,10 @@ test("a criação de agentes vive na sidebar, acima da navegação e fora da lis
   assert.ok(ai.includes('aria-label="Criação de agente"'));
   assert.ok(ai.includes('aria-label="Tipo de agente"'));
   assert.ok(ai.includes('aria-label="Template da área"'));
+  assert.ok(ai.includes('const sidebarLabelTw = "text-2xs font-extrabold uppercase tracking-wider text-ink-secondary"'));
+  assert.ok(ai.includes('<span className={sidebarLabelTw}>Criar agente</span>'));
+  assert.ok(ai.includes('<select className={sidebarSelectTw} aria-label="Tipo de agente"'));
+  assert.ok(ai.includes('<select className={sidebarSelectTw} aria-label="Template da área"'));
   assert.ok(ai.includes('Use Novo na barra lateral'), "o estado vazio precisa apontar para a sidebar");
 });
 

@@ -39,10 +39,12 @@ const statusPillTw = "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.
 const statusPillStateTw: Record<string, string> = { on: "bg-blue-600 text-blue-50", off: "bg-zinc-200 text-slate-600" };
 const statusPillClass = (on: boolean) => `${statusPillTw} ${statusPillStateTw[on ? "on" : "off"]}`;
 const workspaceLayoutTw = "flex min-w-0 flex-col gap-token lg:flex-row";
-const workspaceSidebarTw = "flex w-full shrink-0 flex-col gap-2 self-start lg:w-52";
-const agentQuickActionsTw = "grid gap-2 rounded-token border border-line bg-surface p-2";
-const workspaceNavTw = "flex w-full shrink-0 flex-col gap-1 rounded-token border border-line bg-surface-2 p-1.5";
-const workspaceNavItemTw = "inline-flex min-h-control items-center gap-2 rounded-token-sm px-3 text-left text-body font-bold transition-colors";
+const workspaceSidebarTw = "flex w-full shrink-0 flex-col gap-3 self-start lg:sticky lg:top-4 lg:w-60";
+const sidebarLabelTw = "text-2xs font-extrabold uppercase tracking-wider text-ink-secondary";
+const sidebarSelectTw = "w-full min-w-0 text-small";
+const agentQuickActionsTw = "grid gap-2.5 rounded-token border border-line bg-surface p-3 shadow-token";
+const workspaceNavTw = "flex w-full shrink-0 flex-col gap-1 rounded-token border border-line bg-surface-2 p-1.5 shadow-token";
+const workspaceNavItemTw = "inline-flex min-h-control items-center gap-2 whitespace-nowrap rounded-token-sm px-3 text-left text-small font-bold transition-colors";
 const workspaceNavIdleTw = "text-ink-secondary hover:bg-surface hover:text-ink";
 const workspaceNavActiveTw = "bg-blue-600 text-white shadow-token-sm hover:bg-blue-600 hover:text-white";
 const workspaceNavDividerTw = "my-1 border-t border-line";
@@ -377,7 +379,7 @@ export function AiAgentsWorkspace() {
     </section>}
     <div className={workspaceLayoutTw}>
     <aside className={workspaceSidebarTw}>
-      {workspaceTab==="Agentes"&&<div className={agentQuickActionsTw} aria-label="Criação de agente"><select aria-label="Tipo de agente" value={preset} onChange={e=>setPreset(e.target.value)}>{["Atendimento","Marketing","Financeiro"].map(p=><option key={p}>{p}</option>)}</select><select aria-label="Template da área" value={segmentTemplate} onChange={e=>setSegmentTemplate(e.target.value)} disabled={businessSegmentsLoading||!!businessSegmentsError}>{businessSegments.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select>{businessSegmentsLoading&&<p role="status" aria-live="polite">Carregando templates…</p>}{businessSegmentsError&&<p role="alert">{businessSegmentsError} <button type="button" className={secondaryTw} onClick={()=>setBusinessSegmentsRetry(value=>value+1)}>Tentar novamente</button></p>}<button className={`${primaryTw} w-full`} type="button" onClick={add} disabled={loading||!configAvailable||agents.length>=30}><Plus size={15}/> Novo</button></div>}
+      {workspaceTab==="Agentes"&&<div className={agentQuickActionsTw} aria-label="Criação de agente"><span className={sidebarLabelTw}>Criar agente</span><select className={sidebarSelectTw} aria-label="Tipo de agente" value={preset} onChange={e=>setPreset(e.target.value)}>{["Atendimento","Marketing","Financeiro"].map(p=><option key={p}>{p}</option>)}</select><select className={sidebarSelectTw} aria-label="Template da área" value={segmentTemplate} onChange={e=>setSegmentTemplate(e.target.value)} disabled={businessSegmentsLoading||!!businessSegmentsError}>{businessSegments.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select>{businessSegmentsLoading&&<p role="status" aria-live="polite">Carregando templates…</p>}{businessSegmentsError&&<p role="alert">{businessSegmentsError} <button type="button" className={secondaryTw} onClick={()=>setBusinessSegmentsRetry(value=>value+1)}>Tentar novamente</button></p>}<button className={`${primaryTw} w-full`} type="button" onClick={add} disabled={loading||!configAvailable||agents.length>=30}><Plus size={15}/> Novo</button></div>}
       <nav className={workspaceNavTw} role="tablist" aria-label="Áreas de configuração da inteligência">
       {([
         { name: "Agentes", icon: Bot },

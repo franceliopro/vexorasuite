@@ -129,11 +129,66 @@ test("o bloco de catálogo usa itemId persistido e não aceita preço digitado",
   const explanation = guided.explainStep({ kind: "catalog.item" });
   assert.match(explanation.configure, /Não digite preço/i);
   assert.match(explanation.sees, /do item cadastrado/i);
+  assert.match(explanation.sees, /descrição e imagem internas não são enviadas/i);
 
   const io = guided.stepIO({ kind: "catalog.item", options: ["Continuar"] });
   assert.equal(io.input, "Item escolhido no cadastro da empresa");
   assert.equal(io.writes.length, 0);
   assert.match(io.note, /não inventa condições/i);
+  assert.match(io.note, /descrição e imagem são internas/i);
+});
+
+test("o bloco de catálogo completo usa uma continuação e nenhum itemId", () => {
+  const defaults = guided.guidedKindDefaults("catalog.list");
+  assert.equal(defaults.config, undefined);
+  assert.equal("itemId" in JSON.parse(defaults.config ?? "{}"), false);
+  assert.deepEqual(defaults.options, ["Continuar"]);
+  assert.equal(guided.guidedKindOptions.some(([kind]) => kind === "catalog.list"), true);
+
+  const guide = guided.flowGuide.find((item) => item.id === "catalog.list");
+  assert.ok(guide, "o guia deve explicar o catálogo completo");
+  assert.match(guide.when, /sem escolher um item/i);
+  assert.match(guide.configure, /Nada a selecionar/i);
+  assert.match(guide.sees, /link do catálogo completo/i);
+  assert.match(guide.sees, /aviso honesto/i);
+
+  const explanation = guided.explainStep({ kind: "catalog.list" });
+  assert.match(explanation.what, /catálogo completo da vitrine configurada/i);
+  assert.match(explanation.configure, /URL HTTPS da vitrine/i);
+  assert.match(explanation.sees, /link do catálogo completo/i);
+  assert.match(explanation.sees, /aviso honesto/i);
+
+  const io = guided.stepIO({ kind: "catalog.list", options: ["Continuar"] });
+  assert.equal(io.label, "Listar catálogo");
+  assert.equal(io.input, "Nenhum item selecionado");
+  assert.deepEqual(io.writes, []);
+  assert.match(io.note, /vitrine configurada/i);
+  assert.match(io.note, /nunca inventa domínio/i);
+});
+
+test("o editor oferece o catálogo completo sem seletor de item", () => {
+  for (const marker of [
+    '["catalog.item","Item do catálogo"],["catalog.list","Listar catálogo"]',
+    '{ name: "Catálogo", actions: [["catalog.list", "Listar catálogo"]] as const }',
+    '["catalog.list","Listar catálogo"]',
+    'const executable=new Set(["catalog.item","catalog.list"',
+    'if (step.kind === "catalog.item" || step.kind === "catalog.list") return "catalog";',
+    'if (step.kind === "catalog.list") return "Enviar link do catálogo completo";',
+    'kind==="catalog.list"?undefined:',
+    'kind==="catalog.list"?["Continuar"]:',
+    'if(kind==="catalog.item"||kind==="catalog.list"){',
+    'data-testid="chatbot-catalog-list-help"',
+    "Envia o link do catálogo completo da vitrine configurada",
+    "Não é necessário escolher item",
+    "Link simulado do catálogo completo",
+    "Link simulado do item ",
+    "https://vitrine.exemplo.invalid/catalogo/",
+    "Simulação local com domínio de exemplo .invalid",
+    "nenhum site foi publicado",
+  ]) {
+    assert.ok(workspace.includes(marker), `editor perdeu ${marker}`);
+  }
+  assert.equal(workspace.includes('current.kind==="catalog.list"&&<label'), false, "catálogo completo não deve pedir item");
 });
 
 test("o editor carrega itens ativos do tenant e só seleciona item explícito", () => {

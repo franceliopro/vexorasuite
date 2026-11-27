@@ -1,0 +1,126 @@
+---
+import { site } from "../data/site.config";
+
+interface Props {
+  heading?: string;
+  source?: string;
+  compact?: boolean;
+}
+
+const { heading = "Fale com a gente", source = "site", compact = false } = Astro.props;
+const endpoint = import.meta.env.PUBLIC_CONTACT_ENDPOINT ?? "";
+---
+
+<div class={compact ? "form-card compact" : "form-card"}>
+  {heading && <h3>{heading}</h3>}
+  <form
+    data-contact-form
+    data-endpoint={endpoint}
+    data-whatsapp={site.whatsapp}
+    data-whatsapp-message={site.whatsappMessage}
+    data-email={site.email}
+  >
+    <label class="field">
+      <span>Nome</span>
+      <input name="name" type="text" autocomplete="name" required maxlength="120" />
+    </label>
+    <label class="field">
+      <span>E-mail</span>
+      <input name="email" type="email" autocomplete="email" required maxlength="180" />
+    </label>
+    <label class="field">
+      <span>Telefone (opcional)</span>
+      <input name="phone" type="tel" autocomplete="tel" maxlength="40" />
+    </label>
+    <label class="field">
+      <span>Mensagem</span>
+      <textarea name="message" required maxlength="2000"></textarea>
+    </label>
+    <input type="hidden" name="source" value={source} />
+    <p class="form-note">
+      {endpoint
+        ? "Sua mensagem será enviada para o canal oficial deste site."
+        : "Sem endpoint configurado, abrimos WhatsApp ou e-mail para você confirmar o envio."}
+    </p>
+    <button class="btn btn-primary" type="submit">Enviar mensagem</button>
+    <p class="form-status" data-form-status role="status" aria-live="polite"></p>
+  </form>
+</div>
+
+<script>
+  const forms = document.querySelectorAll<HTMLFormElement>("[data-contact-form]");
+
+  forms.forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const status = form.querySelector<HTMLElement>("[data-form-status]");
+      const data = new FormData(form);
+      const payload = {
+        name: String(data.get("name") || "").trim(),
+        email: String(data.get("email") || "").trim(),
+        phone: String(data.get("phone") || "").trim(),
+        message: String(data.get("message") || "").trim(),
+        source: String(data.get("source") || "site"),
+      };
+
+      if (!payload.name || !payload.email || !payload.message) {
+        if (status) status.textContent = "Preencha nome, e-mail e mensagem.";
+        return;
+      }
+
+      const endpoint = form.dataset.endpoint;
+      if (endpoint) {
+        if (status) status.textContent = "Enviando...";
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          if (status) status.textContent = "Recebemos sua mensagem. Obrigado!";
+          form.reset();
+        } catch {
+          if (status) {
+            status.textContent =
+              "Não foi possível enviar agora. Tente novamente ou use outro canal.";
+          }
+        }
+        return;
+      }
+
+      const text = `Olá! Sou ${payload.name}. ${payload.message}${payload.phone ? ` Telefone: ${payload.phone}.` : ""}${payload.source ? ` Origem: ${payload.source}.` : ""}`;
+      const digits = (form.dataset.whatsapp || "").replace(/\D/g, "");
+      if (digits.length >= 12 && !/^0+$/.test(digits)) {
+        window.open(
+          `https://wa.me/${digits}?text=${encodeURIComponent(text)}`,
+          "_blank",
+          "noopener,noreferrer",
+        );
+        if (status) {
+          status.textContent = "Conversa aberta no WhatsApp. Confirme o envio lá.";
+        }
+        return;
+      }
+
+      const email = form.dataset.email || "";
+      if (email && !email.includes(".example") && !email.includes("{{")) {
+        const params = new URLSearchParams({
+          subject: `Contato via site — ${payload.source}`,
+          body: text,
+        });
+        window.location.href = `mailto:${email}?${params.toString()}`;
+        if (status) {
+          status.textContent =
+            "Seu aplicativo de e-mail foi aberto. Confirme o envio lá.";
+        }
+        return;
+      }
+
+      if (status) {
+        status.textContent = "Canal de atendimento em configuração. Volte em breve.";
+      }
+    });
+  });
+</script>

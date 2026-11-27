@@ -3,8 +3,20 @@ import { useEffect, useState } from "react";
 import { Trash2, CirclePlus } from "lucide-react";
 
 type Item = { id: string; kind: string; name: string; description: string; sku?: string | null; priceCents: number; currency: string; unit: string; imageUrl?: string | null; category?: string | null };
+type ShareResponse = {
+  status: string;
+  configured: boolean;
+  reason: string | null;
+  notice: string;
+  itemId: string | null;
+  itemName: string | null;
+  listUrl: string | null;
+  itemUrl: string | null;
+  text: string;
+};
 
 const primaryButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-transparent bg-linear-to-br from-blue-600 via-blue-500 to-blue-700 px-4 text-xs font-bold text-white shadow-lg transition-colors hover:from-blue-700 hover:via-blue-600 hover:to-blue-800 disabled:cursor-not-allowed disabled:opacity-60 dark:from-slate-700 dark:via-blue-600 dark:to-blue-700 dark:hover:from-slate-600 dark:hover:via-blue-600 dark:hover:to-blue-700";
+const shareButton = "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-800 transition-colors hover:border-blue-500 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:hover:border-blue-400";
 
 /**
  * Assistente de orçamento para a inbox: seleciona itens do catálogo,
@@ -20,6 +32,9 @@ export function CatalogQuotePanel({ conversationId, contactName, onClose, onNoti
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareError, setShareError] = useState("");
+  const [shareNotice, setShareNotice] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -44,6 +59,27 @@ export function CatalogQuotePanel({ conversationId, contactName, onClose, onNoti
     onInsert(`*Itens do catálogo*\n${lines.join("\n")}\n*Total:* ${money(total)}`);
     setError(""); setNotice("");
     onClose();
+  }
+
+  async function insertStorefrontLink(itemId?: string) {
+    if (!onInsert) { setShareError("Inserção indisponível neste contexto."); return; }
+    setShareBusy(true); setShareError(""); setShareNotice("");
+    try {
+      const query = itemId ? `?itemId=${encodeURIComponent(itemId)}` : "";
+      const response = await fetch(`/api/backend/storefront/share${query}`, { cache: "no-store" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(typeof data?.message === "string" ? data.message : "Não foi possível consultar a vitrine pública.");
+      const share = data as ShareResponse;
+      if (typeof share.text !== "string" || !share.text.trim()) throw new Error("A vitrine não retornou um texto para inserir.");
+      // O texto do servidor vai ao compositor exatamente como veio; nenhuma mensagem é enviada.
+      onInsert(share.text);
+      const statusNote = share.status === "UNCONFIGURED"
+        ? "Vitrine sem URL HTTPS configurada: inserimos apenas o aviso do servidor, sem inventar link."
+        : "Texto da vitrine inserido no compositor. Nenhuma mensagem foi enviada.";
+      setShareNotice(`${statusNote} ${share.notice || ""}`.trim());
+    } catch (e) {
+      setShareError(e instanceof Error ? e.message : "Falha ao consultar a vitrine pública.");
+    } finally { setShareBusy(false); }
   }
 
   async function sendQuote() {
@@ -83,6 +119,16 @@ export function CatalogQuotePanel({ conversationId, contactName, onClose, onNoti
         </div>;
       })}
     </div>
+    <section data-testid="catalog-quote-share" className="grid gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2 dark:border-slate-700 dark:bg-slate-800">
+      <p className="m-0 text-xs font-bold text-slate-700 dark:text-slate-200">Vitrine pública</p>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" data-testid="catalog-quote-share-item" className={shareButton} disabled={shareBusy || selectedItems.length !== 1} onClick={() => void insertStorefrontLink(selectedItems[0]?.item.id)}>Inserir link do item</button>
+        <button type="button" data-testid="catalog-quote-share-all" className={shareButton} disabled={shareBusy} onClick={() => void insertStorefrontLink()}>Inserir catálogo completo</button>
+      </div>
+      {shareError ? <p data-testid="catalog-quote-share-error" className="m-0 text-xs leading-snug text-red-700 dark:text-red-200" role="alert">{shareError}</p> : null}
+      {shareNotice ? <p data-testid="catalog-quote-share-notice" className="m-0 rounded-lg border border-emerald-300 bg-emerald-50 p-2 text-xs text-emerald-800 dark:border-emerald-500 dark:bg-emerald-900/40 dark:text-emerald-300" role="status">{shareNotice}</p> : null}
+      <p className="m-0 text-xs text-slate-600 dark:text-slate-300">Os botões só inserem texto no compositor; o envio continua humano.</p>
+    </section>
     <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 dark:border-slate-700 pt-2.5">
       <div className="flex items-center gap-2"><span>Total</span><strong className="text-sm">{money(total)}</strong></div>
       <div className="flex flex-wrap items-center gap-2">

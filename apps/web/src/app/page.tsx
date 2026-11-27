@@ -239,7 +239,7 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
   { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Calendários", icon: "calendar" }, { label: "Tarefas", icon: "tasks" }, { label: "Relatórios", icon: "chart" }] },
   { section: "RESULTADOS", items: [
     { label: "Automação", icon: "workflow", children: [{ label: "Chatbots", icon: "sparkles" }, { label: "Workflows", icon: "workflow" }, { label: "Agentes de IA", icon: "sparkles" }] },
-    { label: "Asaas", icon: "wallet", children: [{ label: "Stripe", icon: "globe" }, { label: "InfinitePay", icon: "sparkles" }] },
+    { label: "Financeiro", icon: "wallet", children: [{ label: "Asaas", icon: "wallet" }, { label: "InfinitePay", icon: "sparkles" }, { label: "Stripe", icon: "globe" }] },
     { label: "Documentos", icon: "file-text" },
   ] },
   { section: "ADMINISTRAÇÃO", items: [{ label: "Atendentes", icon: "users" }, { label: "Conexões", icon: "share" }, { label: "Catálogo", icon: "package" }, { label: "Curso", icon: "graduation-cap" }, { label: "Planos e preços", icon: "sparkles" }, { label: "Configurações", icon: "settings" }] },
@@ -323,12 +323,12 @@ export default function HomePage() {
   }, []);
   const [workspaceInfoOpen, setWorkspaceInfoOpen] = useState(false);
   const [settingsAdvanced, setSettingsAdvanced] = useState(false);
-  const [catalogReturnTo, setCatalogReturnTo] = useState<"settings" | "finance-subscriptions">("settings");
+  const [catalogReturnTo, setCatalogReturnTo] = useState<"settings" | "finance-subscriptions" | "finance-catalog">("settings");
   const [catalogEditId, setCatalogEditId] = useState("");
-  const [financeInitialTab, setFinanceInitialTab] = useState<"overview" | "subscriptions">("overview");
-  const catalogBackLabel = catalogReturnTo === "finance-subscriptions" ? "Voltar às Assinaturas" : "Voltar às Configurações";
-  function closeCatalog(){if(catalogReturnTo === "finance-subscriptions"){setFinanceInitialTab("subscriptions");setActive("Asaas")}else setActive("Configurações");setCatalogReturnTo("settings");setCatalogEditId("")}
-  useEffect(() => { const openCatalog = (event: Event) => { if (!["OWNER", "ADMIN", "MANAGER"].includes(String(session?.role || "").toUpperCase())) return; const detail = (event as CustomEvent<{ origin?: string; itemId?: string }>).detail || {}; const origin = detail.origin || "settings"; const itemId = typeof detail.itemId === "string" ? detail.itemId : ""; setCatalogReturnTo(origin === "finance-subscriptions" ? origin : "settings"); setCatalogEditId(itemId); if (origin === "finance-subscriptions") setFinanceInitialTab("subscriptions"); setSettingsAdvanced(false); preloadWorkspace("Catálogo"); setActive("Catálogo"); }; window.addEventListener("vexora:open-catalog", openCatalog); return () => window.removeEventListener("vexora:open-catalog", openCatalog); }, [session?.role]);
+  const [financeInitialTab, setFinanceInitialTab] = useState<"overview" | "subscriptions" | "catalog">("overview");
+  const catalogBackLabel = catalogReturnTo === "finance-catalog" ? "Voltar ao Asaas" : catalogReturnTo === "finance-subscriptions" ? "Voltar às Assinaturas" : "Voltar às Configurações";
+  function closeCatalog(){if(catalogReturnTo === "finance-subscriptions"){setFinanceInitialTab("subscriptions");setActive("Asaas")}else if(catalogReturnTo === "finance-catalog"){setFinanceInitialTab("catalog");setActive("Asaas")}else setActive("Configurações");setCatalogReturnTo("settings");setCatalogEditId("")}
+  useEffect(() => { const openCatalog = (event: Event) => { if (!["OWNER", "ADMIN", "MANAGER"].includes(String(session?.role || "").toUpperCase())) return; const detail = (event as CustomEvent<{ origin?: string; itemId?: string }>).detail || {}; const origin = detail.origin || "settings"; const itemId = typeof detail.itemId === "string" ? detail.itemId : ""; setCatalogReturnTo(origin === "finance-subscriptions" || origin === "finance-catalog" ? origin : "settings"); setCatalogEditId(itemId); if (origin === "finance-subscriptions") setFinanceInitialTab("subscriptions"); else if (origin === "finance-catalog") setFinanceInitialTab("catalog"); setSettingsAdvanced(false); preloadWorkspace("Catálogo"); setActive("Catálogo"); }; window.addEventListener("vexora:open-catalog", openCatalog); return () => window.removeEventListener("vexora:open-catalog", openCatalog); }, [session?.role]);
   useEffect(() => {
     if (!menuOpen && !workspaceInfoOpen) return;
     const closeOutside = (event: MouseEvent) => {
@@ -481,7 +481,7 @@ export default function HomePage() {
                     onClick={() => {
                       if (item.children) {
                         setExpandedModules((current) => current.includes(item.label) ? [] : [item.label]);
-                        if (item.label === "Asaas") { preloadWorkspace("Asaas"); setActive("Asaas"); setMenuOpen(false); }
+                        if (item.label === "Financeiro") { preloadWorkspace("Asaas"); setActive("Asaas"); setMenuOpen(false); }
                       } else {
                         setExpandedModules([]);preloadWorkspace(item.label);setActive(item.label); setMenuOpen(false);
                       }

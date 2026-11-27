@@ -1,0 +1,26 @@
+{
+  "name": "@vexorasuite/site-catalogo-servicos",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Template Astro para sites públicos Véxora: estático, rápido, SEO-first e pronto para Cloudflare Pages.",
+  "scripts": {
+    "dev": "astro dev --port 3200",
+    "build": "astro build",
+    "preview": "astro preview --port 3200",
+    "check": "astro check",
+    "fetch": "node scripts/fetch-catalog.mjs",
+    "audit": "node scripts/audit-links.mjs dist",
+    "verify": "node scripts/fetch-catalog.mjs && astro check && astro build && node scripts/verify-catalog.mjs && node scripts/audit-links.mjs dist"
+  },
+  "dependencies": {
+    "astro": "^7.4.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

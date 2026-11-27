@@ -1,0 +1,9 @@
+{
+  "status": "NOT_CONFIGURED",
+  "source": "UNAVAILABLE",
+  "generatedAt": null,
+  "notice": "Catálogo indisponível ou não configurado. Nenhum serviço é exibido até o feed público da Véxora ser consultado com sucesso.",
+  "count": 0,
+  "items": [],
+  "error": "VEXORA_API_ORIGIN ou VEXORA_CATALOG_TOKEN não informados."
+}

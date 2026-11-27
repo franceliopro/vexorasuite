@@ -71,6 +71,7 @@ describe("escopo do catálogo", () => {
       { OR: [
         { name: { contains: "curso", mode: "insensitive" } },
         { description: { contains: "curso", mode: "insensitive" } },
+        { publicDescription: { contains: "curso", mode: "insensitive" } },
         { sku: { contains: "curso", mode: "insensitive" } },
       ] },
     ]);
@@ -98,6 +99,27 @@ describe("escopo do catálogo", () => {
     ]);
     await expect(controller.create(request, { name: "Curso", priceCents: 100, imageUrl: "javascript:alert(1)" })).rejects.toThrow("URL de imagem inválida.");
     expect(create).toHaveBeenCalledTimes(2);
+  });
+
+  it("aceita campos públicos aprovados e rejeita link público inseguro", async () => {
+    const create = jest.fn().mockResolvedValue({ id: "item-novo" });
+    const prisma: any = { catalogItem: { create } };
+    const controller = new CatalogController(prisma);
+    const request: any = { user: { tenantId: "tenant-a", role: "ADMIN" } };
+    await controller.create(request, {
+      name: "Consultoria", priceCents: 100,
+      publicDescription: "Descrição aprovada para a vitrine",
+      publicImageUrl: "https://cdn.example.com/publica.png",
+      publicLink: "https://catalogo.example.com/contato/",
+    });
+    expect(create.mock.calls[0][0].data).toMatchObject({
+      publicDescription: "Descrição aprovada para a vitrine",
+      publicImageUrl: "https://cdn.example.com/publica.png",
+      publicLink: "https://catalogo.example.com/contato/",
+    });
+    await expect(controller.create(request, { name: "Consultoria", priceCents: 100, publicLink: "javascript:alert(1)" }))
+      .rejects.toThrow("Link público inválido");
+    expect(create).toHaveBeenCalledTimes(1);
   });
 
   it("normaliza categoria vazia para ASAAS ao editar item legado", async () => {

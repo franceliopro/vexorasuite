@@ -122,6 +122,22 @@ test("o preset expõe os tokens da página de conexões", () => {
   }
 });
 
+test("a página de conexões usa duas colunas e agrupa Gmail, Agenda e Drive", () => {
+  assert.ok(source.includes('const connectionsLayoutTw="grid grid-cols-1 items-start gap-token xl:grid-cols-2"'));
+  assert.ok(source.includes('const connectionsColumnTw="grid min-w-0 content-start gap-token"'));
+  assert.ok(source.includes('<div className={connectionsLayoutTw}>'));
+  assert.equal((source.match(/<div className=\{connectionsColumnTw\}>/g) || []).length, 2);
+  const google = source.slice(source.indexOf('<h2 className={sectionHeadingTitleTw}>Google</h2>'));
+  const gmail = google.indexOf('<GmailOAuthMailboxSettings />');
+  const calendar = google.indexOf('"Google Agenda"');
+  const drive = google.indexOf('"Google Drive"');
+  const end = google.indexOf('</section>', google.indexOf('</article>') + 1);
+  assert.ok(gmail >= 0 && calendar > gmail && drive > calendar, "Gmail, Agenda e Drive devem ficar no mesmo bloco");
+  assert.ok(end < 0 || drive < end, "o bloco Google não pode ser reaberto depois das outras seções");
+  assert.ok(source.includes('<article className={googleCardTw}><div className={sectionHeadingTw}><span className={inboxPlatformTw} style={{color:"#EA4335"}}><GoogleGlyph size={19}/>'));
+  assert.doesNotMatch(source, /(?:^|\n)\s*<EmailMailboxSettings \/><GmailOAuthMailboxSettings \/>/);
+});
+
 test("a página de conexões preserva estados, acessibilidade e ações", () => {
   for (const marker of [
     'role="status"',

@@ -1,0 +1,54 @@
+---
+import { site } from "../data/site.config";
+import { absoluteUrl, isPlaceholder } from "../lib/config";
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  type?: "website" | "article";
+  noindex?: boolean;
+}
+
+const {
+  title = site.title,
+  description = site.description,
+  image = "/og-default.svg",
+  type = "website",
+  noindex = false,
+} = Astro.props;
+
+const canonical = absoluteUrl(site.url, Astro.url.pathname);
+const imageUrl = absoluteUrl(site.url, image);
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: site.name,
+  url: site.url,
+  ...(isPlaceholder(site.email) ? {} : { email: site.email }),
+  ...(isPlaceholder(site.phone) ? {} : { telephone: site.phone }),
+  ...(isPlaceholder(site.address) ? {} : { address: site.address }),
+};
+---
+
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+<meta property="og:type" content={type} />
+<meta property="og:site_name" content={site.name} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:image" content={imageUrl} />
+<meta property="og:locale" content={site.locale} />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={imageUrl} />
+{noindex && <meta name="robots" content="noindex, nofollow" />}
+<script
+  type="application/ld+json"
+  is:inline
+  set:html={JSON.stringify(jsonLd).replace(/</g, "\\u003c")}
+></script>

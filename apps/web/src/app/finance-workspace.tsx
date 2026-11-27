@@ -13,6 +13,7 @@ import {
   Clock3,
   History,
   LayoutDashboard,
+  Package,
   Plus,
   Receipt,
   RefreshCcw,
@@ -35,9 +36,12 @@ const filterControlTw="min-h-control-h min-w-0 rounded-fin-chip border border-li
 const moduleTw="grid min-w-0 gap-token self-start";
 const pageHeadingTw="flex flex-wrap items-start justify-between gap-4";
 const pageSubtitleTw="m-0 text-body text-ink-secondary";
+const providerSwitchTw="inline-flex flex-wrap gap-1 rounded-fin-pill border border-line bg-surface-2 p-1";
+const providerSwitchActiveTw="inline-flex min-h-8 items-center gap-1.5 rounded-fin-pill bg-blue-600 px-3.5 text-small font-bold text-white shadow-token-sm";
+const providerSwitchIdleTw="inline-flex min-h-8 items-center gap-1.5 rounded-fin-pill px-3.5 text-small font-bold text-ink-secondary transition-colors hover:bg-hover hover:text-ink";
 const tabsTw="flex max-w-full gap-1 overflow-x-auto rounded-fin-pill border border-line bg-surface-2 p-1";
 const tabTw="inline-flex min-h-8 shrink-0 items-center gap-2 rounded-fin-pill px-3.5 text-small font-bold text-ink-secondary transition-colors hover:text-ink";
-const tabActiveTw="inline-flex min-h-8 shrink-0 items-center gap-2 rounded-fin-pill bg-blue-600 px-3.5 text-small font-bold text-blue-900 shadow-token-sm";
+const tabActiveTw="inline-flex min-h-8 shrink-0 items-center gap-2 rounded-fin-pill bg-blue-600 px-3.5 text-small font-bold text-white shadow-token-sm";
 const portfolioCardTw="grid min-w-0 gap-3 self-start rounded-token border border-line bg-surface p-pad shadow-token";
 const listingCardTw="grid min-w-0 gap-3 self-start rounded-token border border-line bg-surface p-pad shadow-token";
 const actionRowTw="flex flex-wrap gap-2.5";
@@ -474,19 +478,63 @@ function NewSubscriptionModal({contactId,onClose,onCreated}:{contactId?:string;o
    </div>
   </div>,window.document.body);
 }
+const catalogGridTw="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-3";
+const catalogCardTw="group grid min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md";
+const catalogCoverTw="aspect-video w-full bg-zinc-100 object-contain";
+const catalogBodyTw="grid min-w-0 gap-1.5 p-4";
+const catalogTitleTw="truncate text-base font-extrabold text-slate-950";
+const catalogMetaTw="text-xs font-semibold text-slate-600";
+const catalogPriceTw="text-lg font-extrabold tabular-nums text-blue-700";
+
+type FinanceCatalogRow={id:string;name:string;description:string|null;priceCents:number;currency:string;unit:string;imageUrl:string|null;category:string|null;sku:string|null};
+
+function FinanceCatalogTab(){
+ const [items,setItems]=useState<FinanceCatalogRow[]|null>(null);
+ const [error,setError]=useState("");
+ useEffect(()=>{let live=true;fetch("/api/backend/catalog?limit=200",{cache:"no-store"}).then(async r=>{const body=await r.json();if(!r.ok)throw Error(body.message||"Não foi possível consultar o catálogo.");return body as {items?:FinanceCatalogRow[]}}).then(body=>{if(live)setItems(Array.isArray(body.items)?body.items:[])}).catch(cause=>{if(live){setError(cause instanceof Error?cause.message:"Falha ao consultar o catálogo.");setItems([])}});return()=>{live=false}},[]);
+ return <section className={cardTw}>
+  <div className={panelHeadingTw}>
+   <div><h2 className="text-xl font-extrabold text-slate-950">Catálogo integrado</h2><p className={metaTw}>O mesmo catálogo do menu, exibido aqui porque o Asaas é a plataforma escolhida para estes itens.</p></div>
+   <button type="button" className={secondaryButton} onClick={()=>window.dispatchEvent(new CustomEvent("vexora:open-catalog",{detail:{origin:"finance-catalog"}}))}>Abrir Catálogo <ArrowRight size={15} aria-hidden="true"/></button>
+  </div>
+  {error?<p role="alert" className="rounded-lg border border-red-600 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>:items===null?<p role="status" className={metaTw}>Carregando catálogo…</p>:items.length===0?<p className={metaTw}>Nenhum item ativo no catálogo. Cadastre no Catálogo do menu.</p>:<div className={catalogGridTw}>{items.map(item=><article key={item.id} className={catalogCardTw}>
+   {item.imageUrl?<img className={catalogCoverTw} src={item.imageUrl} alt={item.name}/>:<div className={`${catalogCoverTw} grid place-items-center text-xs font-bold text-slate-400`} aria-hidden="true">Sem imagem</div>}
+   <div className={catalogBodyTw}>
+    <strong className={catalogTitleTw}>{item.name}</strong>
+    <span className={catalogMetaTw}>{[item.category,item.sku,item.unit].filter(Boolean).join(" · ")||"Item do catálogo"}</span>
+    <p className="line-clamp-2 text-sm text-slate-600">{item.description||"Sem descrição cadastrada."}</p>
+    <strong className={catalogPriceTw}>{(item.priceCents/100).toLocaleString("pt-BR",{style:"currency",currency:item.currency||"BRL"})}</strong>
+   </div>
+  </article>)}</div>}
+ </section>;
+}
+
 const FINANCE_TABS=[{id:"overview",label:"Visão geral",icon:LayoutDashboard},{id:"charges",label:"Cobranças",icon:Receipt},{id:"subscriptions",label:"Assinaturas",icon:Repeat2},{id:"detached",label:"Avulsas",icon:Zap},{id:"automation",label:"Automação",icon:Workflow},{id:"history",label:"Histórico de avisos",icon:History}] as const;
-export type FinanceTab="overview"|"charges"|"subscriptions"|"detached"|"automation"|"history";
+export type FinanceTab="overview"|"charges"|"subscriptions"|"detached"|"automation"|"history"|"catalog";
 export function FinanceWorkspace({initialTab="overview"}:{initialTab?:FinanceTab}={}){
  const [tab,setTab]=useState<FinanceTab>(initialTab);
+ const [catalogProvider,setCatalogProvider]=useState("ASAAS");
   useEffect(()=>setTab(initialTab),[initialTab]);
+ useEffect(()=>{let live=true;fetch("/api/backend/finance/catalog-provider",{cache:"no-store"}).then(async r=>{const body=await r.json();if(!r.ok)throw Error(body.message||"Não foi possível consultar a preferência do catálogo.");return body as {selected?:string}}).then(body=>{if(live&&body.selected)setCatalogProvider(body.selected)}).catch(()=>{if(live)setCatalogProvider("ASAAS")});return()=>{live=false}},[]);
+ const catalogEnabled=catalogProvider==="ASAAS";
+ useEffect(()=>{if(!catalogEnabled&&tab==="catalog")setTab("overview")},[catalogEnabled,tab]);
  const [portfolioStatus,setPortfolioStatus]=useState("");
+ const visibleTabs=[...FINANCE_TABS,...(catalogEnabled?[{id:"catalog" as const,label:"Catálogo",icon:Package}]:[])];
  return <section className={moduleTw}>
-  <header className={pageHeadingTw}><div><h1>Asaas</h1><p className={pageSubtitleTw}>Indicadores e cobranças reais integrados ao Asaas. Nada é estimado sem base.</p></div></header>
-  <nav className={tabsTw} aria-label="Áreas do Asaas">{FINANCE_TABS.map(item=>{const Icon=item.icon;return <button type="button" key={item.id} aria-selected={tab===item.id} className={tab===item.id?tabActiveTw:tabTw} aria-current={tab===item.id?"page":undefined} onClick={()=>setTab(item.id)}><Icon size={15} aria-hidden="true"/>{item.label}</button>})}</nav>
+  <header className={pageHeadingTw}>
+    <div><h1>Financeiro</h1><p className={pageSubtitleTw}>Indicadores e cobranças reais das plataformas desta empresa. Nada é estimado sem base.</p></div>
+    <nav className={providerSwitchTw} aria-label="Plataformas financeiras">
+      <button type="button" className={providerSwitchActiveTw} aria-current="page">Asaas</button>
+      <button type="button" className={providerSwitchIdleTw} onClick={()=>window.dispatchEvent(new CustomEvent("vexora:open-module",{detail:"Stripe"}))}>Stripe</button>
+      <button type="button" className={providerSwitchIdleTw} onClick={()=>window.dispatchEvent(new CustomEvent("vexora:open-module",{detail:"InfinitePay"}))}>InfinitePay</button>
+    </nav>
+   </header>
+  <nav className={tabsTw} aria-label="Áreas do Asaas">{visibleTabs.map(item=>{const Icon=item.icon;return <button type="button" key={item.id} aria-selected={tab===item.id} className={tab===item.id?tabActiveTw:tabTw} aria-current={tab===item.id?"page":undefined} onClick={()=>setTab(item.id)}><Icon size={15} aria-hidden="true"/>{item.label}</button>})}</nav>
   {tab==="overview"?<ExecutiveOverview onOpenCharges={(status)=>{setPortfolioStatus(status);setTab("charges")}}/>:null}
    {tab==="charges"?<PortfolioView initialStatus={portfolioStatus}/>:null}
   {tab==="subscriptions"||tab==="detached"?<FinanceAsaasListing kind={tab}/>:null}
   {tab==="automation"?<FinanceAutomationWorkspace/>:null}
   {tab==="history"?<FinanceHistoryWorkspace/>:null}
+  {tab==="catalog"&&catalogEnabled?<FinanceCatalogTab/>:null}
  </section>;
 }

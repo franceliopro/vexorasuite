@@ -1,0 +1,66 @@
+name: Site Catálogo de Serviços
+
+on:
+  pull_request:
+    branches:
+      - foundation/bootstrap-monorepo
+    paths:
+      - "sites/catalogo-servicos/**"
+      - ".github/workflows/site-catalogo-servicos.yml"
+  push:
+    branches:
+      - foundation/bootstrap-monorepo
+    paths:
+      - "sites/catalogo-servicos/**"
+      - ".github/workflows/site-catalogo-servicos.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-catalogo-servicos-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Fetch, check, build and verify catalog storefront
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: sites/catalogo-servicos
+    env:
+      VEXORA_API_ORIGIN: ${{ secrets.VEXORA_API_ORIGIN }}
+      VEXORA_CATALOG_TOKEN: ${{ secrets.VEXORA_CATALOG_TOKEN }}
+      VEXORA_CATALOG_TIMEOUT_MS: "15000"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.22.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Fetch public catalog snapshot
+        run: pnpm run fetch
+
+      - name: Type-check
+        run: pnpm run check
+
+      - name: Build static site
+        run: pnpm run build
+
+      - name: Verify catalog snapshot and output
+        run: node scripts/verify-catalog.mjs
+
+      - name: Audit local links and assets
+        run: node scripts/audit-links.mjs dist

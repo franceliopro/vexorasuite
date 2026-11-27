@@ -14,7 +14,7 @@ test("Escola de Música é item único do menu e herda CALENDAR", () => {
   assert.match(page, /'Escola de Música':'CALENDAR'/);
   assert.match(page, /active === "Escola de Música" \? \(/);
   assert.match(page, /canConfigure \? <MusicSchoolWorkspace \/>/);
-  assert.match(policy, /\^music-school(?:\/|\$)/);
+  assert.ok(policy.includes('^music-school(?:\\/|$)'), "a política deve mapear music-school para CALENDAR");
   assert.match(policy, /return \["CALENDAR"\]/);
 });
 
@@ -37,7 +37,9 @@ test("cobrança aparece como agendada, sem afirmação de pagamento ou envio", (
   assert.match(workspace, /nenhum envio executado/i);
   assert.doesNotMatch(workspace, /Pagamento confirmado|Cobrança confirmada|Mensagem enviada|Notificação enviada/);
   assert.match(service, /billingStatus: "SCHEDULED"/);
-  assert.match(service, /executed: false, confirmed: false/);
+  assert.match(service, /executed: false,[\s\S]*?confirmed: false/);
+  const readService = read("../../api/src/modules/music-school/music-school-read.service.ts");
+  assert.match(readService, /executed: false, confirmed: false/);
 });
 
 test("detalhes ficam em seções expansíveis e a interface permanece responsiva", () => {

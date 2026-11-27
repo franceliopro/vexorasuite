@@ -100,7 +100,13 @@ export function AnchoredPopover({
       role={role}
       aria-label={ariaLabel}
       className={"fixed " + className}
-      style={{ ...position, zIndex: 260 }}
+      style={{
+        ...position,
+        maxWidth: "calc(100vw - 16px)",
+        maxHeight: "calc(100vh - 16px)",
+        overflowY: "auto",
+        zIndex: 260,
+      }}
       onClick={onClick}
     >
       {children}

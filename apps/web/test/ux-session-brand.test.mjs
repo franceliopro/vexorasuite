@@ -76,6 +76,8 @@ test("o popover de emojis abre centrado no ícone e escapa do stacking context",
     '"center"',
     "portal && mounted ? createPortal(panel, document.body) : panel",
     "const limitLeft = Math.max(margin, window.innerWidth - size.width - margin)",
+    'maxWidth: "calc(100vw - 16px)"',
+    'maxHeight: "calc(100vh - 16px)"',
     "zIndex: 260",
   ]) {
     assert.ok(popover.includes(token), `o popover ancorado perdeu ${token}`);

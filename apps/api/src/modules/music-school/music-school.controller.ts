@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, Req, UseGuard
 import { AuthGuard } from "../../auth/auth.guard";
 import { AuthenticatedRequest } from "../../auth/auth.types";
 import { MusicSchoolService } from "./music-school.service";
+import { MusicSchoolReadService } from "./music-school-read.service";
 
 /**
  * Escola de Música: turmas, matrículas, presença e saldos no tenant autenticado.
@@ -11,11 +12,11 @@ import { MusicSchoolService } from "./music-school.service";
 @UseGuards(AuthGuard)
 @Controller("music-school")
 export class MusicSchoolController {
-  constructor(private readonly service: MusicSchoolService) {}
+  constructor(private readonly service: MusicSchoolService, private readonly read: MusicSchoolReadService) {}
 
   @Get("classes")
   listClasses(@Req() req: AuthenticatedRequest) {
-    return this.service.listClasses(req.user.tenantId);
+    return this.read.listClasses(req.user.tenantId);
   }
 
   @Post("classes")
@@ -44,11 +45,11 @@ export class MusicSchoolController {
     @Query("from") from?: string,
     @Query("to") to?: string,
   ) {
-    return this.service.listAttendances(req.user.tenantId, classId, from, to);
+    return this.read.listAttendances(req.user.tenantId, classId, from, to);
   }
 
   @Get("balances")
   listBalances(@Req() req: AuthenticatedRequest, @Query("contactId") contactId?: string) {
-    return this.service.listBalances(req.user.tenantId, contactId);
+    return this.read.listBalances(req.user.tenantId, contactId);
   }
 }

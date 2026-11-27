@@ -28,7 +28,8 @@ import { useGlobalPhoneMask } from "../hooks/useGlobalPhoneMask";
 const TeamWorkspace=dynamic(()=>import("./team-workspace").then(m=>m.TeamWorkspace));
 import { Suspense, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { AuthScreen, type AuthSession } from "./auth-screen";
+import { AuthScreen, type AuthSession, type SegmentNavigationItem } from "./auth-screen";
+import { SchoolDashboard } from "./school-dashboard";
 const InboxWorkspace=dynamic(()=>import("./inbox-workspace").then(module=>module.InboxWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
 const OperationsSettings=dynamic(()=>import("./operations-settings").then(module=>module.OperationsSettings),{loading:()=> <p role="status">Carregando módulo…</p>});
 const CrmWorkspace=dynamic(()=>import("./crm-workspace").then(module=>module.CrmWorkspace),{loading:()=> <p role="status">Carregando módulo…</p>});
@@ -235,8 +236,16 @@ const MOBILE_NAV_STATE_TW:Record<string,string>={
 };
 function mobileNavClass(isOverview:boolean){return isOverview?MOBILE_NAV_STATE_TW.dock:MOBILE_NAV_STATE_TW.actions;}
 
-type NavigationChild = { label: string; icon?: keyof typeof iconMap };
-type NavigationItem = { label: string; icon: keyof typeof iconMap; children?: NavigationChild[] };
+type NavigationChild = { label: string; target?: string; icon?: keyof typeof iconMap };
+type NavigationItem = { label: string; target?: string; icon: keyof typeof iconMap; children?: NavigationChild[] };
+const navigationIcon = (value?: string): keyof typeof iconMap => value && value in iconMap ? value as keyof typeof iconMap : "more";
+const targetOf = (item: { label: string; target?: string }) => item.target || item.label;
+const navigationForProfile = (items: SegmentNavigationItem[]): NavigationItem[] => items.map((item) => ({
+  label: item.label,
+  target: targetOf(item),
+  icon: navigationIcon(item.icon),
+  children: item.children?.map((child) => ({ label: child.label, target: targetOf(child), icon: navigationIcon(child.icon) })),
+}));
 const navigation: { section: string; items: NavigationItem[] }[] = [
   { section: "OPERAÇÃO", items: [{ label: "Visão geral", icon: "layout-dashboard" }, { label: "Atendimento", icon: "messages" }, { label: "CRM", icon: "users" }, { label: "Calendários", icon: "calendar" }, { label: "Gestão escolar", icon: "graduation-cap" }, { label: "Tarefas", icon: "tasks" }, { label: "Relatórios", icon: "chart" }] },
   { section: "RESULTADOS", items: [
@@ -263,6 +272,11 @@ export default function HomePage() {
   const paymentProviderLabel = selectedPaymentProvider === "STRIPE" ? "Stripe" : selectedPaymentProvider === "INFINITEPAY" ? "InfinitePay" : "Asaas";
   const providerForLabel: Record<string, string> = { Asaas: "ASAAS", Stripe: "STRIPE", InfinitePay: "INFINITEPAY" };
   const providerVisible = (label: string) => !providerForLabel[label] || providerForLabel[label] === selectedPaymentProvider;
+  const segmentProfile = session?.segmentProfile || null;
+  const schoolProfile = segmentProfile?.overview === "SCHOOL";
+  const activeNavigation = schoolProfile && segmentProfile && segmentProfile.navigation.length
+    ? segmentProfile.navigation.map((group) => ({ section: group.section, items: navigationForProfile(group.items) }))
+    : navigation;
   useEffect(() => {
     let mounted = true;
     fetch("/api/backend/auth/me", { cache: "no-store" })
@@ -283,7 +297,7 @@ export default function HomePage() {
   const [workflowTab, setWorkflowTab] = useState("Campanhas de mensagens");
   const [navigationReady, setNavigationReady] = useState(false);
   useEffect(() => {
-    const validModules = new Set(["Atendentes","Conexões","Canais e integrações","Relatórios","Clientes","Planos e preços","Biblioteca de referências","Referências criativas","Google Drive",...navigation.flatMap((group) => group.items.flatMap((item) => [item.label, ...(item.children || []).map((child) => child.label)]))]);
+    const validModules = new Set(["Atendentes","Conexões","Canais e integrações","Relatórios","Clientes","Planos e preços","Biblioteca de referências","Referências criativas","Google Drive",...activeNavigation.flatMap((group) => group.items.flatMap((item) => [targetOf(item), ...(item.children || []).map((child) => targetOf(child))]))]);
     const params = new URLSearchParams(window.location.search);
     const requested = params.get("module");
     if (["Gestão", "Financeiro", "asaas", "ASAAS"].includes(requested || "")) setActive(paymentProviderLabel);
@@ -295,9 +309,9 @@ export default function HomePage() {
     else if (requested && validModules.has(requested)) {
       preloadWorkspace(requested);
       setActive(requested);
-      const parent = navigation.find((group) => group.items.some((item) => item.children?.some((child) => child.label === requested)));
+      const parent = activeNavigation.find((group) => group.items.some((item) => item.children?.some((child) => targetOf(child) === requested)));
       if (parent) {
-        const parentItem = parent.items.find((item) => item.children?.some((child) => child.label === requested));
+        const parentItem = parent.items.find((item) => item.children?.some((child) => targetOf(child) === requested));
         if (parentItem) setExpandedModules([parentItem.label]);
       }
     }
@@ -313,7 +327,7 @@ export default function HomePage() {
   useEffect(()=>{try{localStorage.removeItem("vexora:quick-replies")}catch{}},[]);
   const [overview,setOverview]=useState<OverviewSnapshot|null>(null);
   const [overviewError,setOverviewError]=useState("");
-  useEffect(()=>{if(!session||session.user.mustChangePassword||active!=="Visão geral")return;let live=true;setOverview(null);const load=()=>fetch("/api/backend/overview",{cache:"no-store"}).then(async r=>{if(!r.ok)throw Error();return r.json()}).then(data=>{if(live){setOverview(data);setOverviewError("")}}).catch(()=>{if(live)setOverviewError("Não foi possível carregar os indicadores. O painel tenta de novo em 60 segundos; se o problema continuar, verifique a conexão do WhatsApp em Conexões.")});void load();const timer=setInterval(()=>void load(),60000);return()=>{live=false;clearInterval(timer)}},[active,session?.tenant.id]);
+  useEffect(()=>{if(!session||session.user.mustChangePassword||active!=="Visão geral"||schoolProfile)return;let live=true;setOverview(null);const load=()=>fetch("/api/backend/overview",{cache:"no-store"}).then(async r=>{if(!r.ok)throw Error();return r.json()}).then(data=>{if(live){setOverview(data);setOverviewError("")}}).catch(()=>{if(live)setOverviewError("Não foi possível carregar os indicadores. O painel tenta de novo em 60 segundos; se o problema continuar, verifique a conexão do WhatsApp em Conexões.")});void load();const timer=setInterval(()=>void load(),60000);return()=>{live=false;clearInterval(timer)}},[active,session?.tenant.id,schoolProfile]);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [welcomeExpanded, setWelcomeExpanded] = useState(false);
@@ -458,6 +472,7 @@ export default function HomePage() {
     if(session?.user.isPlatformAdmin===true)return true;
     return (session?.allowedModules||[]).includes(required);
   };
+  const inboxVisible = moduleVisible("Atendimento") && providerVisible("Atendimento");
   const platformPanel=session?.tenant.kind==="PLATFORM"&&session?.user.isPlatformAdmin===true;
   // Planos e preços é capacidade da plataforma: cliente só vê quando a Véxora libera o módulo PLANS.
   // Mesmo um admin da plataforma olhando um tenant cliente não faz o item reaparecer sem a liberação.
@@ -483,30 +498,31 @@ export default function HomePage() {
           {(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)&&brandAssets.logoShape==="rectangular"?<img className={BRAND_LOGO_HORIZONTAL_IMG_TW} style={{maxWidth:brandAssets.logoMaxWidth||160,maxHeight:brandAssets.logoMaxHeight||40}} src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt={session?.tenant.name||"Logo da empresa"}/>:<><span className={brandMarkClass(Boolean(theme==="light"?brandAssets.logoLight:brandAssets.logoDark),brandAssets.logoShape||"")}>{(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?<img className={BRAND_LOGO_IMG_TW} src={theme==="light"?brandAssets.logoLight:brandAssets.logoDark} alt=""/>:"V"}</span>{(brandAssets.logoShape==="rectangular"||brandAssets.showCompanyName||!(theme==="light"?brandAssets.logoLight:brandAssets.logoDark))?<span className="brand-copy"><strong>{brandAssets.logoShape!=="rectangular"&&(theme==="light"?brandAssets.logoLight:brandAssets.logoDark)?session?.tenant.name||"Véxora":"véxora"}</strong><small>{brandAssets.logoShape==="rectangular"?"SUITE":""}</small></span>:null}</>}
         </a></div>
         <nav className="side-nav" aria-label="Navegação principal">
-          {navigation.map((group) => {
-            const visibleItems = group.items.filter((item) => (item.label !== "Planos e preços" || plansMenuVisible) && moduleVisible(item.label) && providerVisible(item.label) && (!["Asaas","Financeiro","Relatórios","Planos e preços"].includes(item.label) || canManage) && (!["Configurações","Conexões"].includes(item.label) || canConfigure));
+          {activeNavigation.map((group) => {
+            const visibleItems = group.items.filter((item) => { const target = targetOf(item); return (target !== "Planos e preços" || plansMenuVisible) && moduleVisible(target) && providerVisible(target) && (!["Asaas","Financeiro","Relatórios","Planos e preços"].includes(target) || canManage) && (!["Configurações","Conexões"].includes(target) || canConfigure); });
             if (!visibleItems.length) return null;
             return <div className="nav-group" key={group.section}>
               <p className="nav-section">{group.section}</p>
               {visibleItems.map((item) => {
-                const expanded = expandedModules.includes(item.label);
-                const visibleChildren=(item.children||[]).filter(child=>moduleVisible(child.label)&&providerVisible(child.label));
-                const childActive = visibleChildren.some((child) => child.label === active);
-                const familyActive = (item.label === "Automação" && workspaceTabKey(active) === "automation") || (item.label === "Conexões" && workspaceTabKey(active) === "connections");
+                const target = targetOf(item);
+                const expanded = expandedModules.includes(target);
+                const visibleChildren=(item.children||[]).filter(child=>moduleVisible(targetOf(child))&&providerVisible(targetOf(child)));
+                const childActive = visibleChildren.some((child) => targetOf(child) === active);
+                const familyActive = (target === "Automação" && workspaceTabKey(active) === "automation") || (target === "Conexões" && workspaceTabKey(active) === "connections");
                 return <div className={accordionClass(expanded)} key={item.label}>
-                  <button type="button" title={sidebarCollapsed ? item.label : undefined} aria-expanded={item.children ? expanded : undefined} onPointerEnter={()=>{if(!item.children)preloadWorkspace(item.label)}} onFocus={()=>{if(!item.children)preloadWorkspace(item.label)}} className={navItemClass(active === item.label || childActive || familyActive)}
+                  <button type="button" title={sidebarCollapsed ? item.label : undefined} aria-expanded={item.children ? expanded : undefined} onPointerEnter={()=>{if(!item.children)preloadWorkspace(target)}} onFocus={()=>{if(!item.children)preloadWorkspace(target)}} className={navItemClass(active === target || childActive || familyActive)}
                     onClick={() => {
                       if (item.children) {
-                        setExpandedModules((current) => current.includes(item.label) ? [] : [item.label]);
-                        if (item.label === "Financeiro") { preloadWorkspace(paymentProviderLabel); setActive(paymentProviderLabel); setMenuOpen(false); }
+                        setExpandedModules((current) => current.includes(target) ? [] : [target]);
+                        if (target === "Financeiro") { preloadWorkspace(paymentProviderLabel); setActive(paymentProviderLabel); setMenuOpen(false); }
                       } else {
-                        setExpandedModules([]);preloadWorkspace(item.label);setActive(item.label); setMenuOpen(false);
+                        setExpandedModules([]);preloadWorkspace(target);setActive(target); setMenuOpen(false);
                       }
                     }}>
                     <span className="nav-glyph"><Icon name={item.icon} size={18} /></span><span>{item.label}</span>
                     {item.children ? <ChevronDown className="nav-accordion-chevron" size={14} aria-hidden="true" /> : null}
                   </button>
-                  {visibleChildren.length && expanded ? <div className="nav-submenu" role="menu" aria-label={item.label}>{visibleChildren.map((child) => <button key={child.label} type="button" role="menuitem" className={navSubitemClass(active === child.label)} onPointerEnter={()=>preloadWorkspace(child.label)} onFocus={()=>preloadWorkspace(child.label)} onClick={() => { preloadWorkspace(child.label); setActive(child.label); setMenuOpen(false); }}><span className="nav-subitem-glyph"><Icon name={child.icon || "more"} size={15} /></span><span>{child.label}</span></button>)}</div> : null}
+                  {visibleChildren.length && expanded ? <div className="nav-submenu" role="menu" aria-label={item.label}>{visibleChildren.map((child) => { const childTarget=targetOf(child); return <button key={child.label} type="button" role="menuitem" className={navSubitemClass(active === childTarget)} onPointerEnter={()=>preloadWorkspace(childTarget)} onFocus={()=>preloadWorkspace(childTarget)} onClick={() => { preloadWorkspace(childTarget); setActive(childTarget); setMenuOpen(false); }}><span className="nav-subitem-glyph"><Icon name={child.icon || "more"} size={15} /></span><span>{child.label}</span></button>; })}</div> : null}
                 </div>;
               })}
             </div>;
@@ -577,7 +593,7 @@ export default function HomePage() {
             {/* ReminderCenter and AlarmCenter are rendered at the app root so their fixed overlays escape the topbar stacking context. */}
             <button type="button" className="ai-assistant-trigger" aria-label="Abrir assistente Véxora" title="Assistente pessoal (sob demanda)" onClick={() => setAssistantOpen(v => !v)}><Sparkles size={17}/><span>Assistente</span></button>
             {session?.role==="OWNER"&&<CompanySwitcher current={session.tenant} canCreate={session.user.isPlatformAdmin===true}/>}
-            <label className="search-box"><span><Search size={18} aria-hidden="true" /></span><input ref={searchInputRef} aria-label="Buscar contatos" placeholder="Buscar contatos…" value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.nativeEvent.isComposing&&globalSearch.trim()){preloadWorkspace("CRM");setCrmSearch(globalSearch.trim());setActive("CRM");e.currentTarget.blur()}}} /><kbd>⌘ K</kbd></label>
+            {moduleVisible("CRM") ? <label className="search-box"><span><Search size={18} aria-hidden="true" /></span><input ref={searchInputRef} aria-label="Buscar contatos" placeholder="Buscar contatos…" value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.nativeEvent.isComposing&&globalSearch.trim()){preloadWorkspace("CRM");setCrmSearch(globalSearch.trim());setActive("CRM");e.currentTarget.blur()}}} /><kbd>⌘ K</kbd></label> : null}
             <button className={themeToggleTw} onClick={() => setTheme(value => value==="hybrid"?"light":value==="light"?"dark":"hybrid")} aria-label={"Tema atual: "+({hybrid:"Híbrido",light:"Claro",dark:"Escuro"}[theme])+". Clique para alternar."} title={"Tema: "+({hybrid:"Híbrido",light:"Claro",dark:"Escuro"}[theme])+" · clique para alternar"}>{theme==="hybrid"?<SunMoon size={17}/>:theme==="light"?<Sun size={17}/>:<Moon size={17}/>}</button>
             
             <button className="logout-button" onClick={async () => { await disableDeviceNotifications().catch(()=>{}); await fetch("/api/backend/auth/logout", { method: "POST" }); setSession(null); setAuthStatus("anonymous"); }} title="Sair da conta">Sair</button>
@@ -587,25 +603,27 @@ export default function HomePage() {
         {currentWorkspaceTab && currentWorkspaceTab !== "automation" ? <nav className="persistent-module-tabs" aria-label="Seção atual">{workspaceTabs[currentWorkspaceTab!]!.map((tab) => <button key={tab.target} type="button" className={moduleTabClass(active === tab.target)} onClick={() => { preloadWorkspace(tab.target); setActive(tab.target); setExpandedModules([]); }}>{tab.label}</button>)}</nav> : null}
         <div className={pageContentClass(active === "Atendimento")}><WorkspaceAlerts admin={session?.role==='OWNER'||session?.role==='ADMIN'}/>
           {isOverview ? <section className={pageHeadingTw}>
-            <div className="bg-transparent"><h1>{greeting+", "+((session?.user?.name||"").trim().split(/\s+/)[0]||"você")+"! 👋"}</h1></div>
-            <button className={primaryButton} onClick={() => setActive("Atendimento")}><Plus size={16} aria-hidden="true" /> Abrir atendimento</button>
+            <div className="bg-transparent"><h1>{schoolProfile ? "Visão geral da escola" : greeting+", "+((session?.user?.name||"").trim().split(/\s+/)[0]||"você")+"! 👋"}</h1></div>
+            {inboxVisible ? <button className={primaryButton} onClick={() => setActive("Atendimento")}><Plus size={16} aria-hidden="true" /> Abrir atendimento</button> : null}
           </section> : null}
-          {isOverview ? <DashboardWidgets /> : null}
-          {isOverview && session?.tenant.slug === "rastreabem" ? <section className={cardTw} aria-label="Site externo da Rastreabem">
+          {isOverview && !schoolProfile ? <DashboardWidgets /> : null}
+          {isOverview && !schoolProfile && session?.tenant.slug === "rastreabem" ? <section className={cardTw} aria-label="Site externo da Rastreabem">
             <h2 className="text-body-lg font-bold text-slate-950">Site da Rastreabem</h2>
             <p className="text-sm text-slate-600">Acesso ao site externo da empresa. A Véxora não hospedou nem publicou esta página.</p>
             <a className={primaryButton} href="https://rastreabem.com.br" target="_blank" rel="noreferrer">Abrir rastreabem.com.br em nova janela <ExternalLink size={16} aria-hidden="true" /></a>
           </section> : null}
-          {isOverview ? <div className={welcomeExpanded ? "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-1" : "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-2"}>
-            <OnboardingChecklist onNavigate={(target) => { setActive(target); setMenuOpen(false); }} onDismiss={() => setWelcomeExpanded(true)} />
-            <DashboardWelcome onNavigate={(target) => { preloadWorkspace(target); setActive(target); setMenuOpen(false); }} />
+          {isOverview ? <div className={welcomeExpanded || schoolProfile ? "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-1" : "grid w-full gap-4 bg-transparent hover:bg-transparent lg:grid-cols-2"}>
+            <OnboardingChecklist profile={segmentProfile} onNavigate={(target) => { preloadWorkspace(target); setActive(target); setMenuOpen(false); }} onDismiss={() => setWelcomeExpanded(true)} />
+            {schoolProfile ? null : <DashboardWelcome onNavigate={(target) => { preloadWorkspace(target); setActive(target); setMenuOpen(false); }} />}
           </div> : null}
 
           {!moduleVisible(active)||!providerVisible(active)?<section className={cardTw}><h2>Acesso não permitido</h2><p>Este módulo não está habilitado para sua empresa.</p><button type="button" className={secondaryButton} onClick={() => setActive("Visão geral")}>Ir para Visão geral</button></section>:isOverview ? (
-            <>
-              {overviewError&&!overview&&<p role="status">{overviewError}</p>}
-              <OverviewIntelligence data={overview} onOpenQueue={() => setActive("Atendimento")} />
-            </>
+            schoolProfile ? <SchoolDashboard vocabulary={segmentProfile?.vocabulary} onNavigate={(target) => { preloadWorkspace(target); setActive(target); setMenuOpen(false); }} /> : (
+              <>
+                {overviewError&&!overview&&<p role="status">{overviewError}</p>}
+                <OverviewIntelligence data={overview} onOpenQueue={() => setActive("Atendimento")} />
+              </>
+            )
           ) : active === "Tarefas" ? (
             <TasksWorkspace />
           ) : active === "Calendários" || active === "Agenda" ? (
@@ -654,7 +672,7 @@ export default function HomePage() {
             ) : <section className={placeholderTw}><h2>Acesso restrito</h2><p>Somente responsáveis pela configuração da empresa podem acessar este ambiente.</p></section>
           ) : (
             <section className={placeholderTw}>
-              <span className={placeholderIconTw}><Icon name={navigation.flatMap((group) => group.items).find((item) => item.label === active)?.icon ?? "messages"} size={25} /></span>
+              <span className={placeholderIconTw}><Icon name={activeNavigation.flatMap((group) => group.items).find((item) => targetOf(item) === active)?.icon ?? "messages"} size={25} /></span>
               <p className={eyebrowTw}>MÓDULO DA PLATAFORMA</p><h2>{active}</h2>
               <p>O espaço de trabalho de <strong>{active}</strong> será conectado aos serviços operacionais na próxima etapa. Nenhuma ação ou dado da Véxora antiga é alterado por esta versão.</p>
               <div className={placeholderStatusTw}><span /> Interface em preparação</div>
@@ -675,13 +693,19 @@ export default function HomePage() {
             <button type="button" onClick={() => { setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-transfer")); }}><Icon name="transfer" size={20}/><span>Transferir</span></button>
             <button type="button" onClick={() => { setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-finalize")); }}><Icon name="finalize" size={20}/><span>Finalizar</span></button>
           </>
-        ) : (
+        ) : inboxVisible ? (
           <>
             <button type="button" className={dockItemClass(active === "Visão geral", false)} onPointerEnter={()=>preloadWorkspace("Atendimento")} onFocus={()=>preloadWorkspace("Atendimento")} onClick={() => { preloadWorkspace("Atendimento");setActive("Atendimento"); setMenuOpen(false); }}><Icon name="messages" size={20}/><span>Conversa</span></button>
             {active !== "Visão geral" && <>
             <button type="button" className={dockItemClass(active === "Visão geral", false)} onClick={() => { setActive("Atendimento"); setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-transfer")); }}><Icon name="transfer" size={20}/><span>Transferir</span></button>
             <button type="button" className={dockItemClass(active === "Visão geral", menuOpen)} onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation-menu" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}><Icon name="more" size={20} className={dockIconClass(active === "Visão geral" && menuOpen) || undefined}/><span>Mais</span></button>
             </>}
+          </>
+        ) : (
+          <>
+            <button type="button" className={dockItemClass(active === "Gestão escolar", false)} onPointerEnter={()=>preloadWorkspace("Gestão escolar")} onFocus={()=>preloadWorkspace("Gestão escolar")} onClick={() => { preloadWorkspace("Gestão escolar");setActive("Gestão escolar"); setMenuOpen(false); }}><Icon name="graduation-cap" size={20}/><span>Escola</span></button>
+            <button type="button" className={dockItemClass(active === "Financeiro", false)} onPointerEnter={()=>preloadWorkspace("Financeiro")} onFocus={()=>preloadWorkspace("Financeiro")} onClick={() => { preloadWorkspace("Financeiro");setActive("Financeiro"); setMenuOpen(false); }}><Icon name="wallet" size={20}/><span>Financeiro</span></button>
+            <button type="button" className={dockItemClass(active === "Visão geral", menuOpen)} onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation-menu" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}><Icon name="more" size={20} className={dockIconClass(active === "Visão geral" && menuOpen) || undefined}/><span>Mais</span></button>
           </>
         )}
       </nav>

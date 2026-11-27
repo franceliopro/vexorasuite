@@ -1,5 +1,5 @@
 import {randomUUID} from 'node:crypto';
-import {DEPARTMENT_PRESETS,SEGMENTS,segmentAgentPrompt,templateFlow,vocabularyForSegment} from '../operations/business-templates';
+import {DEPARTMENT_PRESETS,SEGMENTS,modulesForSegment,segmentAgentPrompt,templateFlow,vocabularyForSegment} from '../operations/business-templates';
 import {pipelineStages} from '../operations/departments.controller';
 import {webDesignerAgent} from '../ai/web-designer-agent';
 import {ASSISTANT_SPECIALISTS} from '../ai/assistant-specialists';
@@ -7,6 +7,18 @@ import {ASSISTANT_SPECIALISTS} from '../ai/assistant-specialists';
 export async function provisionCompany(tx:any,tenant:any,ownerId:string,segmentId:string,requestId:string,platforms:string[]=[]){
  const segment=SEGMENTS.find(s=>s.id===segmentId)!;
  const presets:Record<string,any>={},flows:Record<string,any>={},agents:any[]=[];
+ // Escolas em modo solo não recebem filas humanas, CRM de atendimento nem fluxos de handoff.
+ if(segmentId==='music-school'){
+  const id='segment:music-school',agentId=randomUUID(),modules=modulesForSegment(segmentId);
+  const flow=templateFlow(segmentId);flow.name='Rotina da escola';
+  const instructions=segmentAgentPrompt(segmentId);
+  presets[id]={version:1,bundleVersion:2,segment:segment.name,modules,agentId,flowId:id,agentInstructions:instructions};
+  flows[id]={version:1,draft:flow};
+  agents.push({id:agentId,name:'Assistente da escola',role:'Rotina escolar',tier:'Econômico',enabled:false,instructions,profile:{tone:'Natural e objetivo',channels:[]},behavior:{rules:'Consulte os dados cadastrados antes de responder e confirme o que foi encontrado.',prohibitions:'Não invente pagamento, envio, cancelamento, disponibilidade ou vaga.'},allowedActions:[],bindings:{mode:'specialist',specialists:[],flows:[id],pipelines:[],externalSystems:[],modules}});
+  agents.push(webDesignerAgent());agents.push(...ASSISTANT_SPECIALISTS);
+  await tx.tenant.update({where:{id:tenant.id},data:{integrations:{onboarding:{requestId,segmentId,platforms,version:3},segment:{id:segment.id,name:segment.name,vocabulary:vocabularyForSegment(segment.id)},businessPresets:presets,businessFlows:flows,assistant:{name:'Véxora',wakeWord:'Olá Véxora',enabled:false,agents,dailyAiLimit:100}}}});
+  return;
+ }
  const entries:{presetKey:keyof typeof DEPARTMENT_PRESETS;key:string;name:string;platform?:string}[]=platforms.length?[
   ...platforms.flatMap((name,index)=>(['FINANCE','SUPPORT'] as const).map(presetKey=>({presetKey,key:presetKey+'_P'+(index+1),name:DEPARTMENT_PRESETS[presetKey].name+' · '+name,platform:name}))),
   {presetKey:'SALES',key:'SALES',name:'Comercial'},{presetKey:'GENERAL',key:'ADMINISTRATION',name:'Administrativo'}

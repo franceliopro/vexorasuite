@@ -133,7 +133,7 @@ test("os contratos funcionais dos quatro workspaces permanecem", () => {
       "onClick={()=>void saveGroups()}", "onClick={()=>void purgeTenant()}",
       "onClick={()=>void loadInitialSettings()}",
       "onClick={()=>void resetPlatformEnvironment(false)}",
-      "onClick={()=>void resetTestEnvironment(true)}",
+      "onClick={()=>void deleteSelectedCompany()}",
       "applyBrandAll(next,document.documentElement.dataset.theme)",
       "wcagRatio(brand.sidebarBackground",
     ],

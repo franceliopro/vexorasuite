@@ -102,9 +102,16 @@ export function youtubeEmbed(value: unknown): string | null {
   }
 }
 
-const RICH_TAGS = [...sanitizeHtml.defaults.allowedTags, "h1", "h2", "h3", "h4", "table", "thead", "tbody", "tr", "th", "td", "iframe"];
+const RICH_TAGS = [
+  ...sanitizeHtml.defaults.allowedTags,
+  "h1", "h2", "h3", "h4", "table", "thead", "tbody", "tr", "th", "td",
+  "iframe", "figure", "figcaption", "u", "s", "strike",
+];
+const MAX_DATA_URI = 2_000_000;
+const IMAGE_DATA_URI = /^data:image\/(?:png|jpeg|gif|webp);base64,[A-Za-z0-9+/=]+$/;
+const FILE_DATA_URI = /^data:(?:image\/(?:png|jpeg|gif|webp)|application\/(?:pdf|msword|octet-stream|vnd\.openxmlformats-officedocument[\w.-]+)|text\/(?:plain|csv));base64,[A-Za-z0-9+/=]+$/;
 
-/** Richtext do TinyMCE: só HTML comum e iframes do YouTube são preservados. */
+/** Richtext do Tiptap: HTML comum, imagens/arquivos pequenos e apenas iframes do YouTube. */
 export function cleanRichText(value: unknown, label: string): string {
   const raw = typeof value === "string" ? value : "";
   if (raw.length > 60000) throw new Error(`${label} excede o limite de 60000 caracteres.`);
@@ -112,11 +119,14 @@ export function cleanRichText(value: unknown, label: string): string {
     allowedTags: RICH_TAGS,
     allowedAttributes: {
       ...sanitizeHtml.defaults.allowedAttributes,
-      a: ["href", "target", "rel"],
-      img: ["src", "alt", "title"],
-      iframe: ["src", "allowfullscreen", "allow", "frameborder", "width", "height", "title"],
+      a: ["href", "target", "rel", "class"],
+      img: ["src", "alt", "title", "class", "loading"],
+      figure: ["class"],
+      figcaption: ["class"],
+      iframe: ["src", "allowfullscreen", "allow", "frameborder", "width", "height", "title", "class"],
     },
-    allowedSchemes: ["http", "https"],
+    allowedSchemes: ["http", "https", "mailto", "tel"],
+    allowedSchemesByTag: { a: ["http", "https", "mailto", "tel", "data"], img: ["http", "https", "data"] },
     allowedSchemesAppliedToAttributes: ["href", "src"],
     transformTags: {
       iframe: (tagName: string, attribs: Record<string, string>) => {
@@ -124,6 +134,22 @@ export function cleanRichText(value: unknown, label: string): string {
         return src
           ? { tagName, attribs: { ...attribs, src, allowfullscreen: "true", title: "Vídeo do YouTube" } }
           : { tagName: "span", attribs: {} };
+      },
+      a: (tagName: string, attribs: Record<string, string>) => {
+        const href = attribs.href || "";
+        if (href.startsWith("data:")) {
+          if (!FILE_DATA_URI.test(href) || href.length > MAX_DATA_URI) return { tagName: "span", attribs: {} };
+          return { tagName, attribs: { href, target: "_blank", rel: "noopener noreferrer" } };
+        }
+        return { tagName, attribs: { ...attribs, rel: "noopener noreferrer" } };
+      },
+      img: (tagName: string, attribs: Record<string, string>) => {
+        const src = attribs.src || "";
+        if (src.startsWith("data:")) {
+          if (!IMAGE_DATA_URI.test(src) || src.length > MAX_DATA_URI) return { tagName: "span", attribs: {} };
+          return { tagName, attribs: { src, alt: attribs.alt || "Imagem" } };
+        }
+        return { tagName, attribs };
       },
     },
   });

@@ -83,6 +83,14 @@ describe("Gestão escolar — regras determinísticas", () => {
     expect(clean).toContain("youtube-nocookie.com/embed/abc123DEF");
     expect(clean).not.toContain("evil.example.com");
     expect(clean).not.toContain("<script");
+    const withFiles = cleanRichText(
+      '<p><img src="data:image/png;base64,iVBORw0KGgo=" alt="Partitura" /></p><p><a href="data:application/pdf;base64,JVBERi0x">Apostila</a></p>',
+      "Materiais",
+    );
+    expect(withFiles).toContain("data:image/png;base64,iVBORw0KGgo=");
+    expect(withFiles).toContain("data:application/pdf;base64,JVBERi0x");
+    const unsafe = cleanRichText('<a href="data:text/html;base64,PHNjcmlwdD4="> Abrir </a>', "Materiais");
+    expect(unsafe).not.toContain("data:text/html");
     expect(() => cleanRichText("x".repeat(60001), "Objetivo")).toThrow("60000");
   });
 });

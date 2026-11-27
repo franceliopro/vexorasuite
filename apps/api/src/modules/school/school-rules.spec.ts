@@ -60,7 +60,7 @@ describe("Gestão escolar — regras determinísticas", () => {
     expect(isoDate("2026-02-30")).toBeNull();
     expect(isoDate("2026-11-27")).toBe("2026-11-27");
     expect(text("  Piano  ", 80, "Nome")).toBe("Piano");
-    expect(httpsUrl("http://inseguro.example.com", "URL")).toThrow("HTTPS");
+    expect(() => httpsUrl("http://inseguro.example.com", "URL")).toThrow("HTTPS");
     expect(() => inList("PAID", ATTENDANCE_STATUSES, "Status")).toThrow("inválido");
   });
 

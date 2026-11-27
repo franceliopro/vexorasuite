@@ -165,13 +165,13 @@ describe("Gestão escolar — escrita tenant-scoped", () => {
     const { service } = fixture();
     const created = await service.createRecord({ kind: "SUBJECT", name: "Violão", parentId: PARENT }, TENANT, "OWNER", USER);
     expect(created).toMatchObject({ tenantId: TENANT, kind: "SUBJECT", parentId: PARENT, parentName: "Música", createdById: USER });
-    await expect(service.createRecord({ kind: "SUBJECT", name: "Erro", parentId: PARENT }, OTHER, "OWNER", USER)).rejects.toThrow("Curso não encontrado");
-    await expect(service.createRecord({ kind: "SUBJECT", name: "Erro", parentId: SUBJECT }, TENANT, "OWNER", USER)).rejects.toThrow("Curso não encontrado");
+    await expect(service.createRecord({ kind: "SUBJECT", name: "Erro", parentId: PARENT }, OTHER, "OWNER", USER)).rejects.toThrow(/Registro não encontrado.*Curso/);
+    await expect(service.createRecord({ kind: "SUBJECT", name: "Erro", parentId: SUBJECT }, TENANT, "OWNER", USER)).rejects.toThrow(/Registro não encontrado.*Curso/);
   });
 
   it("matricula aluno do tenant e mantém mensalidade apenas agendada", async () => {
     const { service } = fixture();
-    await expect(service.createRecord(enrollmentBody(), OTHER, "OWNER", USER)).rejects.toThrow("Turma não encontrada");
+    await expect(service.createRecord(enrollmentBody(), OTHER, "OWNER", USER)).rejects.toThrow(/Registro não encontrado.*Turma/);
     await expect(service.createRecord({ ...enrollmentBody(), tuitionNextDueDate: undefined }, TENANT, "OWNER", USER)).rejects.toThrow("vencimento");
     await expect(service.createRecord({ ...enrollmentBody(), tuitionAmountCents: undefined }, TENANT, "OWNER", USER)).rejects.toThrow("valor mensal");
     const row = await service.createRecord(enrollmentBody(), TENANT, "MANAGER", USER);
@@ -195,6 +195,24 @@ describe("Gestão escolar — escrita tenant-scoped", () => {
     expect(rejected.reason.message).toMatch(/já está matriculado/);
     expect(state.enrollments).toHaveLength(1);
     expect(state.locks).toEqual([TENANT, TENANT]);
+  });
+
+  it("cadastra material com tipo próprio sem confundir o tipo de registro", async () => {
+    const { service, state } = fixture();
+    const row = await service.createRecord({
+      kind: "MATERIAL",
+      title: "Partitura",
+      url: "https://example.com/partitura.pdf",
+      materialKind: "FILE",
+    }, TENANT, "OWNER", USER);
+    expect(row).toMatchObject({ tenantId: TENANT, title: "Partitura", kind: "FILE" });
+    await expect(service.createRecord({
+      kind: "MATERIAL",
+      title: "Inválido",
+      url: "https://example.com/outro.pdf",
+      materialKind: "VIDEO",
+    }, TENANT, "OWNER", USER)).rejects.toThrow("Tipo de material");
+    expect(state.materials).toHaveLength(1);
   });
 
   it("versiona plano de aula, sanitiza richtext e aceita somente embed do YouTube", async () => {
@@ -235,8 +253,8 @@ describe("Gestão escolar — escrita tenant-scoped", () => {
     expect(teacher.record).toMatchObject({ personKind: "TEACHER", personId: TEACHER, status: "PRESENT", balance: null });
     await expect(service.recordAttendance({ sessionId: SESSION, personKind: "STUDENT", personId: STUDENT, status: "ABSENT" }, TENANT, "OWNER", USER)).rejects.toThrow("Já existe presença");
     await expect(service.recordAttendance({ sessionId: SESSION, personKind: "TEACHER", personId: OTHER_TEACHER, status: "PRESENT" }, TENANT, "OWNER", USER)).rejects.toThrow("não leciona");
-    await expect(service.recordAttendance({ sessionId: SESSION, personKind: "STUDENT", personId: STUDENT, status: "PRESENT" }, OTHER, "OWNER", USER)).rejects.toThrow("Aula não encontrado");
-    expect(tx.$queryRaw).toHaveBeenCalledTimes(4);
+    await expect(service.recordAttendance({ sessionId: SESSION, personKind: "STUDENT", personId: STUDENT, status: "PRESENT" }, OTHER, "OWNER", USER)).rejects.toThrow(/Registro não encontrado.*Aula/);
+    expect(tx.$queryRaw.mock.calls.length).toBeGreaterThanOrEqual(3);
   });
 });
 

@@ -39,7 +39,7 @@ export class SchoolService {
 
   private async find(tx: any, model: string, where: Record<string, unknown>, label: string): Promise<any> {
     const row = await tx[model].findFirst({ where });
-    if (!row) throw new NotFoundException(`${label} não encontrado nesta empresa.`);
+    if (!row) throw new NotFoundException(`Registro não encontrado nesta empresa: ${label}.`);
     return row;
   }
 
@@ -289,7 +289,7 @@ export class SchoolService {
         if (kind === "MATERIAL") {
           const title = text(body?.title, 120, "Título do material");
           let url = httpsUrl(body?.url, "URL do material");
-          const requestedKind = body?.kind === undefined ? "LINK" : inList(body.kind, MATERIAL_KINDS, "Tipo de material");
+          const requestedKind = inList(body?.materialKind ?? body?.type ?? "LINK", MATERIAL_KINDS, "Tipo de material");
           const embed = youtubeEmbed(url);
           if (requestedKind === "YOUTUBE") {
             if (!embed) throw new Error("Informe uma URL válida do YouTube.");

@@ -211,6 +211,45 @@ export class InfinitePayService {
     };
   }
 
+  /** A API InfinitePay não gerencia produtos: publicar significa criar um link de pagamento real. */
+  async publishCatalogItem(
+    tenantId: string,
+    item: { id: string; name: string; publicDescription?: string | null; priceCents: number },
+    externalReference: string,
+  ) {
+    if (!Number.isSafeInteger(item.priceCents) || item.priceCents < 100) {
+      throw new BadRequestException("O valor mínimo da InfinitePay é R$ 1,00.");
+    }
+    const credentials = await this.credentials(tenantId);
+    const payload: Record<string, unknown> = {
+      items: [{
+        quantity: 1,
+        price: item.priceCents,
+        description: firstString(item.publicDescription).slice(0, 120) || item.name.slice(0, 120),
+      }],
+      order_nsu: externalReference.slice(0, 120),
+    };
+    if (credentials.handle) payload.handle = credentials.handle;
+    const result = await this.request<{ url?: string; link?: string; checkout_url?: string; slug?: string }>(
+      "/links", payload, credentials.apiKey,
+    );
+    let url: string;
+    try {
+      const parsed = new URL(firstString(result.url || result.link || result.checkout_url));
+      if (parsed.protocol !== "https:" || parsed.username || parsed.password) throw new Error("Invalid checkout URL");
+      url = parsed.href;
+    } catch {
+      throw new ServiceUnavailableException("A InfinitePay não devolveu um link de pagamento utilizável.");
+    }
+    return {
+      objectType: "PAYMENT_LINK",
+      externalId: externalReference.slice(0, 120),
+      externalUrl: url,
+      environment: "PRODUCTION",
+      slug: firstString(result.slug) || null,
+    };
+  }
+
   async paymentCheck(tenantId: string, input: { orderNsu: string; transactionNsu: string; slug: string }) {
     const credentials = await this.credentials(tenantId);
     const body: Record<string, string> = {

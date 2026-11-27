@@ -1,0 +1,21 @@
+---
+import type { Feature } from "../data/site.types";
+
+interface Props {
+  items: Feature[];
+}
+
+const { items } = Astro.props;
+---
+
+<div class="grid cols-3">
+  {
+    items.map((item) => (
+      <article class="card">
+        <div class="card-icon" aria-hidden="true">{item.icon}</div>
+        <h3>{item.title}</h3>
+        <p>{item.description}</p>
+      </article>
+    ))
+  }
+</div>

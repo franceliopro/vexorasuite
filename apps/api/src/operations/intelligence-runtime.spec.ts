@@ -5,7 +5,7 @@ function setup(overrides: Record<string,unknown> = {}) {
  const conversation:any={id:'conversation',tenantId:'tenant',channelConnectionId:'channel',handlingMode:'BOT',status:'OPEN',contactId:'contact',contact:{name:'Ana',externalId:'5511999999999@c.us',metadata:{novo_nome:'Ana'}},botState:{},...overrides};
  const inbound:any={id:'inbound',content:'oi',contentType:'text',metadata:{}};
  const published={active:true,source:'ui',revision:'r1',flow};
- const tx:any={$queryRaw:jest.fn(),conversation:{findFirst:jest.fn().mockResolvedValue(conversation),update:jest.fn()},message:{findMany:jest.fn().mockResolvedValue([]),update:jest.fn(),findFirst:jest.fn().mockImplementation(async({where}:any)=>where.status?{id:'out',status:'QUEUED',metadata:{revision:'r1'}}:inbound),create:jest.fn().mockImplementation(async({data}:any)=>({id:'out'+Math.random(),...data}))},tenant:{findUniqueOrThrow:jest.fn().mockResolvedValue({name:'Empresa',integrations:{intelligencePublished:published}})},auditLog:{findFirst:jest.fn().mockResolvedValue(null),create:jest.fn()},department:{findFirst:jest.fn().mockResolvedValue({id:'support',name:'Suporte'}),findMany:jest.fn().mockResolvedValue([{id:'support',key:'SUPORTE'}])},contact:{update:jest.fn()},channelAttachment:{findMany:jest.fn().mockResolvedValue([{service:'CHATBOT',attached:true},{service:'IA',attached:true},{service:'INBOX',attached:true}])}};
+ const tx:any={$queryRaw:jest.fn(),conversation:{findFirst:jest.fn().mockResolvedValue(conversation),update:jest.fn()},message:{findMany:jest.fn().mockResolvedValue([]),update:jest.fn(),findFirst:jest.fn().mockImplementation(async({where}:any)=>where.status?{id:'out',status:'QUEUED',metadata:{revision:'r1'}}:inbound),create:jest.fn().mockImplementation(async({data}:any)=>({id:'out'+Math.random(),...data}))},tenant:{findUniqueOrThrow:jest.fn().mockResolvedValue({name:'Empresa',integrations:{intelligencePublished:published}})},auditLog:{findFirst:jest.fn().mockResolvedValue(null),create:jest.fn()},department:{findFirst:jest.fn().mockResolvedValue({id:'support',name:'Suporte'}),findMany:jest.fn().mockResolvedValue([{id:'support',key:'SUPORTE'}])},contact:{update:jest.fn()},channelAttachment:{findMany:jest.fn().mockResolvedValue([{service:'CHATBOT',attached:true},{service:'IA',attached:true},{service:'INBOX',attached:true}])},storefrontToken:{findFirst:jest.fn().mockResolvedValue({siteUrl:'https://catalogo.example.com'})}};
  const prisma:any={...tx,$transaction:jest.fn((fn:any)=>fn(tx)),conversation:{...tx.conversation,findFirstOrThrow:jest.fn().mockResolvedValue(conversation)},message:{...tx.message,update:jest.fn().mockImplementation(async({data}:any)=>({id:'out',occurredAt:new Date(),...data}))}};
  prisma.channelConnection={findFirst:jest.fn().mockResolvedValue({id:'channel',tenantId:'tenant',provider:'WAHA',isActive:true})};
  prisma.tenant={findUnique:jest.fn().mockResolvedValue({integrations:{intelligencePublished:published}})};
@@ -541,7 +541,7 @@ describe('AI generated preferred-name and triage flow',()=>{
   const internal = created.find((data: any) => data.metadata?.catalogItems)?.metadata.catalogItems;
   expect(internal).toEqual([{ id: itemId, imageUrl, description }]);
   expect(x.tx.auditLog.create.mock.calls[0][0].data.details.catalogItems).toEqual([{ id: itemId, imageUrl, description }]);
-  expect(sent).toContain('Item do catálogo: Consultoria de CRM\nTipo: Serviço\nSKU: SRV-CRM\nCategoria: Consultoria\nPreço: 150.00 BRL / hora');
+  expect(sent).toContain('Item do catálogo: Consultoria de CRM\nTipo: Serviço\nSKU: SRV-CRM\nCategoria: Consultoria\nPreço: 150.00 BRL / hora\nVitrine: https://catalogo.example.com/servicos/12345678-1234-4234-8234-123456789abc/');
   expect(sent.some((content: string) => content.includes('150,00') && !content.includes('150.00'))).toBe(false);
   expect(sent.join('\n')).not.toContain(imageUrl);
   expect(sent.join('\n')).not.toContain(description);
@@ -549,6 +549,22 @@ describe('AI generated preferred-name and triage flow',()=>{
    expect(call[2]).not.toContain(imageUrl);
    expect(call[2]).not.toContain(description);
   }
+ });
+
+ it('sends the configured full catalog link for catalog.list without private fields', async () => {
+  const x = setup({ botState: { flow: 'INTELLIGENCE', revision: 'r1', stepId: 'menu', variables: {} } });
+  x.flow.steps.splice(1, 0,
+   { id: 'catalog', kind: 'catalog.list', title: 'Catálogo', message: '', options: ['Continuar'], transitions: { Continuar: 'reply' } },
+   { id: 'reply', kind: 'text', title: 'Resposta', message: 'Posso continuar?', options: [] },
+  );
+  x.flow.steps[0].transitions.Suporte = 'catalog';
+  x.inbound.content = '1';
+  await x.service.receive(x.channel, 'conversation', 'inbound');
+  const sent = x.tx.message.create.mock.calls.map(([call]: any[]) => call.data.content as string);
+  expect(sent.some((content: string) => content.includes('https://catalogo.example.com/servicos/\n'))).toBe(true);
+  expect(sent.some((content: string) => content.includes('não confirma pagamento'))).toBe(true);
+  expect(sent.join('\n')).not.toContain('description');
+  expect(sent.join('\n')).not.toContain('imageUrl');
  });
 
  it('fails clearly when the chosen catalog item is no longer available', async () => {

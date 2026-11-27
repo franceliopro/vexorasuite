@@ -1,0 +1,21 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { site } from "../data/site.config";
+---
+
+<BaseLayout title={`Página não encontrada | ${site.name}`} noindex={true}>
+  <section class="section not-found">
+    <div class="container">
+      <span class="eyebrow">Erro 404</span>
+      <h1>Página não encontrada</h1>
+      <p>
+        O endereço acessado não existe ou foi movido. Volte para a página inicial
+        ou use a navegação para encontrar o que procura.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="/">Ir para o início</a>
+        <a class="btn btn-outline" href="/contato/">Fale conosco</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

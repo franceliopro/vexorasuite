@@ -134,7 +134,8 @@ export const flowGuide: ReadonlyArray<{
   { id: "variable", label: "Guardar informação", when: "Quando você quer reaproveitar um dado em mensagens ou transferências.", configure: "O nome do dado e seu valor, que pode usar {{variavel}}.", sees: "Nada. É uma ação interna." },
   { id: "human.handoff", label: "Transferir atendimento", when: "Quando uma pessoa deve continuar a conversa.", configure: "A mensagem de aviso e o time ou atendente de destino.", sees: "A mensagem de encaminhamento; depois, um atendente assume." },
   { id: "agent", label: "Agente de IA", when: "Quando um agente configurado deve conduzir a conversa.", configure: "Qual agente ativo será usado.", sees: "As respostas do agente dentro do fluxo." },
-  { id: "catalog.item", label: "Item do catálogo", when: "Quando o bot deve apresentar um produto digital ou serviço cadastrado pela empresa.", configure: "Escolha explicitamente o item. Nome, preço, moeda e descrição vêm do cadastro.", sees: "O item escolhido com os dados cadastrados, sem preço ou condição inventados." },
+  { id: "catalog.item", label: "Item do catálogo", when: "Quando o bot deve apresentar um produto digital ou serviço cadastrado pela empresa.", configure: "Escolha explicitamente o item. Nome, tipo, SKU, categoria e preço vêm do cadastro; descrição e imagem internas não são enviadas pelo bot.", sees: "O item escolhido com dados públicos do item cadastrado e o link da vitrine, em vez da descrição e da imagem internas, sem preço ou condição inventados." },
+  { id: "catalog.list", label: "Listar catálogo", when: "Quando o bot deve enviar o catálogo completo da vitrine, sem escolher um item.", configure: "Nada a selecionar: configure a URL HTTPS da vitrine no Catálogo.", sees: "O link do catálogo completo e o aviso honesto de que a vitrine não confirma pagamento, pedido ou conexão com provedor." },
   { id: "tag", label: "Adicionar tag", when: "Quando o contato deve ser classificado no CRM.", configure: "Nome e cor da tag.", sees: "Nada. A classificação fica no CRM." },
 ];
 
@@ -190,9 +191,15 @@ export function explainStep(step: Pick<GuidedStep, "kind" | "action" | "config">
   };
   if (type === "catalog.item") return {
     title: "Apresenta um item do catálogo",
-    what: "O bot mostra o produto digital ou serviço escolhido com os dados cadastrados pela empresa.",
+    what: "O bot mostra o produto digital ou serviço escolhido com os dados públicos cadastrados pela empresa e o link da vitrine.",
     configure: "Selecione o item no painel. Não digite preço, disponibilidade ou condição manualmente.",
-    sees: "Nome, tipo, SKU, categoria, preço e descrição do item cadastrado.",
+    sees: "Nome, tipo, SKU, categoria e preço do item cadastrado, com o link da vitrine; descrição e imagem internas não são enviadas pelo bot.",
+  };
+  if (type === "catalog.list") return {
+    title: "Envia o catálogo completo",
+    what: "O bot envia o link do catálogo completo da vitrine configurada, sem escolher item e sem inventar site.",
+    configure: "Nada a selecionar. Configure a URL HTTPS da vitrine no Catálogo; se ela não existir, o bot avisa para configurá-la.",
+    sees: "O link do catálogo completo e o aviso honesto de que a vitrine não confirma pagamento, pedido ou conexão com provedor.",
   };
   if (type === "variable") return {
     title: "Guarda uma informação",
@@ -225,6 +232,7 @@ export const guidedKindOptions: ReadonlyArray<readonly [string, string]> = [
   ["department.route", "Abrir atendimento do departamento"],
   ["agent", "Agente de IA"],
   ["catalog.item", "Item do catálogo"],
+  ["catalog.list", "Listar catálogo"],
   ["tag", "Adicionar tag"],
 ];
 
@@ -240,6 +248,7 @@ export function guidedKindDefaults(kind: string): Partial<GuidedStep> {
     case "department.route": return { ...common, config: JSON.stringify({ targetMode: "DEPARTMENT" }), options: ["Continuar"] };
     case "agent": return { ...common, config: JSON.stringify({ agentId: "" }), options: ["Continuar"] };
     case "catalog.item": return { ...common, config: JSON.stringify({ itemId: "" }), options: ["Continuar"] };
+    case "catalog.list": return { ...common, config: undefined, options: ["Continuar"] };
     case "tag": return { ...common, config: JSON.stringify({ name: "Novo lead" }), options: ["Continuar"] };
     default: return { ...common, config: undefined, options: ["Continuar"] };
   }
@@ -291,7 +300,11 @@ export function stepIO(step: Pick<GuidedStep, "kind" | "action" | "config" | "me
   };
   if (type === "catalog.item") return {
     label: "Item do catálogo", input: "Item escolhido no cadastro da empresa", output: outputs.join(", "),
-    writes: [], reads: [], kind: "text", note: "Nome, preço e descrição vêm do cadastro; o bot não inventa condições.",
+    writes: [], reads: [], kind: "text", note: "Nome, tipo, SKU, categoria e preço vêm do cadastro; descrição e imagem são internas; o bot não inventa condições.",
+  };
+  if (type === "catalog.list") return {
+    label: "Listar catálogo", input: "Nenhum item selecionado", output: outputs.join(", "),
+    writes: [], reads: [], kind: "text", note: "Envia o link do catálogo completo da vitrine configurada e o aviso honesto; nunca inventa domínio.",
   };
   return {
     label: "Enviar mensagem", input: "Nenhum dado de entrada", output: outputs.join(", "),

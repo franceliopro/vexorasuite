@@ -242,7 +242,11 @@ test("o workspace financeiro preserva dados, filtros e contratos do Asaas", () =
     'role="alert">{error}',
     'role="alert" className={partialTw}',
     'aria-label="Áreas do Asaas"',
-    '<h1>Asaas</h1>',
+    '<h1>Financeiro</h1>',
+    'aria-label="Plataformas financeiras"',
+    'const providerSwitchTw="inline-flex flex-wrap gap-1 rounded-fin-pill border border-line bg-surface-2 p-1"',
+    'detail:"Stripe"',
+    'detail:"InfinitePay"',
     'window.dispatchEvent(new CustomEvent("vexora:open-catalog",{detail:{origin:"finance-subscriptions",itemId:itemId||""}}))',
     'function openCatalogSettings(itemId?:string)',
     'openCatalogSettings()',
@@ -270,13 +274,16 @@ test("o workspace financeiro preserva dados, filtros e contratos do Asaas", () =
   assert.match(source, /aria-label="Fechar" onClick=\{\(\)=>setSelected\(null\)\}/);
 });
 
-test("o catálogo tem processo próprio, sem aba no Asaas", () => {
+test("o catálogo tem aba no Asaas somente quando é a plataforma escolhida", () => {
   assert.doesNotMatch(source, /id:"products"/);
   assert.doesNotMatch(source, /<CatalogProductsView\/>/);
-  assert.doesNotMatch(source, /fetch\("\/api\/backend\/catalog\?limit=200"/);
-  assert.match(source, /O catálogo é compartilhado por todos os provedores e tem processo próprio/);
+  assert.match(source, /fetch\("\/api\/backend\/finance\/catalog-provider"/);
+  assert.match(source, /catalogEnabled=catalogProvider==="ASAAS"/);
+  assert.match(source, /catalogEnabled\?\[\{id:"catalog" as const,label:"Catálogo",icon:Package\}\]:\[\]/);
+  assert.match(source, /tab==="catalog"&&catalogEnabled\?<FinanceCatalogTab\/>:null/);
   assert.match(source, /Abrir Catálogo/);
   assert.match(source, /origin:"finance-subscriptions"/);
+  assert.match(source, /origin:"finance-catalog"/);
 });
 
 test("Nova assinatura usa CPF, produto do catálogo e valor gravado", () => {
@@ -338,12 +345,14 @@ test("todas as janelas do Financeiro são amplas e sem barra de rolagem visível
   }
 });
 
-test("a home retorna ao Asaas na aba de assinaturas depois do catálogo", () => {
+test("a home retorna ao Asaas na aba de origem depois do catálogo", () => {
   assert.match(homePage, /const \[catalogReturnTo, setCatalogReturnTo\]/);
-  assert.match(homePage, /const \[financeInitialTab, setFinanceInitialTab\] = useState<"overview" \| "subscriptions">\("overview"\)/);
+  assert.match(homePage, /useState<"overview" \| "subscriptions" \| "catalog">\("overview"\)/);
   assert.match(homePage, /if \(origin === "finance-subscriptions"\) setFinanceInitialTab\("subscriptions"\)/);
+  assert.match(homePage, /else if \(origin === "finance-catalog"\) setFinanceInitialTab\("catalog"\)/);
   assert.match(homePage, /setActive\("Asaas"\)/);
   assert.match(homePage, /function closeCatalog\(/);
+  assert.ok(homePage.includes('catalogReturnTo === "finance-catalog" ? "Voltar ao Asaas"'));
   assert.ok(homePage.includes('catalogReturnTo === "finance-subscriptions" ? "Voltar às Assinaturas"'));
 });
 

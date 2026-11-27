@@ -26,6 +26,7 @@ import { JobLeaseService } from '../common/job-lease.service';
 import { schedulersEnabled } from '../common/scheduler-mode';
 import { isSchedulerWorkerAlive, INTELLIGENCE_LEASE } from '../common/worker-health';
 import { skillInstructionsForAgent } from '../ai/product-skills';
+import { normalizeStorefrontSiteUrl, storefrontShareText, storefrontUrls } from './storefront-links';
 
 export const object = (v: unknown): Record<string, any> => v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, any> : {};
 
@@ -833,7 +834,18 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
             step = followStep(step, step.options[0]!);
             continue;
           }
-          if (type === 'catalog.item') {
+          if (type === 'catalog.item' || type === 'catalog.list') {
+            // Links vêm somente da URL HTTPS configurada no tenant; nunca inventamos domínio.
+            const storefrontToken = await tx.storefrontToken.findFirst({
+              where: { tenantId: channel.tenantId, revokedAt: null, siteUrl: { not: null } },
+              select: { siteUrl: true },
+              orderBy: { createdAt: 'desc' },
+            });
+            const baseUrl = normalizeStorefrontSiteUrl(storefrontToken?.siteUrl);
+            if (type === 'catalog.list') {
+              messages.push(storefrontShareText(baseUrl));
+              step = followStep(step, step.options[0]!); continue;
+            }
             // Nunca inventa produto ou preço: tudo vem do CatalogItem escolhido explicitamente.
             const itemId = config.itemId || '';
             const item = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(itemId)
@@ -844,12 +856,14 @@ export class IntelligenceRuntimeService implements OnModuleInit, OnModuleDestroy
               : null;
             // Imagem e descrição são privadas da Véxora: ficam só em metadata/auditoria internas.
             if (item) catalogItems.push({ id: item.id, imageUrl: item.imageUrl ?? null, description: item.description ?? null });
+            const links = baseUrl && item ? storefrontUrls(baseUrl, item.id) : { itemUrl: null };
             messages.push(item ? [
               `Item do catálogo: ${item.name}`,
               `Tipo: ${item.kind === 'SERVICE' ? 'Serviço' : 'Produto digital'}`,
               item.sku ? `SKU: ${item.sku}` : '',
               item.category ? `Categoria: ${item.category}` : '',
               `Preço: ${(item.priceCents / 100).toFixed(2)} ${item.currency}${item.unit ? ` / ${item.unit}` : ''}`,
+              links.itemUrl ? `Vitrine: ${links.itemUrl}` : 'Vitrine: configure a URL HTTPS do site no Catálogo para enviar o link.',
             ].filter(Boolean).join('\n') : 'Item do catálogo indisponível. Escolha outro item ou fale com um atendente.');
             step = followStep(step, step.options[0]!); continue;
           }

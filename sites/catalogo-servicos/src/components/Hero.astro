@@ -1,0 +1,45 @@
+---
+import { site } from "../data/site.config";
+import { whatsappHref } from "../lib/config";
+
+interface Props {
+  eyebrow?: string;
+  title?: string;
+  accent?: string;
+  description?: string;
+  primaryLabel?: string;
+  primaryHref?: string;
+  secondaryLabel?: string;
+  secondaryHref?: string;
+}
+
+const {
+  eyebrow = site.hero.eyebrow,
+  title = site.hero.title,
+  accent = site.hero.accent,
+  description = site.hero.description,
+  primaryLabel = site.hero.primaryLabel,
+  primaryHref = site.hero.primaryHref || whatsappHref(site.whatsapp, site.whatsappMessage) || "/contato/",
+  secondaryLabel = site.hero.secondaryLabel,
+  secondaryHref = site.hero.secondaryHref,
+} = Astro.props;
+---
+
+<section class="hero" aria-labelledby="hero-title">
+  <div class="container">
+    <span class="eyebrow">{eyebrow}</span>
+    <h1 id="hero-title">{title} <span>{accent}</span></h1>
+    <p>{description}</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href={primaryHref}>
+        {primaryLabel} <span aria-hidden="true">→</span>
+      </a>
+      {secondaryLabel && (
+        <a class="btn btn-outline" href={secondaryHref || "#estrutura"}>
+          {secondaryLabel}
+        </a>
+      )}
+    </div>
+    <slot />
+  </div>
+</section>

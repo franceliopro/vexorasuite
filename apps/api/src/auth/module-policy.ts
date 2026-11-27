@@ -54,6 +54,8 @@ export function routeModules(path: string, method: string): string[] {
   // Submissão pública de formulário de site publicado: o visitante não tem sessão.
   // O service valida publicação, bloco, honeypot e limite de taxa antes de gravar.
   if (/^public\/(?:flows|sites)(?:\/|$)/.test(p)) return [];
+  // Vitrine pública: o token substitui a sessão e limita o escopo ao catálogo do tenant.
+  if (/^public\/storefront(?:\/|$)/.test(p)) return [];
   if (/^(auth\/|profile(?:\/|$))/.test(p)) return [];
   if (/^wordpress(?:\/|$)/.test(p)) return ["WORDPRESS"];
   if (/^department-resources\/context$/.test(p) && method === "GET") return ["INBOX","CRM","CALENDAR","MARKETING","TASKS"];
@@ -82,6 +84,8 @@ export function routeModules(path: string, method: string): string[] {
   // Criador, editor, domínio e publicação exigem o módulo SITES (igual ao menu da UI).
   if (/^sites(?:\/|$)/.test(p)) return ["SITES"];
   if (/^mail(?:\/|$)/.test(p)) return ["EMAIL"];
+  // Compartilhamento da vitrine é leitura permitida a atendentes (INBOX) e administradores.
+  if (/^storefront\/share$/.test(p)) return ["INBOX", "SETTINGS"];
   if (/^finance|^asaas|^integrations\/(?:asaas|stripe|infinitepay)(?:\/|$)/.test(p)) return ["FINANCE"];
   if (/^assistant\/automations|^marketing/.test(p)) return ["MARKETING"];
   // Referências e Drive foram realocados para Configurações; MARKETING fica apenas

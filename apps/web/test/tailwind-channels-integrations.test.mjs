@@ -123,7 +123,7 @@ test("o preset expõe os tokens da página de conexões", () => {
 });
 
 test("a página de conexões usa duas colunas e agrupa Gmail, Agenda e Drive", () => {
-  assert.ok(source.includes('const connectionsLayoutTw="grid grid-cols-1 items-start gap-token xl:grid-cols-2"'));
+  assert.ok(source.includes('const connectionsLayoutTw="grid grid-cols-1 items-start gap-token lg:grid-cols-2"'));
   assert.ok(source.includes('const connectionsColumnTw="grid min-w-0 content-start gap-token"'));
   assert.ok(source.includes('<div className={connectionsLayoutTw}>'));
   assert.equal((source.match(/<div className=\{connectionsColumnTw\}>/g) || []).length, 2);

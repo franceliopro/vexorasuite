@@ -38,18 +38,18 @@ const heroBadgeTw = "flex items-center";
 const statusPillTw = "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-small font-extrabold tracking-wide";
 const statusPillStateTw: Record<string, string> = { on: "bg-blue-600 text-blue-50", off: "bg-zinc-200 text-slate-600" };
 const statusPillClass = (on: boolean) => `${statusPillTw} ${statusPillStateTw[on ? "on" : "off"]}`;
-const workspaceLayoutTw = "flex min-w-0 flex-col gap-token lg:flex-row";
-const workspaceSidebarTw = "flex w-full shrink-0 flex-col gap-3 self-start lg:sticky lg:top-4 lg:w-60";
+const workspaceLayoutTw = "grid min-w-0 grid-cols-1 gap-token lg:grid-cols-ai-layout";
+const workspaceSidebarTw = "flex w-full min-w-0 flex-col gap-3 self-start lg:sticky lg:top-4";
 const sidebarLabelTw = "text-2xs font-extrabold uppercase tracking-wider text-ink-secondary";
 const sidebarSelectTw = "w-full min-w-0 text-small";
 const agentQuickActionsTw = "grid gap-2.5 rounded-token border border-line bg-surface p-3 shadow-token";
-const workspaceNavTw = "flex w-full shrink-0 flex-col gap-1 rounded-token border border-line bg-surface-2 p-1.5 shadow-token";
+const workspaceNavTw = "flex w-full min-w-0 flex-col gap-1 rounded-token border border-line bg-surface-2 p-1.5 shadow-token";
 const workspaceNavItemTw = "inline-flex min-h-control items-center gap-2 whitespace-nowrap rounded-token-sm px-3 text-left text-small font-bold transition-colors";
 const workspaceNavIdleTw = "text-ink-secondary hover:bg-surface hover:text-ink";
 const workspaceNavActiveTw = "bg-blue-600 text-white shadow-token-sm hover:bg-blue-600 hover:text-white";
 const workspaceNavDividerTw = "my-1 border-t border-line";
 const workspaceNavItemClass = (active: boolean) => `${workspaceNavItemTw} ${active ? workspaceNavActiveTw : workspaceNavIdleTw}`;
-const workspaceContentTw = "min-w-0 flex-1";
+const workspaceContentTw = "grid min-w-0 content-start gap-token";
 const agentTabsTw = "mx-0 mb-3 flex max-w-full gap-1 overflow-x-auto border-b border-line pb-0";
 const tabTw = "shrink-0 rounded-full px-3.5 py-1.5 text-small font-bold transition-colors";
 const tabStateTw: Record<string, string> = { active: "bg-blue-600 text-blue-50 shadow-token-sm", idle: "text-ink-secondary hover:bg-surface hover:text-ink" };
@@ -190,7 +190,7 @@ export function AiAgentsWorkspace() {
   const [configAvailable,setConfigAvailable] = useState(false);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState("Perfil");
-  const [workspaceTab,setWorkspaceTab]=useState<"Agentes"|"Conhecimento"|"Configuração geral"|"Testar">("Agentes");
+  const [workspaceTab,setWorkspaceTab]=useState<"Agentes"|"Configuração geral"|"Testar">("Agentes");
   const [engineStatus,setEngineStatus]=useState<EngineStatus|null>(null);
   type InboxOption = { id:string; name:string; provider?:string; platform?:string; accountName?:string; handle?:string; status?:string };
   const [inboxes,setInboxes]=useState<InboxOption[]>([]);
@@ -373,17 +373,12 @@ export function AiAgentsWorkspace() {
     <datalist>{(catalog.models||[]).filter(model=>model.provider==="ollama").map(model=><option key={model.id} value={model.id}>{model.name} · {model.tier} · instalado</option>)}</datalist>
     <datalist>{(catalog.models||[]).filter(model=>model.provider==="local-voice").map(model=><option key={model.id} value={model.id}>{model.name}</option>)}</datalist>
     <datalist><option value="openrouter/free">OpenRouter Free · cota gratuita</option>{(catalog.models||[]).filter(model=>model.provider==="openrouter"&&model.id!=="openrouter/free").map(model=><option key={model.id} value={model.id}>{model.name} · US$ {Number.isFinite(model.pricePerMillionInputUsd)?Number((model.pricePerMillionInputUsd??0).toFixed(4)):0}/1M entrada</option>)}</datalist>
-    {workspaceTab==="Agentes"&&<section className={adminCardTw}>
-      <div className={adminHeadingTw}><h2 className={adminHeadingTitleTw}><Bot size={19}/> Agentes <small className={agentCountTw}>{agents.length} {agents.length===1?"agente":"agentes"}</small></h2></div>
-      {agents.length ? <div className={agentsGridTw} role="listbox" aria-label="Agentes de IA">{agents.map((a, index) => { const faceIcons = [Bot, Sparkles, BrainCircuit, Zap, Cpu] as const; const Face = faceIcons[index % faceIcons.length]!; return <button key={a.id} type="button" role="option" aria-selected={selected === a.id} className={agentCardClass(selected === a.id)} onClick={() => setSelected(a.id)}><span className={`${agentFaceTw} ${agentToneClass(index)}`}><Face size={26} strokeWidth={2} aria-hidden="true"/></span><span className={agentBodyTw}><strong className={agentNameTw}>{a.name}</strong><small className={agentRoleTw}>{a.role}</small></span><span className={agentFootTw}><span className={agentStatusClass(a.enabled)}>{a.enabled ? "Ligado" : "Off"}</span><span className={agentTierTw}>{a.tier || "Equilíbrio"}</span></span></button>; })}</div> : <div className={agentsGridEmptyTw}><Bot size={28} aria-hidden="true"/><p>Nenhum agente ainda. Use Novo na barra lateral para criar o primeiro.</p></div>}
-    </section>}
     <div className={workspaceLayoutTw}>
     <aside className={workspaceSidebarTw}>
       {workspaceTab==="Agentes"&&<div className={agentQuickActionsTw} aria-label="Criação de agente"><span className={sidebarLabelTw}>Criar agente</span><select className={sidebarSelectTw} aria-label="Tipo de agente" value={preset} onChange={e=>setPreset(e.target.value)}>{["Atendimento","Marketing","Financeiro"].map(p=><option key={p}>{p}</option>)}</select><select className={sidebarSelectTw} aria-label="Template da área" value={segmentTemplate} onChange={e=>setSegmentTemplate(e.target.value)} disabled={businessSegmentsLoading||!!businessSegmentsError}>{businessSegments.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select>{businessSegmentsLoading&&<p role="status" aria-live="polite">Carregando templates…</p>}{businessSegmentsError&&<p role="alert">{businessSegmentsError} <button type="button" className={secondaryTw} onClick={()=>setBusinessSegmentsRetry(value=>value+1)}>Tentar novamente</button></p>}<button className={`${primaryTw} w-full`} type="button" onClick={add} disabled={loading||!configAvailable||agents.length>=30}><Plus size={15}/> Novo</button></div>}
       <nav className={workspaceNavTw} role="tablist" aria-label="Áreas de configuração da inteligência">
       {([
         { name: "Agentes", icon: Bot },
-        { name: "Conhecimento", icon: BrainCircuit },
         { name: "Configuração geral", icon: Cpu },
         { name: "Testar", icon: Zap },
       ] as const).map(({ name: item, icon: Icon }) => {
@@ -396,6 +391,10 @@ export function AiAgentsWorkspace() {
     </aside>
     <div className={workspaceContentTw}>
     <div id="ai-workspace-tabpanel" role="tabpanel" aria-labelledby={"ai-workspace-tab-"+workspaceTab.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}>
+    {workspaceTab==="Agentes"&&<section className={adminCardTw}>
+      <div className={adminHeadingTw}><h2 className={adminHeadingTitleTw}><Bot size={19}/> Agentes <small className={agentCountTw}>{agents.length} {agents.length===1?"agente":"agentes"}</small></h2></div>
+      {agents.length ? <div className={agentsGridTw} role="listbox" aria-label="Agentes de IA">{agents.map((a, index) => { const faceIcons = [Bot, Sparkles, BrainCircuit, Zap, Cpu] as const; const Face = faceIcons[index % faceIcons.length]!; return <button key={a.id} type="button" role="option" aria-selected={selected === a.id} className={agentCardClass(selected === a.id)} onClick={() => setSelected(a.id)}><span className={`${agentFaceTw} ${agentToneClass(index)}`}><Face size={26} strokeWidth={2} aria-hidden="true"/></span><span className={agentBodyTw}><strong className={agentNameTw}>{a.name}</strong><small className={agentRoleTw}>{a.role}</small></span><span className={agentFootTw}><span className={agentStatusClass(a.enabled)}>{a.enabled ? "Ligado" : "Off"}</span><span className={agentTierTw}>{a.tier || "Equilíbrio"}</span></span></button>; })}</div> : <div className={agentsGridEmptyTw}><Bot size={28} aria-hidden="true"/><p>Nenhum agente ainda. Use Novo na barra lateral para criar o primeiro.</p></div>}
+    </section>}
     <div className={workspaceActionsTw}><button type="button" className={primaryTw} onClick={()=>void save()} disabled={saving||loading||!configAvailable}><Save size={15}/> {saving?"Salvando…":"Salvar configuração"}</button></div>
     {notice&&<p role="status" className={noticeTw}>{notice}</p>}
     {workspaceTab==="Agentes"&&<section className={adminCardTw}>
@@ -450,7 +449,7 @@ export function AiAgentsWorkspace() {
           </>}
           {tab==="Modelos e Voz" && <><p className={helpTw}>Escolha o modelo que este agente usa em cada tarefa. Sem escolha, ele usa o modelo da configuração geral. A voz do navegador funciona sem chave de API.</p>{(["llm","stt","tts"] as const).map(kind=>{const value=kind==="llm"?(agent.llm||primaryModel):(agent[kind]||(kind==="stt"?globalStt:globalTts));const title=kind==="llm"?"Texto e raciocínio (LLM)":kind==="stt"?"Ouvir áudio e transformar em texto (STT)":"Falar a resposta em áudio (TTS)";const patch=(v:Partial<NonNullable<typeof value>>)=>update({[kind]:{...value,...(kind==="llm"?{tier:agent.tier}:{}),...v}});return <fieldset key={kind} className={modelGroupTw}><legend><strong>{title}</strong></legend>{kind==="llm"&&<button type="button" className={secondaryTw} onClick={()=>update({llm:undefined})}>Usar modelo da configuração geral</button>}<label>Provedor<select value={value?.provider||(kind==="llm"?"openrouter":"browser")} onChange={e=>patch({provider:e.target.value,model:kind==="llm"?"":voiceModel(kind,e.target.value),...(kind==="tts"?{voice:undefined}:{})})}>{(kind==="llm"?Object.keys(llmLabels):["browser","local","openai"]).map(x=><option key={x} value={x}>{kind==="llm"?llmLabels[x]:x}</option>)}</select></label>{kind==="llm"?<><AiModelPicker label="Nome do modelo" provider={value?.provider||primaryModel.provider} value={value?.model||""} models={catalog.models||[]} onChange={model=>patch({model})}/>{catalog.services?.filter(s=>s.provider===(value?.provider||primaryModel.provider)&&!s.available).map(s=><p role="status" key={s.provider}>{s.message}</p>)}</>:<><AiVoiceModelPicker label="Nome do modelo" kind={kind} provider={value?.provider||"browser"} value={value?.model||"browser"} models={catalog.models||[]} onChange={model=>patch({model,...(kind==="tts"?{voice:undefined}:{})})}/>{catalog.services?.filter(s=>s.provider===(value?.provider+"-"+kind)&&!s.available).map(s=><p role="status" key={s.provider}>{s.message}</p>)}</>}{kind==="llm"&&<label>Perfil de custo<select value={agent.tier} onChange={e=>{update({tier:e.target.value as Agent["tier"],llm:{provider:value?.provider||"openrouter",model:value?.model||"",tier:e.target.value,endpoint:'endpoint' in value&&typeof value.endpoint==='string'?value.endpoint:undefined}})}}><option>Econômico</option><option>Equilíbrio</option><option>Inteligente</option></select></label>}{kind==="tts"&&<><TtsVoicePicker provider={value.provider} model={value.model} value={(agent.tts||globalTts).voice||""} voices={catalog.voiceOptions||[]} onChange={voice=>update({tts:{...(agent.tts||globalTts),voice:voice||undefined}})}/><p className={adminNoteTw}>Voz do navegador funciona por clique. OpenAI usa o modelo configurado e a chave protegida da empresa ou do servidor; pode consumir seu orçamento de IA.</p></>}</fieldset>})}</>}
           {tab==="Referências"&&<>
-            <p className={helpTw}><strong>Para que serve:</strong> adicione links que este agente pode consultar como inspiração, um por vez. Eles valem só para este agente; para informações de toda a empresa, use a aba Conhecimento.</p>
+            <p className={helpTw}><strong>Para que serve:</strong> adicione links que este agente pode consultar como inspiração, um por vez. Eles valem só para este agente; para informações de toda a empresa, use a seção Informações nesta aba.</p>
             <section className={surfaceFieldsTw}>
               <h3>Links de referência</h3>
               <div className={inlineLinkFieldTw}>
@@ -546,24 +545,27 @@ export function AiAgentsWorkspace() {
           </div>
         </div> : <p>Crie um agente para configurar.</p>}
     </section>}
-    {workspaceTab==="Conhecimento"&&<section className={adminCardTw} style={{marginTop:16}}>
-      <h2>Conhecimento da empresa</h2>
-      <p className={adminNoteTw}>Esta base é compartilhada pelos agentes. Atualize as informações aqui; depois salve a configuração para que a prévia e os novos atendimentos recebam o conteúdo.</p>
-      <div className={adminFieldsTw}>
-        <RichPromptEditor label={"Escopo e limites da empresa"} rows={4} maxLength={4000} placeholder="Exemplo: Somos uma clínica de estética. Responda sobre nossos serviços e políticas cadastradas. Não dê diagnóstico nem prometa resultados; encaminhe dúvidas clínicas à equipe." value={companyRules} onChange={value=>setCompanyRules(value)}/>
-        <div className={prohibitionsBlockTw}>
-          <RichPromptEditor label={"Regras gerais do que a Véxora nunca faz"} rows={6} maxLength={4000} placeholder={"Exemplo:\n- Nunca prometa reembolso ou cancelamento.\n- Nunca invente preços ou prazos.\n- Se não tiver certeza, encaminhe para a equipe."} value={companyProhibitions} onChange={value=>setCompanyProhibitions(value)}/>
-          <div className={prohibitionsActionsTw}>
-            <button type="button" className={secondaryTw} onClick={()=>{setCompanyProhibitions(DEFAULT_COMPANY_PROHIBITIONS);setNotice("Padrão da Véxora restaurado. Salve para aplicar.");}}><ShieldCheck size={14} aria-hidden="true"/> Restaurar padrão da Véxora</button>
-            <small className={adminNoteTw}>Estes limites valem para a IA em todos os canais, inclusive quando fala por você (Assistente Pessoal). O botão preenche o padrão usado pelas melhores operações de atendimento; ajuste à sua realidade e salve.</small>
+    {workspaceTab==="Agentes"&&<section className={adminCardTw}>
+      <div className={adminHeadingTw}><h2 className={adminHeadingTitleTw}><BrainCircuit size={19}/> Informações da empresa</h2><small className={agentCountTw}>Compartilhada por todos os agentes</small></div>
+      <p className={adminNoteTw}>Centralize aqui o que todos os agentes podem usar: escopo, limites, informações importantes e documentos. Salve a configuração para aplicar.</p>
+      <details className={disclosureTw}>
+        <summary><strong>Editar informações e documentos</strong></summary>
+        <div className={adminFieldsTw}>
+          <RichPromptEditor label={"Escopo e limites da empresa"} rows={4} maxLength={4000} placeholder="Exemplo: Somos uma clínica de estética. Responda sobre nossos serviços e políticas cadastradas. Não dê diagnóstico nem prometa resultados; encaminhe dúvidas clínicas à equipe." value={companyRules} onChange={value=>setCompanyRules(value)}/>
+          <div className={prohibitionsBlockTw}>
+            <RichPromptEditor label={"Regras gerais do que a Véxora nunca faz"} rows={6} maxLength={4000} placeholder={"Exemplo:\n- Nunca prometa reembolso ou cancelamento.\n- Nunca invente preços ou prazos.\n- Se não tiver certeza, encaminhe para a equipe."} value={companyProhibitions} onChange={value=>setCompanyProhibitions(value)}/>
+            <div className={prohibitionsActionsTw}>
+              <button type="button" className={secondaryTw} onClick={()=>{setCompanyProhibitions(DEFAULT_COMPANY_PROHIBITIONS);setNotice("Padrão da Véxora restaurado. Salve para aplicar.");}}><ShieldCheck size={14} aria-hidden="true"/> Restaurar padrão da Véxora</button>
+              <small className={adminNoteTw}>Estes limites valem para a IA em todos os canais, inclusive quando fala por você (Assistente Pessoal). O botão preenche o padrão usado pelas melhores operações de atendimento; ajuste à sua realidade e salve.</small>
+            </div>
           </div>
+          <RichPromptEditor label={"Informações importantes"} rows={7} maxLength={30000} placeholder="Exemplo:\nServiços: limpeza de pele, hidratação e avaliação.\nHorários: segunda a sexta, das 9h às 18h.\nAgendamento: solicite nome e período preferido; confirme disponibilidade antes de marcar.\nPolíticas: use somente as regras aprovadas pela empresa." value={companyKnowledge} onChange={value=>setCompanyKnowledge(value)}/>
+          <label>Adicionar documentos à base de conhecimento<input type="file" multiple accept=".pdf,.txt,.md,.csv,.json,.rtf,.html,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp,application/pdf,text/plain,text/markdown,text/csv,application/json" disabled={knowledgeDocuments.length>=10} onChange={e=>{void addKnowledgeFiles(e.currentTarget.files);e.currentTarget.value="";}}/></label>
+          <p className={adminNoteTw}>Selecione vários documentos de uma vez: PDF, TXT, MD, CSV, JSON, RTF, HTML, DOCX, XLSX, PPTX, ODT, ODS e ODP. Até 10 arquivos, 5 MB por arquivo e 8.000 caracteres por documento. DOC, XLS e PPT antigos precisam ser salvos no formato atual antes do envio. Arquivos com senha ou digitalizados como imagem não são extraídos.</p>
+          {knowledgeDocuments.length>0&&<ul>{knowledgeDocuments.map(doc=><li key={doc.id} style={{display:"flex",gap:8,alignItems:"center",marginTop:8}}><span>{doc.name} · {doc.content.length.toLocaleString("pt-BR")} caracteres</span><button type="button" className={secondaryTw} aria-label={"Remover "+doc.name} onClick={()=>setKnowledgeDocuments(items=>items.filter(item=>item.id!==doc.id))}><Trash2 size={15}/> Remover</button></li>)}</ul>}
+          <button type="button" className={primaryTw} onClick={()=>void save()} disabled={saving||loading||!configAvailable}><Save size={15}/> Salvar conhecimento</button>
         </div>
-        <RichPromptEditor label={"Informações importantes"} rows={7} maxLength={30000} placeholder="Exemplo:\nServiços: limpeza de pele, hidratação e avaliação.\nHorários: segunda a sexta, das 9h às 18h.\nAgendamento: solicite nome e período preferido; confirme disponibilidade antes de marcar.\nPolíticas: use somente as regras aprovadas pela empresa." value={companyKnowledge} onChange={value=>setCompanyKnowledge(value)}/>
-        <label>Adicionar documentos à base de conhecimento<input type="file" multiple accept=".pdf,.txt,.md,.csv,.json,.rtf,.html,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp,application/pdf,text/plain,text/markdown,text/csv,application/json" disabled={knowledgeDocuments.length>=10} onChange={e=>{void addKnowledgeFiles(e.currentTarget.files);e.currentTarget.value="";}}/></label>
-        <p className={adminNoteTw}>Selecione vários documentos de uma vez: PDF, TXT, MD, CSV, JSON, RTF, HTML, DOCX, XLSX, PPTX, ODT, ODS e ODP. Até 10 arquivos, 5 MB por arquivo e 8.000 caracteres por documento. DOC, XLS e PPT antigos precisam ser salvos no formato atual antes do envio. Arquivos com senha ou digitalizados como imagem não são extraídos.</p>
-        {knowledgeDocuments.length>0&&<ul>{knowledgeDocuments.map(doc=><li key={doc.id} style={{display:"flex",gap:8,alignItems:"center",marginTop:8}}><span>{doc.name} · {doc.content.length.toLocaleString("pt-BR")} caracteres</span><button type="button" className={secondaryTw} aria-label={"Remover "+doc.name} onClick={()=>setKnowledgeDocuments(items=>items.filter(item=>item.id!==doc.id))}><Trash2 size={15}/> Remover</button></li>)}</ul>}
-        <button type="button" className={primaryTw} onClick={()=>void save()} disabled={saving||loading||!configAvailable}><Save size={15}/> Salvar conhecimento</button>
-      </div>
+      </details>
     </section>}
     {workspaceTab==="Configuração geral"&&<div className={adminGridTw}><ProviderConnections/>
       <section className={adminCardTw}>

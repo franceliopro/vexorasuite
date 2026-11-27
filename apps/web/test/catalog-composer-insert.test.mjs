@@ -40,7 +40,7 @@ test("a vitrine pública insere texto no compositor sem enviar mensagem", () => 
   assert.match(panel, /data-testid="catalog-quote-share-all" className=\{shareButton\} disabled=\{shareBusy\}/);
   assert.match(panel, /typeof share\.text !== "string" \|\| !share\.text\.trim\(\)/);
   assert.doesNotMatch(panel, /\/servicos\//);
-  const share = panel.match(/async function insertStorefrontLink\(itemId\?: string\) \{[\s\S]*?\n  \}/)?.[0] || "";
+  const share = panel.match(/async function insertStorefrontLink\(itemId\?: string\) \{[\s\S]*?\n {2}\}/)?.[0] || "";
   assert.ok(share.length > 200);
   assert.doesNotMatch(share, /send-whatsapp|documents\/generate|onClose\(\)/);
 });

@@ -46,6 +46,13 @@ export function sanitizeHex(value: unknown): string {
   return HEX.test(clean) ? clean : "";
 }
 
+/** A cor da marca sempre recebe texto automático com contraste AA. */
+export function brandIsReadable(hex: string): boolean {
+  const clean = sanitizeHex(hex);
+  if (!clean) return false;
+  return wcagRatio(clean, brandTextColor(clean)) >= 4.5;
+}
+
 /** Hybrid sidebar defaults (kept in sync with the `:root[data-theme=hybrid]` stylesheet). */
 export const HYBRID_SIDEBAR_DEFAULTS = {
   background: "#1D4ED8",

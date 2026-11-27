@@ -137,7 +137,8 @@ test("os contratos de biblioteca e drive permanecem intactos", () => {
 test("os contratos de empresas, modelos e alarmes permanecem intactos", () => {
   for (const token of [
     'aria-labelledby="company-heading"', 'id="company-heading"', 'aria-label="Gerenciar empresas"',
-    'aria-label="Fechar empresas"', 'role="dialog"', 'aria-modal="true"', "/api/backend/auth/companies",
+    'aria-label="Fechar empresas"', 'role="dialog"', 'aria-controls="company-dropdown"',
+    'data-testid="company-dropdown"', "createPortal(", "/api/backend/auth/companies",
   ]) assert.ok(sources.company.includes(token), `empresas perdeu ${token}`);
   for (const token of ["Tentar novamente", "business-templates", "settings-field", "Carregar"]) {
     assert.ok(sources.business.includes(token), `modelos perdeu ${token}`);

@@ -151,7 +151,7 @@ test("os contratos funcionais e e2e de autenticação permanecem intactos", () =
     assert.ok(auth.includes(token), `auth perdeu o contrato ${token}`);
   }
   const authTestIds = [...auth.matchAll(/data-testid="([^"]+)"/g)].map((match) => match[1]);
-  assert.deepEqual(authTestIds, ["auth-submit"]);
+  assert.deepEqual(authTestIds, ["auth-session-notice", "auth-submit", "auth-retry"]);
   assert.equal((auth.match(/aria-hidden="true"/g) ?? []).length >= 4, true);
 });
 

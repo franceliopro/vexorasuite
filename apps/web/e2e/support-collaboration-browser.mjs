@@ -259,16 +259,24 @@ try{
   await expect(composerButtons.nth(index)).toHaveAccessibleName(label);
  }
  await expect(page.getByRole("button",{name:"Melhorar texto com IA"})).toBeVisible();
- await expect(page.getByRole("button",{name:"Emojis",exact:true})).toBeVisible();
+ const emojiTrigger=page.getByRole("button",{name:"Emojis",exact:true});
+ await expect(emojiTrigger).toBeVisible();
  const attach=page.getByRole("button",{name:"Anexar",exact:true});
  await expect(attach).toBeVisible();
  await attach.click();
  await expect(page.getByRole("menu",{name:"O que você quer anexar"})).toBeVisible();
  await page.keyboard.press("Escape");
- await page.getByRole("button",{name:"Emojis",exact:true}).click();
+ await emojiTrigger.click();
+ const emojiDialog=page.getByRole("dialog",{name:"Emojis"});
+ await expect(emojiDialog).toBeVisible();
  await expect(page.getByRole("textbox",{name:"Buscar emoji",exact:true})).toBeVisible();
+ const triggerBox=await emojiTrigger.boundingBox(),dialogBox=await emojiDialog.boundingBox(),viewport=page.viewportSize();
+ assert.ok(triggerBox&&dialogBox&&viewport,"o popover de emojis precisa de medidas para validar o alinhamento");
+ assert.ok(Math.abs((triggerBox.x+triggerBox.width/2)-(dialogBox.x+dialogBox.width/2))<=2,"o popover de emojis fica centralizado no ícone");
+ assert.ok(dialogBox.x>=0&&dialogBox.y>=0&&dialogBox.x+dialogBox.width<=viewport.width&&dialogBox.y+dialogBox.height<=viewport.height,"o popover de emojis fica dentro da viewport");
  await page.keyboard.press("Escape");
- await composer.focus();
+ await expect(emojiDialog).toBeHidden();
+ await expect(composer).toBeFocused();
  await page.keyboard.insertText("/");
  await expect(page.locator("[data-testid='quick-replies-popover']")).toBeVisible();
  await page.keyboard.press("Escape");

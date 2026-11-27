@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { createPortal } from "react-dom";
 
 export interface AnchoredPopoverProps {
   open: boolean;
@@ -11,9 +12,10 @@ export interface AnchoredPopoverProps {
   id?: string;
   role?: string;
   ariaLabel?: string;
-  align?: "start" | "end";
+  align?: "start" | "center" | "end";
   side?: "bottom" | "top";
   offset?: number;
+  portal?: boolean;
   onClick?: () => void;
 }
 
@@ -21,13 +23,33 @@ export interface AnchoredPopoverProps {
  * Painel ancorado no controle que o abriu.
  *
  * Usa `position: fixed` com coordenadas medidas do âncora: o painel escapa do
- * `overflow-hidden` do cabeçalho/ficha, não depende de portal (os e2e localizam
- * os itens dentro do `<details>`) e a camada 260 (via style) o mantém acima das
- * janelas do Atendimento, abaixo apenas dos diálogos modais.
+ * `overflow-hidden` do cabeçalho/ficha. Por padrão continua na árvore (os e2e
+ * localizam itens dentro do `<details>`); `portal` move somente este painel
+ * para `document.body` quando ele precisa escapar de stacking contexts. A
+ * camada 260 o mantém acima das janelas do Atendimento, abaixo dos diálogos.
  */
-export function AnchoredPopover({ open, anchorRef, children, className, testId, id, role, ariaLabel, align = "start", side = "bottom", offset = 8, onClick }: AnchoredPopoverProps) {
+export function AnchoredPopover({
+  open,
+  anchorRef,
+  children,
+  className,
+  testId,
+  id,
+  role,
+  ariaLabel,
+  align = "start",
+  side = "bottom",
+  offset = 8,
+  portal = false,
+  onClick,
+}: AnchoredPopoverProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<CSSProperties>({ left: 0, top: 0 });
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const place = useCallback(() => {
     const anchor = anchorRef.current;
@@ -37,11 +59,23 @@ export function AnchoredPopover({ open, anchorRef, children, className, testId, 
     const size = panel.getBoundingClientRect();
     const margin = 8;
     const limitLeft = Math.max(margin, window.innerWidth - size.width - margin);
-    const left = Math.max(margin, Math.min(align === "end" ? rect.right - size.width : rect.left, limitLeft));
+    const rawLeft = align === "center"
+      ? rect.left + rect.width / 2 - size.width / 2
+      : align === "end"
+        ? rect.right - size.width
+        : rect.left;
+    const left = Math.max(margin, Math.min(rawLeft, limitLeft));
     const below = rect.bottom + offset;
     const above = rect.top - size.height - offset;
-    const top = side === "top" || below + size.height > window.innerHeight - margin || above < margin ? above : below;
-    setPosition({ left, top: Math.max(margin, Math.min(top, Math.max(margin, window.innerHeight - size.height - margin))) });
+    const fitsBelow = below + size.height <= window.innerHeight - margin;
+    const fitsAbove = above >= margin;
+    const top = side === "top"
+      ? (fitsAbove || !fitsBelow ? above : below)
+      : (fitsBelow || !fitsAbove ? below : above);
+    setPosition({
+      left,
+      top: Math.max(margin, Math.min(top, Math.max(margin, window.innerHeight - size.height - margin))),
+    });
   }, [anchorRef, align, side, offset]);
 
   useLayoutEffect(() => {
@@ -58,5 +92,20 @@ export function AnchoredPopover({ open, anchorRef, children, className, testId, 
     };
   }, [open, place]);
 
-  return <div ref={panelRef} data-testid={testId} id={id} role={role} aria-label={ariaLabel} className={"fixed " + className} style={{ ...position, zIndex: 260 }} onClick={onClick}>{children}</div>;
+  const panel = (
+    <div
+      ref={panelRef}
+      data-testid={testId}
+      id={id}
+      role={role}
+      aria-label={ariaLabel}
+      className={"fixed " + className}
+      style={{ ...position, zIndex: 260 }}
+      onClick={onClick}
+    >
+      {children}
+    </div>
+  );
+
+  return portal && mounted ? createPortal(panel, document.body) : panel;
 }

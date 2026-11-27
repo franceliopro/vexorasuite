@@ -134,6 +134,9 @@ model Tenant {
   siteHubRequests      SiteHubRequest[]
   submissionDecisions  SiteHubSubmissionDecision[]
   creativeBriefs       CreativeBrief[]
+  musicClasses         MusicClass[]
+  musicEnrollments     MusicEnrollment[]
+  musicAttendances     MusicAttendance[]
 
   @@map("tenants")
 }
@@ -1415,4 +1418,70 @@ model CreativeBriefEvent {
   @@index([briefId, createdAt])
   @@index([tenantId, createdAt])
   @@map("creative_brief_events")
+}
+
+model MusicClass {
+  id              String              @id @default(uuid()) @db.Uuid
+  tenantId        String              @map("tenant_id") @db.Uuid
+  name            String
+  instrument      String?
+  departmentId    String              @map("department_id") @db.Uuid
+  weekday         Int
+  startTime       String              @map("start_time")
+  durationMinutes Int                 @default(60) @map("duration_minutes")
+  active          Boolean             @default(true)
+  createdById     String              @map("created_by_id") @db.Uuid
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+  tenant          Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  enrollments     MusicEnrollment[]
+  attendances     MusicAttendance[]
+
+  @@index([tenantId, active])
+  @@index([tenantId, departmentId])
+  @@map("music_classes")
+}
+
+model MusicEnrollment {
+  id                 String              @id @default(uuid()) @db.Uuid
+  tenantId           String              @map("tenant_id") @db.Uuid
+  classId            String              @map("class_id") @db.Uuid
+  contactId          String              @map("contact_id") @db.Uuid
+  contractedSessions Int                 @map("contracted_sessions")
+  purchasedSessions  Int                 @default(0) @map("purchased_sessions")
+  status             String              @default("ACTIVE")
+  billingAmountCents Int?                @map("billing_amount_cents")
+  billingCycle       String              @default("MONTHLY") @map("billing_cycle")
+  billingStatus      String              @default("SCHEDULED") @map("billing_status")
+  billingNextDueDate DateTime?           @date @map("billing_next_due_date")
+  createdById        String              @map("created_by_id") @db.Uuid
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  class              MusicClass          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  attendances        MusicAttendance[]
+
+  @@unique([tenantId, classId, contactId])
+  @@index([tenantId, contactId])
+  @@index([tenantId, status])
+  @@map("music_enrollments")
+}
+
+model MusicAttendance {
+  id           String          @id @default(uuid()) @db.Uuid
+  tenantId     String          @map("tenant_id") @db.Uuid
+  classId      String          @map("class_id") @db.Uuid
+  enrollmentId String          @map("enrollment_id") @db.Uuid
+  sessionDate  DateTime        @date @map("session_date")
+  outcome      String
+  note         String?
+  recordedById String          @map("recorded_by_id") @db.Uuid
+  recordedAt   DateTime        @default(now()) @map("recorded_at")
+  tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  class        MusicClass      @relation(fields: [classId], references: [id], onDelete: Cascade)
+  enrollment   MusicEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, enrollmentId, sessionDate])
+  @@index([tenantId, classId, sessionDate])
+  @@map("music_attendances")
 }

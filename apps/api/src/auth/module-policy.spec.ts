@@ -32,6 +32,13 @@ describe('explicit module denial',()=>{
 
 it('uses calendar permission for Google calendar actions in the inbox',()=>{expect(routeModules('/api/integrations/google/calendar/account/events','POST')).toEqual(['CALENDAR']);});
 
+it('aplica CALENDAR à gestão escolar sem ignorar negação individual',()=>{
+ expect(routeModules('/api/school/snapshot','GET')).toEqual(['CALENDAR']);
+ expect(routeModules('/api/school/records','POST')).toEqual(['CALENDAR']);
+ expect(effectiveModules('AGENT',['CALENDAR'],[{modules:['CALENDAR']}],[],['CALENDAR'])).toEqual([]);
+ expect(effectiveModules('OWNER',[],[],[],['CALENDAR'])).not.toContain('CALENDAR');
+});
+
 it('mantém WORDPRESS apenas como chave de negação e EMAIL como módulo ativo',()=>{
  expect(MODULES).toContain('WORDPRESS');
  expect(MODULES).toContain('EMAIL');

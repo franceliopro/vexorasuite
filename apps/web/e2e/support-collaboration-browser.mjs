@@ -272,7 +272,8 @@ try{
  await expect(page.getByRole("textbox",{name:"Buscar emoji",exact:true})).toBeVisible();
  const triggerBox=await emojiTrigger.boundingBox(),dialogBox=await emojiDialog.boundingBox(),viewport=page.viewportSize();
  assert.ok(triggerBox&&dialogBox&&viewport,"o popover de emojis precisa de medidas para validar o alinhamento");
- assert.ok(Math.abs((triggerBox.x+triggerBox.width/2)-(dialogBox.x+dialogBox.width/2))<=2,"o popover de emojis fica centralizado no ícone");
+ const expectedLeft=Math.max(8,Math.min((triggerBox.x+triggerBox.width/2)-dialogBox.width/2,viewport.width-dialogBox.width-8));
+ assert.ok(Math.abs(expectedLeft-dialogBox.x)<=2,"o popover de emojis centraliza no ícone e respeita a margem da viewport");
  assert.ok(dialogBox.x>=0&&dialogBox.y>=0&&dialogBox.x+dialogBox.width<=viewport.width&&dialogBox.y+dialogBox.height<=viewport.height,"o popover de emojis fica dentro da viewport");
  await page.keyboard.press("Escape");
  await expect(emojiDialog).toBeHidden();

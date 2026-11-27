@@ -19,7 +19,7 @@ WITH full_baseline AS (
     'paymentProvider', 'ASAAS'
   ) AS value
 )
-UPDATE "Tenant" AS t
+UPDATE "tenants" AS t
 SET
   "name" = CASE WHEN t."name" = 'Escola de Música' THEN 'Fermata Music' ELSE t."name" END,
   "integrations" = COALESCE(t."integrations", '{}'::jsonb) || jsonb_build_object(

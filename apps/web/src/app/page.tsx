@@ -115,6 +115,8 @@ import {
   CheckCircle2,
   FileText,
   GraduationCap,
+  BookOpen,
+  Link2,
   LogOut,
   Palette,
   X,
@@ -267,6 +269,14 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
   ] },
   { section: "ADMINISTRAÇÃO", items: [{ label: "Atendentes", icon: "users" }, { label: "Conexões", icon: "share" }, { label: "Catálogo", icon: "package" }, { label: "Curso", icon: "graduation-cap" }, { label: "Planos e preços", icon: "sparkles" }, { label: "Configurações", icon: "settings" }] },
 ];
+
+const schoolMobileNavigation = [
+  { id: "home", label: "Início", icon: LayoutDashboard },
+  { id: "lesson", label: "Aula", icon: BookOpen },
+  { id: "history", label: "Aulas", icon: CalendarDays },
+  { id: "finance", label: "Financeiro", icon: Wallet },
+  { id: "enrollments", label: "Matrículas", icon: Link2 },
+] as const;
 
 const workspaceTabs: Record<string, { label: string; target: string }[]> = {
   automation: [{ label: "Chatbots", target: "Chatbots" }, { label: "Workflows", target: "Workflows" }, { label: "Agentes de IA", target: "Agentes de IA" }],
@@ -752,7 +762,28 @@ export default function HomePage() {
       <ReminderCenter />
       <AlarmCenter />
       <nav className={mobileNavClass(active === "Visão geral")} data-testid={active === "Visão geral" ? "ov-dock" : undefined} aria-label={active === "Atendimento" ? "Ações da conversa" : "Navegação principal no celular"}>
-        {active === "Atendimento" ? (
+        {schoolProfile ? (
+          <>
+            {schoolMobileNavigation.map((item) => {
+              const ItemIcon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={dockItemClass(active === "Visão geral", false)}
+                  onClick={() => {
+                    setActive("Visão geral");
+                    setMenuOpen(false);
+                    window.dispatchEvent(new CustomEvent("vexora:school-tab", { detail: item.id }));
+                  }}
+                >
+                  <ItemIcon size={20} aria-hidden="true" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </>
+        ) : active === "Atendimento" ? (
           <>
             <button type="button" className="active" aria-current="page" onClick={() => { setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-conversation-list")); }}><Icon name="messages" size={20}/><span>Conversa</span></button>
             <button type="button" onClick={() => { setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-assume")); }}><Icon name="assume" size={20}/><span>Assumir</span></button>

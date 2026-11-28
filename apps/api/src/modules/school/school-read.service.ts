@@ -99,6 +99,11 @@ export class SchoolReadService {
       ]);
       const ownReceipts = paymentReceipts.filter((receipt) => receipt.enrollmentId === enrollment.id);
       const paidCents = ownReceipts.reduce((sum, receipt) => sum + Number(receipt.amountCents), 0);
+      const enrollmentClass = classes.find((item) => item.id === enrollment.classId);
+      const studentName = people.find((item) => item.id === enrollment.studentId)?.name ?? null;
+      const teacherName = enrollmentClass
+        ? people.find((item) => item.id === enrollmentClass.teacherId)?.name ?? null
+        : null;
       const dueDate = enrollment.tuitionNextDueDate?.toISOString().slice(0, 10) ?? null;
       const reminderDates = dueDate
         ? paymentReminderOccurrences(dueDate, policy).slice(0, 30)
@@ -156,6 +161,10 @@ export class SchoolReadService {
         },
         paymentNotifications: {
           toStudent: ownReceipts.length > 0,
+          studentMessage: "Recebemos seu pagamento.",
+          toTeacher: ownReceipts.length > 0 && policy.paymentNoticeToTeacher,
+          teacherName,
+          teacherMessage: studentName ? `${studentName} pagou.` : "Pagamento recebido.",
           toManager: ownReceipts.length > 0 && policy.paymentNoticeToManager,
           toAdmins: ownReceipts.length > 0 && policy.paymentNoticeToAdmins,
           sent: false,

@@ -272,7 +272,7 @@ export function SchoolWorkspace() {
           <article className={schoolTw.cardSoft}>
             <UsersRound size={20} aria-hidden="true" className="text-amber-600" />
             <strong className="text-sm font-extrabold text-slate-950">Lembretes agendados</strong>
-            <p className={schoolTw.note}>Professor 30 minutos antes da aula; pagamento 5 dias antes, no vencimento e diariamente após o atraso, pelos canais consentidos. Nenhum disparo é executado por esta tela.</p>
+            <p className={schoolTw.note}>Professor 30 minutos antes da aula; pagamento 5 dias antes, no vencimento e diariamente após o atraso, pelos canais consentidos. A baixa também fica configurada para avisar aluno e professor, sem disparo executado por esta tela.</p>
           </article>
         </div>
       </div>

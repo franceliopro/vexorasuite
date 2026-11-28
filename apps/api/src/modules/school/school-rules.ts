@@ -242,6 +242,7 @@ export interface BillingPolicy {
   overdueInstallmentsForCancellation: number;
   breachPenaltyPercent: number;
   paymentNoticeToManager: boolean;
+  paymentNoticeToTeacher: boolean;
   paymentNoticeToAdmins: boolean;
 }
 
@@ -256,6 +257,7 @@ export const DEFAULT_BILLING_POLICY: BillingPolicy = {
   overdueInstallmentsForCancellation: 2,
   breachPenaltyPercent: 20,
   paymentNoticeToManager: true,
+  paymentNoticeToTeacher: true,
   paymentNoticeToAdmins: true,
 };
 

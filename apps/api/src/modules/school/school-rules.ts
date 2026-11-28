@@ -253,7 +253,7 @@ export const DEFAULT_BILLING_POLICY: BillingPolicy = {
   channels: ["WHATSAPP", "SMS", "EMAIL"],
   consentRequired: true,
   teacherReminderMinutesBefore: 30,
-  cancellationApprovalRequired: true,
+  cancellationApprovalRequired: false,
   overdueInstallmentsForCancellation: 2,
   breachPenaltyPercent: 20,
   paymentNoticeToManager: true,

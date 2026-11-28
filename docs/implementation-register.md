@@ -240,7 +240,7 @@ As seções acima são inventário histórico; a fonte da verdade do criador hoj
 
 **Decisões do proprietário (2026-11-27):**
 - Lembretes somente por canais configurados e consentidos, com registro de succeeded/failed por canal quando houver envio real.
-- Duas mensalidades em atraso geram **sugestão**; o cancelamento depende de aprovação humana, não é automático.
+- Duas mensalidades em atraso cancelam **automaticamente** e o aluno fica inadimplente (suspenso).
 - Notificação de pagamento vai ao aluno, ao professor da aula, ao gestor financeiro designado **e** aos OWNER/ADMIN da empresa cliente.
 - Multa por quebra: 20% sobre o valor total do contrato menos o valor já pago.
 

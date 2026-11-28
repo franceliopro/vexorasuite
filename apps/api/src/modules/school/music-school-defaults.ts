@@ -1,6 +1,7 @@
-/** Cursos padrão do segmento Escola de Música e Instrumentos.
- * A lista é a sugestão inicial do dono da escola: Violão, Baixo, Teclado,
- * Bateria, Sax e Canto. Outros instrumentos entram depois, pelo catálogo.
+/** Cursos padrão da modalidade Aulas particulares.
+ * A lista é a sugestão inicial: Violão, Baixo, Teclado, Bateria, Sax, Canto,
+ * Musicoterapia, Musicalização Infantil e Mentoria, Workshop e Oficinas.
+ * Outros cursos entram depois, pelo catálogo. Imagens no formato 16:9.
  * Nenhum dado de outra empresa é copiado: o seed é sempre tenant-scoped.
  */
 export const MUSIC_SCHOOL_DEFAULT_COURSES = [
@@ -9,8 +10,8 @@ export const MUSIC_SCHOOL_DEFAULT_COURSES = [
     kind: "COURSE",
     level: "Iniciante",
     durationLabel: "50 min",
-    tuitionAmountCents: 25000,
-    imageUrl: "https://placehold.co/600x400/fef3c7/b45309?text=Violao",
+    tuitionAmountCents: 38000,
+    imageUrl: "https://placehold.co/1200x675/fef3c7/b45309?text=Violao",
     summary: "Acordes, ritmo e afinação para tocar as primeiras músicas com confiança.",
   },
   {
@@ -18,8 +19,8 @@ export const MUSIC_SCHOOL_DEFAULT_COURSES = [
     kind: "COURSE",
     level: "Iniciante",
     durationLabel: "50 min",
-    tuitionAmountCents: 25000,
-    imageUrl: "https://placehold.co/600x400/fef3c7/b45309?text=Baixo",
+    tuitionAmountCents: 38000,
+    imageUrl: "https://placehold.co/1200x675/fef3c7/b45309?text=Baixo",
     summary: "Linha de baixo, tempo e groove para acompanhar a banda desde a primeira aula.",
   },
   {
@@ -27,8 +28,8 @@ export const MUSIC_SCHOOL_DEFAULT_COURSES = [
     kind: "COURSE",
     level: "Iniciante",
     durationLabel: "50 min",
-    tuitionAmountCents: 28000,
-    imageUrl: "https://placehold.co/600x400/fef3c7/b45309?text=Teclado",
+    tuitionAmountCents: 38000,
+    imageUrl: "https://placehold.co/1200x675/fef3c7/b45309?text=Teclado",
     summary: "Notas, escalas e coordenação das mãos em canções simples e progressivas.",
   },
   {
@@ -36,8 +37,8 @@ export const MUSIC_SCHOOL_DEFAULT_COURSES = [
     kind: "COURSE",
     level: "Iniciante",
     durationLabel: "50 min",
-    tuitionAmountCents: 30000,
-    imageUrl: "https://placehold.co/600x400/fef3c7/b45309?text=Bateria",
+    tuitionAmountCents: 38000,
+    imageUrl: "https://placehold.co/1200x675/fef3c7/b45309?text=Bateria",
     summary: "Postura, batidas básicas e independência para manter o ritmo da música.",
   },
   {
@@ -45,8 +46,8 @@ export const MUSIC_SCHOOL_DEFAULT_COURSES = [
     kind: "COURSE",
     level: "Iniciante",
     durationLabel: "50 min",
-    tuitionAmountCents: 32000,
-    imageUrl: "https://placehold.co/600x400/fef3c7/b45309?text=Sax",
+    tuitionAmountCents: 38000,
+    imageUrl: "https://placehold.co/1200x675/fef3c7/b45309?text=Sax",
     summary: "Embocadura, respiração e as primeiras notas do saxofone com exercícios curtos.",
   },
   {
@@ -54,9 +55,36 @@ export const MUSIC_SCHOOL_DEFAULT_COURSES = [
     kind: "COURSE",
     level: "Iniciante",
     durationLabel: "50 min",
-    tuitionAmountCents: 30000,
-    imageUrl: "https://placehold.co/600x400/fef3c7/b45309?text=Canto",
+    tuitionAmountCents: 38000,
+    imageUrl: "https://placehold.co/1200x675/fef3c7/b45309?text=Canto",
     summary: "Respiração, afinação e interpretação vocal com repertório adequado ao aluno.",
+  },
+  {
+    name: "Musicoterapia",
+    kind: "COURSE",
+    level: "Todos os níveis",
+    durationLabel: "50 min",
+    tuitionAmountCents: 90000,
+    imageUrl: "https://placehold.co/1200x675/fef3c7/b45309?text=Musicoterapia",
+    summary: "Sessões musicais para bem-estar, comunicação, movimento e inclusão.",
+  },
+  {
+    name: "Musicalização Infantil",
+    kind: "COURSE",
+    level: "Iniciante",
+    durationLabel: "50 min",
+    tuitionAmountCents: 43000,
+    imageUrl: "https://placehold.co/1200x675/fef3c7/b45309?text=Musicalizacao",
+    summary: "Sons, ritmo, cantigas e movimento para estimular a musicalidade na infância.",
+  },
+  {
+    name: "Mentoria, Workshop e Oficinas",
+    kind: "COURSE",
+    level: "Todos os níveis",
+    durationLabel: "1 hora",
+    tuitionAmountCents: 70000,
+    imageUrl: "https://placehold.co/1200x675/fef3c7/b45309?text=Mentoria",
+    summary: "Mentoria individual, workshops e oficinas aplicadas para aprendizado prático. Valor 700,00/hora.",
   },
 ] as const;
 

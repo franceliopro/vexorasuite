@@ -115,6 +115,8 @@ import {
   CheckCircle2,
   FileText,
   GraduationCap,
+  BookOpen,
+  Link2,
   LogOut,
   Palette,
   X,
@@ -268,6 +270,14 @@ const navigation: { section: string; items: NavigationItem[] }[] = [
   { section: "ADMINISTRAÇÃO", items: [{ label: "Atendentes", icon: "users" }, { label: "Conexões", icon: "share" }, { label: "Catálogo", icon: "package" }, { label: "Curso", icon: "graduation-cap" }, { label: "Planos e preços", icon: "sparkles" }, { label: "Configurações", icon: "settings" }] },
 ];
 
+const schoolMobileNavigation = [
+  { id: "home", label: "Início", icon: LayoutDashboard },
+  { id: "lesson", label: "Aula", icon: BookOpen },
+  { id: "history", label: "Aulas", icon: CalendarDays },
+  { id: "finance", label: "Financeiro", icon: Wallet },
+  { id: "enrollments", label: "Matrículas", icon: Link2 },
+] as const;
+
 const workspaceTabs: Record<string, { label: string; target: string }[]> = {
   automation: [{ label: "Chatbots", target: "Chatbots" }, { label: "Workflows", target: "Workflows" }, { label: "Agentes de IA", target: "Agentes de IA" }],
   connections: [{ label: "Conexões", target: "Conexões" }],
@@ -281,12 +291,16 @@ export default function HomePage() {
   const [authStatus, setAuthStatus] = useState<"checking" | "anonymous" | "authenticated">("checking");
   const [authNotice, setAuthNotice] = useState("");
   const [session, setSession] = useState<AuthSession | null>(null);
-  const selectedPaymentProvider = session?.paymentProvider || "ASAAS";
-  const paymentProviderLabel = selectedPaymentProvider === "STRIPE" ? "Stripe" : selectedPaymentProvider === "INFINITEPAY" ? "InfinitePay" : "Asaas";
-  const providerForLabel: Record<string, string> = { Asaas: "ASAAS", Stripe: "STRIPE", InfinitePay: "INFINITEPAY" };
-  const providerVisible = (label: string) => !providerForLabel[label] || providerForLabel[label] === selectedPaymentProvider;
   const segmentProfile = session?.segmentProfile || null;
   const schoolProfile = segmentProfile?.overview === "SCHOOL";
+  const selectedPaymentProvider = session?.paymentProvider || "ASAAS";
+  const effectivePaymentProvider = schoolProfile ? "ASAAS" : selectedPaymentProvider;
+  const paymentProviderLabel = schoolProfile ? "Asaas" : effectivePaymentProvider === "STRIPE" ? "Stripe" : effectivePaymentProvider === "INFINITEPAY" ? "InfinitePay" : "Asaas";
+  const providerForLabel: Record<string, string> = { Asaas: "ASAAS", Stripe: "STRIPE", InfinitePay: "INFINITEPAY" };
+  const providerVisible = (label: string) => {
+    if (schoolProfile && (label === "Stripe" || label === "InfinitePay")) return false;
+    return !providerForLabel[label] || providerForLabel[label] === effectivePaymentProvider;
+  };
   const activeNavigation = schoolProfile && segmentProfile && segmentProfile.navigation.length
     ? segmentProfile.navigation.map((group) => ({ section: group.section, items: navigationForProfile(group.items) }))
     : navigation;
@@ -641,6 +655,13 @@ export default function HomePage() {
 
       <main className="main-area">
         <header className="topbar">
+          <button type="button" className="mobile-logo" aria-label={session?.tenant.name || "Empresa"} title={session?.tenant.name || "Empresa"} onClick={() => { setActive("Visão geral"); setMenuOpen(false); }}>
+            {(theme === "light" ? brandAssets.logoLight : brandAssets.logoDark) ? (
+              <img className="max-h-8 max-w-[88px] object-contain" src={theme === "light" ? brandAssets.logoLight : brandAssets.logoDark} alt="" />
+            ) : (
+              <span aria-hidden="true">V</span>
+            )}
+          </button>
           <button type="button" className="mobile-menu" onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation-menu" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}><Menu size={20} aria-hidden="true" /></button>
           <div className="breadcrumbs">
             <span>Véxora Suite</span>
@@ -752,7 +773,28 @@ export default function HomePage() {
       <ReminderCenter />
       <AlarmCenter />
       <nav className={mobileNavClass(active === "Visão geral")} data-testid={active === "Visão geral" ? "ov-dock" : undefined} aria-label={active === "Atendimento" ? "Ações da conversa" : "Navegação principal no celular"}>
-        {active === "Atendimento" ? (
+        {schoolProfile ? (
+          <>
+            {schoolMobileNavigation.map((item) => {
+              const ItemIcon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={dockItemClass(active === "Visão geral", false)}
+                  onClick={() => {
+                    setActive("Visão geral");
+                    setMenuOpen(false);
+                    window.dispatchEvent(new CustomEvent("vexora:school-tab", { detail: item.id }));
+                  }}
+                >
+                  <ItemIcon size={20} aria-hidden="true" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </>
+        ) : active === "Atendimento" ? (
           <>
             <button type="button" className="active" aria-current="page" onClick={() => { setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-conversation-list")); }}><Icon name="messages" size={20}/><span>Conversa</span></button>
             <button type="button" onClick={() => { setMenuOpen(false); window.dispatchEvent(new CustomEvent("vexora:mobile-assume")); }}><Icon name="assume" size={20}/><span>Assumir</span></button>

@@ -50,8 +50,8 @@ test("o app é mobile first com botões grandes, cores e uma janela por vez", ()
   assert.match(ui, /export function SchoolSheet/);
   assert.match(experience, /const \[tab, setTab\]/);
   assert.match(experience, /const \[sheet, setSheet\]/);
-  assert.match(experience, /setTab\(item\.id\); setSheet\(null\)/);
-  assert.match(experience, /aria-current=\{tab === item\.id \? "page" : undefined\}/);
+  assert.match(experience, /setTab\(id as Tab\); setSheet\(null\)/);
+  assert.match(experience, /vexora:school-tab/);
   assert.match(ui, /grid grid-cols-5/);
   assert.match(webPackage, /"@tailwindcss\/postcss": "4\.3\.5"/);
   assert.match(webPackage, /"tailwindcss": "4\.3\.5"/);

@@ -74,18 +74,11 @@ test("indicadores e saldos aparecem com gráfico e texto honesto", () => {
 test("todos os formulários possuem data-testid estável", () => {
   for (const testId of [
     "school-course-form",
-    "school-subject-form",
     "school-person-form",
-    "school-room-form",
     "school-class-form",
     "school-enroll-form",
     "school-session-form",
     "school-attendance-form",
-    "school-plan-form",
-    "school-grade-form",
-    "school-guardian-form",
-    "school-notice-form",
-    "school-material-form",
     "school-paired-attendance-form",
     "school-lesson-summary-form",
     "school-billing-policy-form",

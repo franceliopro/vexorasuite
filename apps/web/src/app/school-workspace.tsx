@@ -11,17 +11,11 @@ import {
 } from "lucide-react";
 
 type Course = { id: string; kind: "COURSE" | "SUBJECT"; name: string; parentId: string | null; active: boolean };
-type Person = { id: string; kind: "STUDENT" | "TEACHER"; name: string; email: string | null; phone: string | null; active: boolean };
-type Room = { id: string; name: string; capacity: number; active: boolean };
-type ClassRow = { id: string; courseId: string; teacherId: string; roomId: string; name: string; weekday: number; startTime: string; durationMinutes: number; active: boolean };
-type Enrollment = { id: string; classId: string; studentId: string; contractedSessions: number; purchasedSessions: number; status: string; tuitionAmountCents: number | null; tuitionCycle: string | null; tuitionStatus: string; tuitionNextDueDate: string | null };
+type Person = { id: string; kind: "STUDENT" | "TEACHER"; name: string; email: string | null; phone: string | null; formation: string | null; active: boolean };
+type ClassRow = { id: string; courseId: string; teacherId: string; roomId: string | null; name: string; weekday: number; startTime: string; durationMinutes: number; active: boolean };
 type SessionRow = { id: string; classId: string; sessionDate: string; status: string; summaryHtml?: string | null };
 type Attendance = { id: string; sessionId: string; personId: string; personKind: string; status: string; note: string | null; recordedAt: string | null };
-type LessonPlan = { id: string; classId: string; version: number; title: string; objectiveHtml: string; contentHtml: string; activitiesHtml: string; observationsHtml: string; materials: string[]; youtubeUrls: string[]; createdAt: string | null };
-type Grade = { id: string; classId: string; studentId: string; title: string; evaluationDate: string | null; maxScore: number; score: number; note: string | null };
-type Guardian = { id: string; studentId: string; name: string; relationship: string; phone: string | null; email: string | null };
-type Notice = { id: string; studentId: string | null; classId: string | null; title: string; bodyHtml: string; channel: string; status: string; scheduledAt: string | null };
-type Material = { id: string; lessonPlanId: string | null; courseId: string | null; title: string; url: string; kind: string };
+type Enrollment = { id: string; classId: string; studentId: string; contractedSessions: number; purchasedSessions: number; status: string; tuitionAmountCents: number | null; tuitionCycle: string | null; tuitionStatus: string; tuitionNextDueDate: string | null };
 type Balance = {
   enrollmentId: string;
   classId: string;
@@ -63,16 +57,10 @@ type Snapshot = {
   paymentReceipts?: Array<{ id: string; enrollmentId: string; amountCents: number; paidAt: string; periodKey: string; source: string }>;
   courses: Course[];
   people: Person[];
-  rooms: Room[];
   classes: ClassRow[];
-  enrollments: Enrollment[];
   sessions: SessionRow[];
   attendances: Attendance[];
-  lessonPlans: LessonPlan[];
-  grades: Grade[];
-  guardians: Guardian[];
-  notices: Notice[];
-  materials: Material[];
+  enrollments: Enrollment[];
   balances: Balance[];
   stats: Stats;
 };
@@ -151,7 +139,6 @@ const HTML_ESCAPES: Record<string, string> = {
 };
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => HTML_ESCAPES[character] || character);
 
-/** Mesmo padrão dos editores existentes: aceita watch, youtu.be e embed. */
 const parseYoutubeId = (input: string): string | null => {
   try {
     const url = new URL(String(input || "").trim());
@@ -160,7 +147,7 @@ const parseYoutubeId = (input: string): string | null => {
     const raw = host.includes("youtu.be")
       ? url.pathname.replace(/^\//, "").split("/")[0]
       : url.searchParams.get("v") || (url.pathname.match(/\/(?:embed|shorts)\/([a-zA-Z0-9_-]{6,20})/)?.[1]) || "";
-    return raw && /^[a-zA-Z0-9_-]{6,20}$/.test(raw) ? raw : null;
+    return raw && /^[A-Za-z0-9_-]{6,20}$/.test(raw) ? raw : null;
   } catch {
     return null;
   }
@@ -171,7 +158,6 @@ function youtubeEmbed(url: string): string {
   return id ? `https://www.youtube-nocookie.com/embed/${id}?rel=0` : "";
 }
 
-/** Nó Tiptap do vídeo: a classe preserva o embed após a sanitização no servidor. */
 const SchoolYoutube = Node.create({
   name: "schoolYoutube",
   group: "block",
@@ -197,12 +183,6 @@ const SchoolYoutube = Node.create({
   },
 });
 
-function youtubeUrlsFrom(...values: string[]): string[] {
-  const found = values.join("\n").match(/https?:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)[\w-]{6,}/g) || [];
-  return Array.from(new Set(found));
-}
-
-/** Editor rico do plano de aula: formatação, imagens, arquivos e vídeos incorporados. */
 function SchoolRichText({ value, onChange, label }: { value: string; onChange: (html: string) => void; label: string }) {
   const [source, setSource] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
@@ -298,7 +278,7 @@ function SchoolRichText({ value, onChange, label }: { value: string; onChange: (
   return (
     <div className={editorShellTw}>
       <style>{RICH_CONTENT_CSS}</style>
-      <div className={editorToolbarTw} role="toolbar" aria-label="Formatação do plano de aula">
+      <div className={editorToolbarTw} role="toolbar" aria-label="Formatação do resumo da aula">
         <button type="button" className={editorButtonTw} title="Desfazer" aria-label="Desfazer" disabled={!editor || source} onMouseDown={(event) => event.preventDefault()} onClick={() => editor?.chain().focus().undo().run()}><Undo2 size={15} aria-hidden="true" /></button>
         <button type="button" className={editorButtonTw} title="Refazer" aria-label="Refazer" disabled={!editor || source} onMouseDown={(event) => event.preventDefault()} onClick={() => editor?.chain().focus().redo().run()}><Redo2 size={15} aria-hidden="true" /></button>
         <button type="button" className={editorButtonClass(!!editor?.isActive("bold"))} title="Negrito" aria-label="Negrito" aria-pressed={!!editor?.isActive("bold")} disabled={!editor || source} onMouseDown={(event) => event.preventDefault()} onClick={() => editor?.chain().focus().toggleBold().run()}><Bold size={15} aria-hidden="true" /></button>
@@ -351,27 +331,23 @@ function Donut({ label, percentage }: { label: string; percentage: number }) {
   );
 }
 
-/** Gestão escolar — operação do tenant autenticado. Nenhum envio é executado por aqui. */
+/** Gestão escolar simplificada para Escola de Música e Instrumentos.
+ * Foco: cursos, professores com formação, alunos, turmas, presença, agenda, mensalidades e automações.
+ * Nenhum envio é executado por aqui; lembretes e cancelamento ficam apenas configurados.
+ */
 export function SchoolWorkspace() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [courseForm, setCourseForm] = useState({ name: "" });
-  const [subjectForm, setSubjectForm] = useState({ name: "", parentId: "" });
-  const [personForm, setPersonForm] = useState({ name: "", kind: "STUDENT", email: "", phone: "" });
-  const [roomForm, setRoomForm] = useState({ name: "", capacity: "20" });
-  const [classForm, setClassForm] = useState({ name: "", courseId: "", teacherId: "", roomId: "", weekday: "1", startTime: "18:00", durationMinutes: "60" });
+  const [personForm, setPersonForm] = useState({ name: "", kind: "STUDENT", email: "", phone: "", formation: "" });
+  const [classForm, setClassForm] = useState({ name: "", courseId: "", teacherId: "", weekday: "1", startTime: "18:00", durationMinutes: "60" });
   const [enrollForm, setEnrollForm] = useState({ classId: "", studentId: "", contractedSessions: "8", purchasedSessions: "0", tuitionAmountCents: "", tuitionNextDueDate: "" });
   const [sessionForm, setSessionForm] = useState({ classId: "", sessionDate: new Date().toISOString().slice(0, 10), status: "SCHEDULED" });
-  const [attendanceForm, setAttendanceForm] = useState({ sessionId: "", personKind: "STUDENT", personId: "", status: "PRESENT", note: "" });
-  const [planForm, setPlanForm] = useState({ classId: "", title: "", objectiveHtml: "", contentHtml: "", activitiesHtml: "", observationsHtml: "", materials: "" });
-  const [gradeForm, setGradeForm] = useState({ classId: "", studentId: "", title: "", evaluationDate: "", maxScore: "10", score: "", note: "" });
-  const [guardianForm, setGuardianForm] = useState({ studentId: "", name: "", relationship: "", phone: "", email: "" });
-  const [noticeForm, setNoticeForm] = useState({ studentId: "", classId: "", title: "", bodyHtml: "", channel: "WHATSAPP", scheduledAt: "" });
-  const [materialForm, setMaterialForm] = useState({ title: "", url: "", kind: "LINK", lessonPlanId: "", courseId: "" });
   const [pairedForm, setPairedForm] = useState({ sessionId: "", studentId: "", teacherId: "", studentStatus: "PRESENT", teacherStatus: "PRESENT", note: "" });
   const [summaryForm, setSummaryForm] = useState({ sessionId: "", summaryHtml: "" });
+  const [attendanceForm, setAttendanceForm] = useState({ sessionId: "", personKind: "STUDENT", personId: "", status: "PRESENT", note: "" });
   const [policyForm, setPolicyForm] = useState({ paymentReminderDaysBefore: "5", remindOnDueDate: true, remindDailyWhenOverdue: true, channels: ["WHATSAPP", "SMS", "EMAIL"], consentRequired: true, teacherReminderMinutesBefore: "30", cancellationApprovalRequired: true, overdueInstallmentsForCancellation: "2", breachPenaltyPercent: "20", paymentNoticeToManager: true, paymentNoticeToAdmins: true });
   const [receiptForm, setReceiptForm] = useState({ enrollmentId: "", amountCents: "", paidAt: new Date().toISOString().slice(0, 10), source: "CASH", externalReference: "" });
   const [overdueForm, setOverdueForm] = useState({ enrollmentId: "" });
@@ -406,21 +382,15 @@ export function SchoolWorkspace() {
 
   const courses = snapshot?.courses ?? [];
   const people = snapshot?.people ?? [];
-  const rooms = snapshot?.rooms ?? [];
   const classes = snapshot?.classes ?? [];
   const enrollments = snapshot?.enrollments ?? [];
   const sessions = snapshot?.sessions ?? [];
   const attendances = snapshot?.attendances ?? [];
-  const lessonPlans = snapshot?.lessonPlans ?? [];
-  const grades = snapshot?.grades ?? [];
-  const guardians = snapshot?.guardians ?? [];
-  const notices = snapshot?.notices ?? [];
-  const materials = snapshot?.materials ?? [];
   const balances = snapshot?.balances ?? [];
   const stats = snapshot?.stats;
   const students = people.filter((person) => person.kind === "STUDENT");
   const teachers = people.filter((person) => person.kind === "TEACHER");
-  const nameOf = (id: string) => [...courses, ...people, ...rooms, ...classes].find((item) => item.id === id)?.name || "—";
+  const nameOf = (id: string) => [...courses, ...people, ...classes].find((item) => item.id === id)?.name || "—";
 
   return (
     <section className={shellTw} aria-label="Gestão escolar">
@@ -428,7 +398,7 @@ export function SchoolWorkspace() {
         <GraduationCap size={40} className={heroIconTw} aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <h1 className={titleTw}>Gestão escolar</h1>
-          <p className={copyTw}>Cursos, matérias, turmas, presença, planos de aula, notas e avisos agendados — tudo no contexto da empresa. Avisos e mensalidades ficam apenas agendados, nenhum envio é executado.</p>
+          <p className={copyTw}>Cursos, professores com formação, alunos, turmas, presença, agenda e mensalidades — tudo no contexto da empresa. Avisos e mensalidades ficam apenas agendados, nenhum envio é executado.</p>
         </div>
         <span className={badgeTw}>Avisos e mensalidades agendados — nenhum envio executado</span>
       </header>
@@ -456,49 +426,38 @@ export function SchoolWorkspace() {
 
       <div className={gridTw}>
         <article className={cardTw}>
-          <h2 className={cardTitleTw}><BookOpen size={18} aria-hidden="true" /> Cursos e matérias</h2>
-          {courses.length === 0 ? <p className={mutedTw}>Nenhum curso ou matéria cadastrado nesta empresa.</p> : null}
+          <h2 className={cardTitleTw}><BookOpen size={18} aria-hidden="true" /> Cursos</h2>
+          {courses.length === 0 ? <p className={mutedTw}>Nenhum curso cadastrado nesta empresa.</p> : null}
           {courses.map((item) => (
             <details key={item.id} className={rowTw}>
               <summary className={summaryTw}><span>{item.name}</span><span className={mutedTw}>{item.kind === "COURSE" ? "Curso" : "Matéria"}</span></summary>
-              <p className={mutedTw}>Curso pai: {item.parentId ? nameOf(item.parentId) : "—"} · {item.active ? "Ativo" : "Inativo"}</p>
+              <p className={mutedTw}>{item.parentId ? "Curso pai: " + nameOf(item.parentId) : "—"} · {item.active ? "Ativo" : "Inativo"}</p>
             </details>
           ))}
         </article>
         <article className={cardTw}>
-          <h2 className={cardTitleTw}><UsersRound size={18} aria-hidden="true" /> Pessoas</h2>
+          <h2 className={cardTitleTw}><UsersRound size={18} aria-hidden="true" /> Pessoas (alunos e professores)</h2>
           {people.length === 0 ? <p className={mutedTw}>Nenhuma pessoa cadastrada nesta empresa.</p> : null}
           {people.map((item) => (
             <details key={item.id} className={rowTw}>
               <summary className={summaryTw}><span>{item.name}</span><span className={mutedTw}>{item.kind === "STUDENT" ? "Aluno" : "Professor"}</span></summary>
-              <p className={mutedTw}>E-mail: {item.email || "—"} · Telefone: {item.phone || "—"} · {item.active ? "Ativo" : "Inativo"}</p>
+              <p className={mutedTw}>E-mail: {item.email || "—"} · Telefone: {item.phone || "—"} · Formação: {item.formation || "—"} · {item.active ? "Ativo" : "Inativo"}</p>
             </details>
           ))}
         </article>
-        <article className={cardTw}>
-          <h2 className={cardTitleTw}><CalendarDays size={18} aria-hidden="true" /> Salas</h2>
-          {rooms.length === 0 ? <p className={mutedTw}>Nenhuma sala cadastrada nesta empresa.</p> : null}
-          {rooms.map((item) => (
-            <details key={item.id} className={rowTw}>
-              <summary className={summaryTw}><span>{item.name}</span><span className={mutedTw}>Capacidade: {item.capacity}</span></summary>
-              <p className={mutedTw}>{item.active ? "Ativa" : "Inativa"}</p>
-            </details>
-          ))}
-        </article>
-      </div>
-
-      <div className={gridTw}>
         <article className={cardTw}>
           <h2 className={cardTitleTw}><CalendarDays size={18} aria-hidden="true" /> Turmas</h2>
           {classes.length === 0 ? <p className={mutedTw}>Nenhuma turma cadastrada nesta empresa.</p> : null}
           {classes.map((item) => (
             <details key={item.id} className={rowTw}>
               <summary className={summaryTw}><span>{item.name}</span><span className={mutedTw}>{DAYS[item.weekday] || item.weekday} · {item.startTime}</span></summary>
-              <p className={mutedTw}>Curso/matéria: {nameOf(item.courseId)} · Professor: {nameOf(item.teacherId)} · Sala: {nameOf(item.roomId)}</p>
-              <p className={mutedTw}>Duração: {item.durationMinutes} min · {item.active ? "Ativa" : "Inativa"}</p>
+              <p className={mutedTw}>Curso/matéria: {nameOf(item.courseId)} · Professor: {nameOf(item.teacherId)} · Duração: {item.durationMinutes} min · {item.active ? "Ativa" : "Inativa"}</p>
             </details>
           ))}
         </article>
+      </div>
+
+      <div className={gridTw}>
         <article className={cardTw}>
           <h2 className={cardTitleTw}><Wallet size={18} aria-hidden="true" /> Matrículas e saldos</h2>
           {balances.length === 0 ? <p className={mutedTw}>Nenhuma matrícula registrada nesta empresa.</p> : null}
@@ -519,9 +478,6 @@ export function SchoolWorkspace() {
               </details>
             );
           })}
-          {enrollments.map((item) => (
-            <p key={item.id} className={mutedTw}>Matrícula {item.id} · {item.status} · {TUITION_STATUS[item.tuitionStatus] || item.tuitionStatus}</p>
-          ))}
         </article>
         <article className={cardTw}>
           <h2 className={cardTitleTw}><ClipboardCheck size={18} aria-hidden="true" /> Sessões e presença</h2>
@@ -538,74 +494,6 @@ export function SchoolWorkspace() {
       </div>
 
       <div className={gridTw}>
-        <article className={cardTw}>
-          <h2 className={cardTitleTw}><ClipboardList size={18} aria-hidden="true" /> Planos de aula</h2>
-          {lessonPlans.length === 0 ? <p className={mutedTw}>Nenhum plano de aula registrado nesta empresa.</p> : null}
-          {lessonPlans.map((item) => (
-            <details key={item.id} className={rowTw}>
-              <summary className={summaryTw}><span>{item.title}</span><span className={mutedTw}>Versão {item.version} · {nameOf(item.classId)}</span></summary>
-              <p className={mutedTw}>Objetivo: {item.objectiveHtml.replace(/<[^>]+>/g, " ").slice(0, 200) || "—"}</p>
-              <p className={mutedTw}>Materiais: {item.materials.length > 0 ? item.materials.join(", ") : "—"}</p>
-              <p className={mutedTw}>Vídeos: {item.youtubeUrls.length > 0 ? item.youtubeUrls.join(", ") : "—"}</p>
-              <p className={mutedTw}>Histórico de versões: versão {item.version} · {item.createdAt || "data não informada"}</p>
-            </details>
-          ))}
-        </article>
-        <article className={cardTw}>
-          <h2 className={cardTitleTw}><ClipboardCheck size={18} aria-hidden="true" /> Notas</h2>
-          {grades.length === 0 ? <p className={mutedTw}>Nenhuma nota registrada nesta empresa.</p> : null}
-          {grades.map((item) => (
-            <details key={item.id} className={rowTw}>
-              <summary className={summaryTw}><span>{item.title}</span><span className={mutedTw}>{item.score}/{item.maxScore}</span></summary>
-              <p className={mutedTw}>{nameOf(item.studentId)} · {nameOf(item.classId)} · {item.evaluationDate || "sem data"}</p>
-              <p className={mutedTw}>{item.note || "Sem observação"}</p>
-            </details>
-          ))}
-        </article>
-        <article className={cardTw}>
-          <h2 className={cardTitleTw}><UsersRound size={18} aria-hidden="true" /> Responsáveis</h2>
-          {guardians.length === 0 ? <p className={mutedTw}>Nenhum responsável cadastrado nesta empresa.</p> : null}
-          {guardians.map((item) => (
-            <details key={item.id} className={rowTw}>
-              <summary className={summaryTw}><span>{item.name}</span><span className={mutedTw}>{item.relationship}</span></summary>
-              <p className={mutedTw}>Aluno: {nameOf(item.studentId)} · Telefone: {item.phone || "—"} · E-mail: {item.email || "—"}</p>
-            </details>
-          ))}
-        </article>
-      </div>
-
-      <div className={gridTw}>
-        <article className={cardTw}>
-          <h2 className={cardTitleTw}><BellRing size={18} aria-hidden="true" /> Avisos agendados</h2>
-          {notices.length === 0 ? <p className={mutedTw}>Nenhum aviso agendado nesta empresa.</p> : null}
-          {notices.map((item) => (
-            <details key={item.id} className={rowTw}>
-              <summary className={summaryTw}><span>{item.title}</span><span className={mutedTw}>{NOTICE_STATUS[item.status] || item.status}</span></summary>
-              <p className={mutedTw}>Canal: {item.channel} · Agendado para: {item.scheduledAt || "sem data"}</p>
-              <p className={mutedTw}>Aluno: {item.studentId ? nameOf(item.studentId) : "—"} · Turma: {item.classId ? nameOf(item.classId) : "—"}</p>
-              <p className={mutedTw}>Nenhuma mensagem foi enviada automaticamente.</p>
-            </details>
-          ))}
-        </article>
-        <article className={cardTw}>
-          <h2 className={cardTitleTw}><BookOpen size={18} aria-hidden="true" /> Materiais</h2>
-          {materials.length === 0 ? <p className={mutedTw}>Nenhum material cadastrado nesta empresa.</p> : null}
-          {materials.map((item) => (
-            <details key={item.id} className={rowTw}>
-              <summary className={summaryTw}><span>{item.title}</span><span className={mutedTw}>{item.kind}</span></summary>
-              <p className={mutedTw}>URL: {item.url}</p>
-              <p className={mutedTw}>Curso: {item.courseId ? nameOf(item.courseId) : "—"} · Plano: {item.lessonPlanId || "—"}</p>
-            </details>
-          ))}
-        </article>
-        <article className={cardTw}>
-          <h2 className={cardTitleTw}><ClipboardCheck size={18} aria-hidden="true" /> Como usar</h2>
-          <p className="m-0 text-body text-ink-secondary">Abra os formulários abaixo para cadastrar cursos, pessoas, turmas, sessões, presenças, planos, notas e avisos. Cada operação é registrada apenas no tenant atual.</p>
-          <p className={mutedTw}>Alterações recarregam o painel; envios externos não são realizados.</p>
-        </article>
-      </div>
-
-      <div className={gridTw}>
         <details className={detailsTw} data-testid="school-course-form">
           <summary className={summaryFormTw}>Novo curso</summary>
           <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "COURSE", ...courseForm }, "Curso cadastrado.")}>
@@ -614,42 +502,24 @@ export function SchoolWorkspace() {
           </form>
         </details>
 
-        <details className={detailsTw} data-testid="school-subject-form">
-          <summary className={summaryFormTw}>Nova matéria</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "SUBJECT", ...subjectForm }, "Matéria cadastrada.")}>
-            <label className={labelTw}>Nome<input className={fieldTw} required value={subjectForm.name} onChange={(event) => setSubjectForm({ ...subjectForm, name: event.target.value })} /></label>
-            <label className={labelTw}>Curso pai<select className={fieldTw} required value={subjectForm.parentId} onChange={(event) => setSubjectForm({ ...subjectForm, parentId: event.target.value })}><option value="">Selecione</option>{courses.filter((item) => item.kind === "COURSE").map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <button className={buttonTw} type="submit" disabled={busy}>Cadastrar matéria</button>
-          </form>
-        </details>
-
         <details className={detailsTw} data-testid="school-person-form">
-          <summary className={summaryFormTw}>Nova pessoa</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: personForm.kind, name: personForm.name, email: personForm.email, phone: personForm.phone }, "Pessoa cadastrada.")}>
+          <summary className={summaryFormTw}>Nova pessoa (aluno ou professor)</summary>
+          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: personForm.kind, name: personForm.name, email: personForm.email, phone: personForm.phone, formation: personForm.kind === "TEACHER" ? personForm.formation || undefined : undefined }, "Pessoa cadastrada.")}>
             <label className={labelTw}>Nome<input className={fieldTw} required value={personForm.name} onChange={(event) => setPersonForm({ ...personForm, name: event.target.value })} /></label>
             <label className={labelTw}>Tipo<select className={fieldTw} value={personForm.kind} onChange={(event) => setPersonForm({ ...personForm, kind: event.target.value })}><option value="STUDENT">Aluno</option><option value="TEACHER">Professor</option></select></label>
             <label className={labelTw}>E-mail<input className={fieldTw} type="email" value={personForm.email} onChange={(event) => setPersonForm({ ...personForm, email: event.target.value })} /></label>
             <label className={labelTw}>Telefone<input className={fieldTw} value={personForm.phone} onChange={(event) => setPersonForm({ ...personForm, phone: event.target.value })} /></label>
+            {personForm.kind === "TEACHER" && <label className={labelTw}>Formação<input className={fieldTw} value={personForm.formation} placeholder="Ex.: graduação, curso, instrumento" onChange={(event) => setPersonForm({ ...personForm, formation: event.target.value })} /></label>}
             <button className={buttonTw} type="submit" disabled={busy}>Cadastrar pessoa</button>
-          </form>
-        </details>
-
-        <details className={detailsTw} data-testid="school-room-form">
-          <summary className={summaryFormTw}>Nova sala</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "ROOM", name: roomForm.name, capacity: Number(roomForm.capacity) }, "Sala cadastrada.")}>
-            <label className={labelTw}>Nome<input className={fieldTw} required value={roomForm.name} onChange={(event) => setRoomForm({ ...roomForm, name: event.target.value })} /></label>
-            <label className={labelTw}>Capacidade<input className={fieldTw} type="number" min={1} value={roomForm.capacity} onChange={(event) => setRoomForm({ ...roomForm, capacity: event.target.value })} /></label>
-            <button className={buttonTw} type="submit" disabled={busy}>Cadastrar sala</button>
           </form>
         </details>
 
         <details className={detailsTw} data-testid="school-class-form">
           <summary className={summaryFormTw}>Nova turma</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "CLASS", name: classForm.name, courseId: classForm.courseId, teacherId: classForm.teacherId, roomId: classForm.roomId, weekday: Number(classForm.weekday), startTime: classForm.startTime, durationMinutes: Number(classForm.durationMinutes) }, "Turma cadastrada.")}>
+          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "CLASS", name: classForm.name, courseId: classForm.courseId, teacherId: classForm.teacherId, weekday: Number(classForm.weekday), startTime: classForm.startTime, durationMinutes: Number(classForm.durationMinutes) }, "Turma cadastrada.")}>
             <label className={labelTw}>Nome<input className={fieldTw} required value={classForm.name} onChange={(event) => setClassForm({ ...classForm, name: event.target.value })} /></label>
-            <label className={labelTw}>Matéria/curso<select className={fieldTw} required value={classForm.courseId} onChange={(event) => setClassForm({ ...classForm, courseId: event.target.value })}><option value="">Selecione</option>{courses.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+            <label className={labelTw}>Curso/matéria<select className={fieldTw} required value={classForm.courseId} onChange={(event) => setClassForm({ ...classForm, courseId: event.target.value })}><option value="">Selecione</option>{courses.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
             <label className={labelTw}>Professor<select className={fieldTw} required value={classForm.teacherId} onChange={(event) => setClassForm({ ...classForm, teacherId: event.target.value })}><option value="">Selecione</option>{teachers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <label className={labelTw}>Sala<select className={fieldTw} value={classForm.roomId} onChange={(event) => setClassForm({ ...classForm, roomId: event.target.value })}><option value="">Selecione</option>{rooms.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
             <label className={labelTw}>Dia da semana<select className={fieldTw} value={classForm.weekday} onChange={(event) => setClassForm({ ...classForm, weekday: event.target.value })}>{DAYS.slice(1).map((day, index) => <option key={day} value={index + 1}>{day}</option>)}</select></label>
             <label className={labelTw}>Horário<input className={fieldTw} type="time" required value={classForm.startTime} onChange={(event) => setClassForm({ ...classForm, startTime: event.target.value })} /></label>
             <label className={labelTw}>Duração (minutos)<input className={fieldTw} type="number" min={30} max={180} step={30} value={classForm.durationMinutes} onChange={(event) => setClassForm({ ...classForm, durationMinutes: event.target.value })} /></label>
@@ -671,7 +541,7 @@ export function SchoolWorkspace() {
         </details>
 
         <details className={detailsTw} data-testid="school-session-form">
-          <summary className={summaryFormTw}>Nova sessão</summary>
+          <summary className={summaryFormTw}>Nova sessão (agenda de aula)</summary>
           <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "SESSION", classId: sessionForm.classId, sessionDate: sessionForm.sessionDate, status: sessionForm.status }, "Sessão registrada.")}>
             <label className={labelTw}>Turma<select className={fieldTw} required value={sessionForm.classId} onChange={(event) => setSessionForm({ ...sessionForm, classId: event.target.value })}><option value="">Selecione</option>{classes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
             <label className={labelTw}>Data<input className={fieldTw} type="date" required value={sessionForm.sessionDate} onChange={(event) => setSessionForm({ ...sessionForm, sessionDate: event.target.value })} /></label>
@@ -691,85 +561,9 @@ export function SchoolWorkspace() {
             <button className={buttonTw} type="submit" disabled={busy}>Registrar</button>
           </form>
         </details>
+      </div>
 
-        <details className={detailsTw} data-testid="school-plan-form">
-          <summary className={summaryFormTw}>Novo plano de aula</summary>
-          <form className={formTw} onSubmit={(event) => {
-            const materials = planForm.materials.split("\n").map((line) => line.trim()).filter(Boolean);
-            void submit(event, "school/records", {
-              kind: "LESSON_PLAN",
-              classId: planForm.classId,
-              title: planForm.title,
-              objectiveHtml: planForm.objectiveHtml,
-              contentHtml: planForm.contentHtml,
-              activitiesHtml: planForm.activitiesHtml,
-              observationsHtml: planForm.observationsHtml,
-              materials,
-              youtubeUrls: youtubeUrlsFrom(planForm.objectiveHtml, planForm.contentHtml, planForm.activitiesHtml, planForm.observationsHtml, ...materials),
-            }, "Plano de aula registrado.");
-          }}>
-            <label className={labelTw}>Turma<select className={fieldTw} required value={planForm.classId} onChange={(event) => setPlanForm({ ...planForm, classId: event.target.value })}><option value="">Selecione</option>{classes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <label className={labelTw}>Título<input className={fieldTw} required value={planForm.title} onChange={(event) => setPlanForm({ ...planForm, title: event.target.value })} /></label>
-            <label className={labelTw}>Objetivo<SchoolRichText label="Objetivo" value={planForm.objectiveHtml} onChange={(html) => setPlanForm((current) => ({ ...current, objectiveHtml: html }))} /></label>
-            <label className={labelTw}>Conteúdo<SchoolRichText label="Conteúdo" value={planForm.contentHtml} onChange={(html) => setPlanForm((current) => ({ ...current, contentHtml: html }))} /></label>
-            <label className={labelTw}>Atividades<SchoolRichText label="Atividades" value={planForm.activitiesHtml} onChange={(html) => setPlanForm((current) => ({ ...current, activitiesHtml: html }))} /></label>
-            <label className={labelTw}>Observações<SchoolRichText label="Observações" value={planForm.observationsHtml} onChange={(html) => setPlanForm((current) => ({ ...current, observationsHtml: html }))} /></label>
-            <label className={labelTw}>Materiais/URLs (um por linha)<textarea className={fieldTw} rows={4} value={planForm.materials} onChange={(event) => setPlanForm({ ...planForm, materials: event.target.value })} /></label>
-            <button className={buttonTw} type="submit" disabled={busy}>Salvar plano</button>
-          </form>
-        </details>
-
-        <details className={detailsTw} data-testid="school-grade-form">
-          <summary className={summaryFormTw}>Nova nota</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "GRADE", classId: gradeForm.classId, studentId: gradeForm.studentId, title: gradeForm.title, evaluationDate: gradeForm.evaluationDate, maxScore: Number(gradeForm.maxScore), score: Number(gradeForm.score), note: gradeForm.note }, "Nota registrada.")}>
-            <label className={labelTw}>Turma<select className={fieldTw} required value={gradeForm.classId} onChange={(event) => setGradeForm({ ...gradeForm, classId: event.target.value })}><option value="">Selecione</option>{classes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <label className={labelTw}>Aluno<select className={fieldTw} required value={gradeForm.studentId} onChange={(event) => setGradeForm({ ...gradeForm, studentId: event.target.value })}><option value="">Selecione</option>{students.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <label className={labelTw}>Título<input className={fieldTw} required value={gradeForm.title} onChange={(event) => setGradeForm({ ...gradeForm, title: event.target.value })} /></label>
-            <label className={labelTw}>Data<input className={fieldTw} type="date" required value={gradeForm.evaluationDate} onChange={(event) => setGradeForm({ ...gradeForm, evaluationDate: event.target.value })} /></label>
-            <label className={labelTw}>Nota máxima<input className={fieldTw} type="number" min={1} value={gradeForm.maxScore} onChange={(event) => setGradeForm({ ...gradeForm, maxScore: event.target.value })} /></label>
-            <label className={labelTw}>Nota<input className={fieldTw} type="number" min={0} step={1} required value={gradeForm.score} onChange={(event) => setGradeForm({ ...gradeForm, score: event.target.value })} /></label>
-            <label className={labelTw}>Observação<input className={fieldTw} value={gradeForm.note} onChange={(event) => setGradeForm({ ...gradeForm, note: event.target.value })} /></label>
-            <button className={buttonTw} type="submit" disabled={busy}>Registrar nota</button>
-          </form>
-        </details>
-
-        <details className={detailsTw} data-testid="school-guardian-form">
-          <summary className={summaryFormTw}>Novo responsável</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "GUARDIAN", studentId: guardianForm.studentId, name: guardianForm.name, relationship: guardianForm.relationship, phone: guardianForm.phone, email: guardianForm.email }, "Responsável cadastrado.")}>
-            <label className={labelTw}>Aluno<select className={fieldTw} required value={guardianForm.studentId} onChange={(event) => setGuardianForm({ ...guardianForm, studentId: event.target.value })}><option value="">Selecione</option>{students.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <label className={labelTw}>Nome<input className={fieldTw} required value={guardianForm.name} onChange={(event) => setGuardianForm({ ...guardianForm, name: event.target.value })} /></label>
-            <label className={labelTw}>Parentesco<select className={fieldTw} value={guardianForm.relationship} onChange={(event) => setGuardianForm({ ...guardianForm, relationship: event.target.value })}><option value="">Não informado</option><option value="MAE">Mãe</option><option value="PAI">Pai</option><option value="RESPONSAVEL">Responsável</option><option value="OUTRO">Outro</option></select></label>
-            <label className={labelTw}>Telefone<input className={fieldTw} value={guardianForm.phone} onChange={(event) => setGuardianForm({ ...guardianForm, phone: event.target.value })} /></label>
-            <label className={labelTw}>E-mail<input className={fieldTw} type="email" value={guardianForm.email} onChange={(event) => setGuardianForm({ ...guardianForm, email: event.target.value })} /></label>
-            <button className={buttonTw} type="submit" disabled={busy}>Cadastrar responsável</button>
-          </form>
-        </details>
-
-        <details className={detailsTw} data-testid="school-notice-form">
-          <summary className={summaryFormTw}>Novo aviso agendado</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "NOTICE", studentId: noticeForm.studentId || null, classId: noticeForm.classId || null, title: noticeForm.title, bodyHtml: noticeForm.bodyHtml, channel: noticeForm.channel, status: "SCHEDULED", scheduledAt: noticeForm.scheduledAt || null }, "Aviso agendado. Nenhum envio foi executado.")}>
-            <label className={labelTw}>Aluno (opcional)<select className={fieldTw} value={noticeForm.studentId} onChange={(event) => setNoticeForm({ ...noticeForm, studentId: event.target.value })}><option value="">Todos</option>{students.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <label className={labelTw}>Turma (opcional)<select className={fieldTw} value={noticeForm.classId} onChange={(event) => setNoticeForm({ ...noticeForm, classId: event.target.value })}><option value="">Todas</option>{classes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <label className={labelTw}>Título<input className={fieldTw} required value={noticeForm.title} onChange={(event) => setNoticeForm({ ...noticeForm, title: event.target.value })} /></label>
-            <label className={labelTw}>Corpo<textarea className={fieldTw} rows={4} value={noticeForm.bodyHtml} onChange={(event) => setNoticeForm({ ...noticeForm, bodyHtml: event.target.value })} /></label>
-            <label className={labelTw}>Canal<select className={fieldTw} value={noticeForm.channel} onChange={(event) => setNoticeForm({ ...noticeForm, channel: event.target.value })}><option value="WHATSAPP">WhatsApp (agendado — sem envio)</option><option value="EMAIL">E-mail (agendado — sem envio)</option></select></label>
-            <label className={labelTw}>Data agendada<input className={fieldTw} type="date" value={noticeForm.scheduledAt} onChange={(event) => setNoticeForm({ ...noticeForm, scheduledAt: event.target.value })} /></label>
-            <button className={buttonTw} type="submit" disabled={busy}>Agendar aviso</button>
-          </form>
-        </details>
-
-        <details className={detailsTw} data-testid="school-material-form">
-          <summary className={summaryFormTw}>Novo material</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "MATERIAL", title: materialForm.title, url: materialForm.url, materialKind: materialForm.kind, lessonPlanId: materialForm.lessonPlanId || null, courseId: materialForm.courseId || null }, "Material cadastrado.")}>
-            <label className={labelTw}>Título<input className={fieldTw} required value={materialForm.title} onChange={(event) => setMaterialForm({ ...materialForm, title: event.target.value })} /></label>
-            <label className={labelTw}>URL<input className={fieldTw} required value={materialForm.url} onChange={(event) => setMaterialForm({ ...materialForm, url: event.target.value })} /></label>
-            <label className={labelTw}>Tipo<select className={fieldTw} value={materialForm.kind} onChange={(event) => setMaterialForm({ ...materialForm, kind: event.target.value })}><option value="LINK">LINK</option><option value="FILE">FILE</option><option value="YOUTUBE">YOUTUBE</option></select></label>
-            <label className={labelTw}>Curso (opcional)<select className={fieldTw} value={materialForm.courseId} onChange={(event) => setMaterialForm({ ...materialForm, courseId: event.target.value })}><option value="">Nenhum</option>{courses.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <label className={labelTw}>Plano de aula (opcional)<select className={fieldTw} value={materialForm.lessonPlanId} onChange={(event) => setMaterialForm({ ...materialForm, lessonPlanId: event.target.value })}><option value="">Nenhum</option>{lessonPlans.map((item) => <option key={item.id} value={item.id}>{item.title} — v{item.version}</option>)}</select></label>
-            <button className={buttonTw} type="submit" disabled={busy}>Cadastrar material</button>
-          </form>
-        </details>
-
+      <div className={gridTw}>
         <details className={detailsTw} data-testid="school-paired-attendance-form">
           <summary className={summaryFormTw}>Presença de aluno e professor na mesma aula</summary>
           <form className={formTw} onSubmit={(event) => void submit(event, "school/attendances", { paired: true, ...pairedForm }, "Presença de aluno e professor registrada.")}>
@@ -797,8 +591,8 @@ export function SchoolWorkspace() {
           <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "BILLING_POLICY", ...policyForm }, "Política salva. Nenhum disparo foi executado.")}>
             <label className={labelTw}>Dias antes do vencimento<input className={fieldTw} type="number" min={0} max={30} value={policyForm.paymentReminderDaysBefore} onChange={(event) => setPolicyForm({ ...policyForm, paymentReminderDaysBefore: event.target.value })} /></label>
             <label className={labelTw}>Minutos antes da aula do professor<input className={fieldTw} type="number" min={5} max={120} value={policyForm.teacherReminderMinutesBefore} onChange={(event) => setPolicyForm({ ...policyForm, teacherReminderMinutesBefore: event.target.value })} /></label>
-            <label className={labelTw}>Mensalidades em atraso para sugerir cancelamento<input className={fieldTw} type="number" min={1} max={12} value={policyForm.overdueInstallmentsForCancellation} onChange={(event) => setPolicyForm({ ...policyForm, overdueInstallmentsForCancellation: event.target.value })} /></label>
-            <label className={labelTw}>Multa por quebra (%)<input className={fieldTw} type="number" min={0} max={100} value={policyForm.breachPenaltyPercent} onChange={(event) => setPolicyForm({ ...policyForm, breachPenaltyPercent: event.target.value })} /></label>
+            <label className={labelTw}>Mensalidades em atraso para cancelar automaticamente<input className={fieldTw} type="number" min={1} max={12} value={policyForm.overdueInstallmentsForCancellation} onChange={(event) => setPolicyForm({ ...policyForm, overdueInstallmentsForCancellation: event.target.value })} /></label>
+            <label className={labelTw}>Multa por quebra de contrato (%)<input className={fieldTw} type="number" min={0} max={100} value={policyForm.breachPenaltyPercent} onChange={(event) => setPolicyForm({ ...policyForm, breachPenaltyPercent: event.target.value })} /></label>
             <label className={labelTw}>Canais consentidos<select className={fieldTw} multiple value={policyForm.channels} onChange={(event) => setPolicyForm({ ...policyForm, channels: Array.from(event.target.selectedOptions, (option) => option.value) })}><option value="WHATSAPP">WhatsApp</option><option value="SMS">SMS</option><option value="EMAIL">E-mail</option></select></label>
             <label className={labelTw}><input type="checkbox" checked={policyForm.remindOnDueDate} onChange={(event) => setPolicyForm({ ...policyForm, remindOnDueDate: event.target.checked })} /> Lembrete no dia do vencimento</label>
             <label className={labelTw}><input type="checkbox" checked={policyForm.remindDailyWhenOverdue} onChange={(event) => setPolicyForm({ ...policyForm, remindDailyWhenOverdue: event.target.checked })} /> Lembrete diário após atraso</label>
@@ -824,7 +618,7 @@ export function SchoolWorkspace() {
 
         <details className={detailsTw} data-testid="school-overdue-form">
           <summary className={summaryFormTw}>Marcar mensalidade em atraso</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "MARK_OVERDUE", ...overdueForm }, "Atraso marcado; cancelamento não foi executado.")}>
+          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "MARK_OVERDUE", ...overdueForm }, "Atraso marcado; cancelamento automático se atingir o limite.")}>
             <label className={labelTw}>Matrícula<select className={fieldTw} required value={overdueForm.enrollmentId} onChange={(event) => setOverdueForm({ ...overdueForm, enrollmentId: event.target.value })}><option value="">Selecione</option>{enrollments.map((item) => <option key={item.id} value={item.id}>{nameOf(item.studentId)} — {nameOf(item.classId)}</option>)}</select></label>
             <button className={buttonTw} type="submit" disabled={busy}>Marcar atraso</button>
           </form>

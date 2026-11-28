@@ -291,12 +291,15 @@ export default function HomePage() {
   const [authStatus, setAuthStatus] = useState<"checking" | "anonymous" | "authenticated">("checking");
   const [authNotice, setAuthNotice] = useState("");
   const [session, setSession] = useState<AuthSession | null>(null);
-  const selectedPaymentProvider = session?.paymentProvider || "ASAAS";
-  const paymentProviderLabel = selectedPaymentProvider === "STRIPE" ? "Stripe" : selectedPaymentProvider === "INFINITEPAY" ? "InfinitePay" : "Asaas";
-  const providerForLabel: Record<string, string> = { Asaas: "ASAAS", Stripe: "STRIPE", InfinitePay: "INFINITEPAY" };
-  const providerVisible = (label: string) => !providerForLabel[label] || providerForLabel[label] === selectedPaymentProvider;
   const segmentProfile = session?.segmentProfile || null;
   const schoolProfile = segmentProfile?.overview === "SCHOOL";
+  const selectedPaymentProvider = schoolProfile ? "ASAAS" : session?.paymentProvider || "ASAAS";
+  const paymentProviderLabel = schoolProfile ? "Asaas" : selectedPaymentProvider === "STRIPE" ? "Stripe" : selectedPaymentProvider === "INFINITEPAY" ? "InfinitePay" : "Asaas";
+  const providerForLabel: Record<string, string> = { Asaas: "ASAAS", Stripe: "STRIPE", InfinitePay: "INFINITEPAY" };
+  const providerVisible = (label: string) => {
+    if (schoolProfile && (label === "Stripe" || label === "InfinitePay")) return false;
+    return !providerForLabel[label] || providerForLabel[label] === selectedPaymentProvider;
+  };
   const activeNavigation = schoolProfile && segmentProfile && segmentProfile.navigation.length
     ? segmentProfile.navigation.map((group) => ({ section: group.section, items: navigationForProfile(group.items) }))
     : navigation;
@@ -651,6 +654,13 @@ export default function HomePage() {
 
       <main className="main-area">
         <header className="topbar">
+          <button type="button" className="mobile-logo" aria-label={session?.tenant.name || "Empresa"} title={session?.tenant.name || "Empresa"} onClick={() => { setActive("Visão geral"); setMenuOpen(false); }}>
+            {(theme === "light" ? brandAssets.logoLight : brandAssets.logoDark) ? (
+              <img className="max-h-8 max-w-[88px] object-contain" src={theme === "light" ? brandAssets.logoLight : brandAssets.logoDark} alt="" />
+            ) : (
+              <span aria-hidden="true">V</span>
+            )}
+          </button>
           <button type="button" className="mobile-menu" onClick={() => setMenuOpen(value => !value)} aria-expanded={menuOpen} aria-controls="mobile-navigation-menu" aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}><Menu size={20} aria-hidden="true" /></button>
           <div className="breadcrumbs">
             <span>Véxora Suite</span>

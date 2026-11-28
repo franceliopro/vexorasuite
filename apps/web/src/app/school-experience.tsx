@@ -127,10 +127,7 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
   useEffect(() => {
     const onTab = (event: Event) => {
       const id = (event as CustomEvent<string>).detail;
-      if (navigation.some((item) => item.id === id)) {
-        setTab(id as Tab);
-        setSheet(null);
-      }
+      if (navigation.some((item) => item.id === id)) { setTab(id as Tab); setSheet(null); }
     };
     window.addEventListener("vexora:school-tab", onTab);
     return () => window.removeEventListener("vexora:school-tab", onTab);

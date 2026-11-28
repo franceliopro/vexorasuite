@@ -488,14 +488,14 @@ export class SchoolService {
           const reachedLimit = overdueInstallments >= policy.overdueInstallmentsForCancellation;
           const alreadyApproved = enrollment.cancellationStatus === "APPROVED";
           const autoCancel = reachedLimit && !policy.cancellationApprovalRequired;
-          let cancellationStatus = enrollment.cancellationStatus;
+          let status = enrollment.cancellationStatus;
           let enrollmentStatus = enrollment.status;
           let penaltyCents = Number(enrollment.penaltyCents);
           if (alreadyApproved) {
-            cancellationStatus = "APPROVED";
+            status = "APPROVED";
             enrollmentStatus = "SUSPENDED";
           } else if (autoCancel) {
-            cancellationStatus = "APPROVED";
+            status = "APPROVED";
             enrollmentStatus = "SUSPENDED";
             const receipts = await tx.schoolPaymentReceipt.findMany({
               where: { tenantId, enrollmentId }, select: { amountCents: true }, take: 1000,
@@ -504,16 +504,16 @@ export class SchoolService {
             const penalty = penaltyForBreach(enrollment.contractTotalCents, paidCents, policy.breachPenaltyPercent);
             penaltyCents = penalty ?? 0;
           } else if (reachedLimit && policy.cancellationApprovalRequired) {
-            cancellationStatus = "SUGGESTED";
+            status = "SUGGESTED";
           }
           await tx.schoolEnrollment.update({
             where: { id: enrollment.id },
-            data: { overdueInstallments, cancellationStatus, status: enrollmentStatus, penaltyCents },
+            data: { overdueInstallments, cancellationStatus: status, status: enrollmentStatus, penaltyCents },
           });
           return {
             enrollmentId: enrollment.id,
             overdueInstallments,
-            cancellationStatus,
+            cancellationStatus: status,
             status: enrollmentStatus,
             automaticCancel: autoCancel,
             approvedByManagerRequired: policy.cancellationApprovalRequired,

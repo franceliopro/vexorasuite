@@ -124,6 +124,15 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
 
   useEffect(() => { void load(); }, [load]);
 
+  useEffect(() => {
+    const onTab = (event: Event) => {
+      const id = (event as CustomEvent<string>).detail;
+      if (navigation.some((item) => item.id === id)) { setTab(id as Tab); setSheet(null); }
+    };
+    window.addEventListener("vexora:school-tab", onTab);
+    return () => window.removeEventListener("vexora:school-tab", onTab);
+  }, []);
+
   const people = snapshot?.people || [];
   const courses = snapshot?.courses || [];
   const classes = snapshot?.classes || [];
@@ -276,17 +285,17 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
     <section className={schoolTw.shell} aria-label="Sistema escolar móvel">
       {error ? <p role="status" className="rounded-xl border border-red-100 bg-red-100 px-4 py-3 text-sm font-semibold text-red-600">{error}</p> : null}
       {notice ? <p role="status" className="rounded-xl border border-emerald-100 bg-emerald-100 px-4 py-3 text-sm font-semibold text-emerald-600">{notice}</p> : null}
-      {(snapshot?.warnings || []).map((warning) => (
-        <p key={warning} role="status" className="rounded-xl border border-amber-100 bg-amber-100 px-4 py-3 text-sm font-semibold text-amber-700">{warning}</p>
-      ))}
+      {(snapshot?.warnings || [])
+        .filter((warning) => !/^Resumos indispon[íi]vel(es)? nesta instala[çc][ãa]o\.?$/i.test(warning))
+        .map((warning) => (
+          <p key={warning} role="status" className="rounded-xl border border-amber-100 bg-amber-100 px-4 py-3 text-sm font-semibold text-amber-700">{warning}</p>
+        ))}
 
       {tab === "home" ? (
         <>
           <div className={schoolTw.hero}>
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-widest text-amber-600">Escola · mobile first</p>
               <h2 className={schoolTw.heroTitle}>Olá, {shortName(userName || "professor")} 👋</h2>
-              <p className={schoolTw.heroCopy}>Registre a aula do dia, marque presença e acompanhe contrato, faltas e mensalidades em um só lugar.</p>
             </div>
             <button type="button" className={schoolTw.buttonSoft} onClick={() => void load()}><RefreshCw size={16} aria-hidden="true" /> Atualizar</button>
           </div>
@@ -296,11 +305,11 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
               <h3 className={schoolTw.sectionTitle}><ClipboardCheck size={18} aria-hidden="true" /> Atalhos</h3>
               <p className={schoolTw.sectionHint}>Botões grandes, um toque só — o mesmo padrão no celular e no desktop.</p>
             </div>
-            <div className={schoolTw.tileGrid}>
-              <ActionTile icon={<BookOpen size={24} />} label="Registrar aula" onClick={() => setTab("lesson")} testId="school-tile-lesson" />
-              <ActionTile icon={<CalendarDays size={24} />} label="Aulas e faltas" onClick={() => setTab("history")} testId="school-tile-history" />
-              <ActionTile icon={<Wallet size={24} />} label="Financeiro" onClick={() => setTab("finance")} testId="school-tile-finance" />
-              <ActionTile icon={<Link2 size={24} />} label="Matrículas" onClick={() => setTab("enrollments")} testId="school-tile-enrollments" />
+            <div className="grid grid-cols-2 gap-3">
+              <ActionTile icon={<BookOpen size={28} />} label="Registrar aula" onClick={() => setTab("lesson")} testId="school-tile-lesson" />
+              <ActionTile icon={<CalendarDays size={28} />} label="Aulas e faltas" onClick={() => setTab("history")} testId="school-tile-history" />
+              <ActionTile icon={<Wallet size={28} />} label="Financeiro" onClick={() => setTab("finance")} testId="school-tile-finance" />
+              <ActionTile icon={<Link2 size={28} />} label="Matrículas" onClick={() => setTab("enrollments")} testId="school-tile-enrollments" />
             </div>
           </div>
 
@@ -551,25 +560,6 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
 
       {tab === "enrollments" ? <SchoolEnrollmentsWorkspace /> : null}
 
-      <nav className={schoolTw.nav} aria-label="Navegação do sistema escolar">
-        {navigation.map((item) => {
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              className={tab === item.id ? schoolTw.navButtonActive : schoolTw.navButton}
-              onClick={() => { setTab(item.id); setSheet(null); }}
-              aria-current={tab === item.id ? "page" : undefined}
-              data-testid={`school-nav-${item.id}`}
-            >
-              <Icon size={20} aria-hidden="true" />
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
-      </nav>
-
       {sheet === "course" && selectedCourse ? (
         <SchoolSheet
           title={selectedCourse.name}
@@ -579,7 +569,7 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
           footer={<button type="button" className={schoolTw.buttonPrimary} onClick={() => { setSheet(null); setTab("enrollments"); }}><Link2 size={17} aria-hidden="true" /> Criar link de matrícula</button>}
         >
           <div className="grid gap-3">
-            <div className="grid h-40 place-items-center overflow-hidden rounded-xl border border-gray-100 bg-gradient-to-br from-amber-100 via-blue-50 to-slate-100">
+            <div className="grid aspect-video w-full place-items-center overflow-hidden rounded-xl border border-gray-100 bg-gradient-to-br from-amber-100 via-blue-50 to-slate-100">
               {selectedCourse.imageUrl ? (
                 <img src={selectedCourse.imageUrl} alt={`Foto do curso ${selectedCourse.name}`} className="size-full object-cover" />
               ) : <Music2 size={44} aria-hidden="true" className="text-amber-600" />}

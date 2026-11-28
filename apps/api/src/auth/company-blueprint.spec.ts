@@ -18,7 +18,7 @@ describe('company onboarding and switching',()=>{
   expect(root.onboarding.segmentId).toBe('music-school');
   expect(root.onboarding.version).toBe(3);
   expect(root.segment).toHaveProperty('id','music-school');
-  expect(String(root.segment.name)).toContain('Instrumentos');
+  expect(String(root.segment.name)).toBe('Aulas particulares');
   expect(root.segment.vocabulary).toHaveProperty('matricula');
   expect(root.assistant.agents.some((a:any)=>String(a.instructions||'').includes('não há equipe de atendimento humano'))).toBe(true);
   expect(Object.keys(root.businessFlows)).toHaveLength(1);

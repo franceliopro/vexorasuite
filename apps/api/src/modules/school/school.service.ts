@@ -152,8 +152,9 @@ export class SchoolService {
           const email = optionalText(body?.email, 160, "E-mail");
           if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("E-mail inválido.");
           const phone = optionalText(body?.phone, 40, "Telefone");
+          const formation = kind === "TEACHER" ? optionalText(body?.formation, 200, "Formação do professor") : null;
           return tx.schoolPerson.create({
-            data: { tenantId, kind, name, email, phone, active: body?.active !== false, createdById: userId },
+            data: { tenantId, kind, name, email, phone, formation, active: body?.active !== false, createdById: userId },
           });
         }
 
@@ -484,24 +485,41 @@ export class SchoolService {
           const enrollment = await this.find(tx, "schoolEnrollment", { id: enrollmentId, tenantId }, "Matrícula");
           const policy = await this.policyFor(tx, tenantId, userId);
           const overdueInstallments = Math.min(100, Number(enrollment.overdueInstallments) + 1);
-          const shouldSuggest = overdueInstallments >= policy.overdueInstallmentsForCancellation;
-          const status = enrollment.cancellationStatus === "APPROVED"
-            ? "APPROVED"
-            : shouldSuggest && policy.cancellationApprovalRequired
-              ? "SUGGESTED"
-              : enrollment.status === "ACTIVE"
-                ? "NONE"
-                : enrollment.cancellationStatus;
+          const reachedLimit = overdueInstallments >= policy.overdueInstallmentsForCancellation;
+          const alreadyApproved = enrollment.cancellationStatus === "APPROVED";
+          const autoCancel = reachedLimit && !policy.cancellationApprovalRequired;
+          let cancellationStatus = enrollment.cancellationStatus;
+          let enrollmentStatus = enrollment.status;
+          let penaltyCents = Number(enrollment.penaltyCents);
+          if (alreadyApproved) {
+            cancellationStatus = "APPROVED";
+            enrollmentStatus = "SUSPENDED";
+          } else if (autoCancel) {
+            cancellationStatus = "APPROVED";
+            enrollmentStatus = "SUSPENDED";
+            const receipts = await tx.schoolPaymentReceipt.findMany({
+              where: { tenantId, enrollmentId }, select: { amountCents: true }, take: 1000,
+            });
+            const paidCents = receipts.reduce((sum: number, item: any) => sum + Number(item.amountCents), 0);
+            const penalty = penaltyForBreach(enrollment.contractTotalCents, paidCents, policy.breachPenaltyPercent);
+            penaltyCents = penalty ?? 0;
+          } else if (reachedLimit && policy.cancellationApprovalRequired) {
+            cancellationStatus = "SUGGESTED";
+          }
           await tx.schoolEnrollment.update({
-            where: { id: enrollment.id }, data: { overdueInstallments, cancellationStatus: status },
+            where: { id: enrollment.id },
+            data: { overdueInstallments, cancellationStatus, status: enrollmentStatus, penaltyCents },
           });
           return {
             enrollmentId: enrollment.id,
             overdueInstallments,
-            cancellationStatus: status,
+            cancellationStatus,
+            status: enrollmentStatus,
+            automaticCancel: autoCancel,
             approvedByManagerRequired: policy.cancellationApprovalRequired,
-            cancelled: false,
+            cancelled: autoCancel || alreadyApproved,
             executed: false,
+            penaltyCents,
           };
         }
 

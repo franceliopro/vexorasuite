@@ -22,6 +22,11 @@ export class SchoolController {
     return this.read.snapshot(req.user.tenantId);
   }
 
+  @Get("default-courses")
+  defaultCourses(@Req() req: AuthenticatedRequest) {
+    return this.read.defaultCourses();
+  }
+
   @Post("records")
   createRecord(@Req() req: AuthenticatedRequest, @Body() body: Record<string, unknown>) {
     return this.service.createRecord(body, req.user.tenantId, req.user.role, req.user.sub);

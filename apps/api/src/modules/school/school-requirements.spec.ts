@@ -35,4 +35,10 @@ describe("requisitos Fermata Music", () => {
     expect(DEFAULT_BILLING_POLICY.paymentNoticeToTeacher).toBe(true);
     expect(DEFAULT_BILLING_POLICY.channels).toEqual(["WHATSAPP", "SMS", "EMAIL"]);
   });
+
+  it("cancela automaticamente após duas mensalidades em atraso", () => {
+    expect(DEFAULT_BILLING_POLICY.cancellationApprovalRequired).toBe(false);
+    expect(DEFAULT_BILLING_POLICY.overdueInstallmentsForCancellation).toBe(2);
+    expect(DEFAULT_BILLING_POLICY.breachPenaltyPercent).toBe(20);
+  });
 });

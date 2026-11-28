@@ -183,7 +183,7 @@ export function CourseCard({ course, classInfo, onOpen, onEnroll }: {
 }) {
   return (
     <article className={schoolTw.card} data-testid={`course-card-${course.id}`}>
-      <div className="grid h-36 place-items-center overflow-hidden rounded-xl border border-gray-100 bg-gradient-to-br from-amber-100 via-blue-50 to-slate-100">
+      <div className="grid aspect-video w-full place-items-center overflow-hidden rounded-xl border border-gray-100 bg-gradient-to-br from-amber-100 via-blue-50 to-slate-100">
         {course.imageUrl ? (
           <img src={course.imageUrl} alt={`Foto do curso ${course.name}`} className="size-full object-cover" />
         ) : (

@@ -200,7 +200,7 @@ export class SchoolReadService {
       paymentReceipts,
       balances,
       stats: attendanceStats(attendances as AttendanceLike[]),
-      warnings,
+      warnings: warnings.filter((warning) => !warning.startsWith("Resumos indisponível nesta instalação.")),
     };
   }
 

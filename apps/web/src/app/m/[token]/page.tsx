@@ -165,7 +165,7 @@ export default function SchoolEnrollmentPage({ params }: { params: Promise<{ tok
       {data && !result ? (
         <form className="grid gap-4" onSubmit={(event) => void submit(event)} data-testid="public-enrollment-form">
           <section className={`${schoolTw.card} sm:p-5`}>
-            <div className="grid h-40 place-items-center overflow-hidden rounded-xl border border-gray-100 bg-gradient-to-br from-amber-100 via-blue-50 to-slate-100">
+            <div className="grid aspect-video w-full place-items-center overflow-hidden rounded-xl border border-gray-100 bg-gradient-to-br from-amber-100 via-blue-50 to-slate-100">
               {data.course?.imageUrl ? (
                 <img src={data.course.imageUrl} alt={`Foto do curso ${data.course.name}`} className="size-full object-cover" />
               ) : <Music2 size={44} aria-hidden="true" className="text-amber-600" />}

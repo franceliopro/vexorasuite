@@ -45,9 +45,9 @@ test("a gestão enxuta usa somente endpoints tenant-scoped e upload autenticado"
   assert.doesNotMatch(workspace, /music-school\/|classId|school-class-form/);
 });
 
-test("os seis cursos padrão seguem a ordem pedida e o formulário só tem nome, foto e descrição", () => {
+test("cursos padrão seguem a ordem pedida e o formulário só tem nome, foto e descrição", () => {
   const names = [...defaults.matchAll(/name:\s*"([^"]+)"/g)].map((match) => match[1]);
-  assert.deepEqual(names, ["Violão", "Baixo", "Teclado", "Bateria", "Sax", "Canto"]);
+  assert.deepEqual(names, ["Violão", "Baixo", "Teclado", "Bateria", "Sax", "Canto", "Musicoterapia", "Musicalização Infantil", "Mentoria, Workshop e Oficinas"]);
   const start = workspace.indexOf('data-testid="school-course-form"');
   const form = workspace.slice(start, workspace.indexOf('data-testid="school-teacher-form"', start));
   for (const token of [

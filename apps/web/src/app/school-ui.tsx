@@ -179,7 +179,7 @@ export function StateBadge({ state }: { state: string }) {
 }
 
 export function CourseCard({ course, classInfo, onOpen, onEnroll }: {
-  course: Course; classInfo?: string | null; onOpen: () => void; onEnroll: () => void;
+  course: Course; classInfo?: string | null; onOpen?: () => void; onEnroll?: () => void;
 }) {
   return (
     <article className={schoolTw.card} data-testid={`course-card-${course.id}`}>
@@ -203,12 +203,12 @@ export function CourseCard({ course, classInfo, onOpen, onEnroll }: {
         {classInfo ? <span className={schoolTw.chip}><CalendarDays size={13} aria-hidden="true" /> {classInfo}</span> : null}
         <span className={schoolTw.chip}>{money(course.tuitionAmountCents)}</span>
       </div>
-      <div className={schoolTw.actions}>
-        <button type="button" className={schoolTw.buttonSoft} onClick={onOpen}>
-          Ver detalhes <ArrowRight size={16} aria-hidden="true" />
-        </button>
-        <button type="button" className={schoolTw.buttonPrimary} onClick={onEnroll}>Matricular</button>
-      </div>
+      {onOpen || onEnroll ? (
+        <div className={schoolTw.actions}>
+          {onOpen ? <button type="button" className={schoolTw.buttonSoft} onClick={onOpen}>Ver detalhes <ArrowRight size={16} aria-hidden="true" /></button> : null}
+          {onEnroll ? <button type="button" className={schoolTw.buttonPrimary} onClick={onEnroll}>Matricular</button> : null}
+        </div>
+      ) : null}
     </article>
   );
 }

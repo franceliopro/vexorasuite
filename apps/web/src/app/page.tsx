@@ -71,9 +71,15 @@ const workspacePreloaders:Partial<Record<string,()=>Promise<unknown>>>={
   "Atendentes":()=>import("./team-workspace"),
   "Catálogo":()=>import("./catalog-settings"),
 };
+const preloadedWorkspaces=new Map<string,Promise<unknown>>();
 function preloadWorkspace(label:string){
   const targets=label==="Automação"?["Chatbots","Workflows","Agentes de IA"]:[label];
-  for(const target of targets){const load=workspacePreloaders[target];if(load)void load().catch(()=>{});}
+  for(const target of targets){
+    const existing=preloadedWorkspaces.get(target);
+    if(existing){void existing.catch(()=>{});continue;}
+    const load=workspacePreloaders[target];
+    if(load){const pending=load();preloadedWorkspaces.set(target,pending);void pending.catch(()=>{preloadedWorkspaces.delete(target)});}
+  }
 }
 import {
   CalendarDays,

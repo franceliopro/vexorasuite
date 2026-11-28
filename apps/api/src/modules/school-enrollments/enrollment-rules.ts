@@ -138,11 +138,13 @@ export function enrollmentValues(input: {
   addressLine?: string | null;
   courseName?: string | null;
   courseLevel?: string | null;
-  className?: string | null;
+  teacherName?: string | null;
   instrument?: string | null;
   startDate?: string | null;
   weekdayLabel?: string | null;
   startTime?: string | null;
+  periodLabel?: string | null;
+  contractPeriodLabel?: string | null;
   tuitionAmountCents?: number | null;
   paymentMethod?: string | null;
   observations?: string | null;
@@ -152,7 +154,7 @@ export function enrollmentValues(input: {
     : "";
   return {
     escola: input.tenantName,
-    professor: input.ownerName,
+    professor: input.teacherName || input.ownerName,
     nome_aluno: input.studentName,
     cpf_aluno: input.studentCpf || "",
     email_aluno: input.studentEmail || "",
@@ -164,10 +166,11 @@ export function enrollmentValues(input: {
     curso: input.courseName || "",
     nivel: input.courseLevel || input.instrument || "",
     instrumento: input.instrument || "",
-    turma: input.className || "",
     data_inicio: input.startDate || "",
     dia_semana: input.weekdayLabel || "",
     horario: input.startTime || "",
+    periodo: input.periodLabel || "",
+    periodo_contratual: input.contractPeriodLabel || "",
     mensalidade: money,
     forma_pagamento: input.paymentMethod || "",
     observacoes: input.observations || "",

@@ -1,639 +1,281 @@
 "use client";
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
-import { EditorContent, useEditor } from "@tiptap/react";
-import { Node, mergeAttributes, type Editor } from "@tiptap/core";
-import StarterKit from "@tiptap/starter-kit";
-import Image from "@tiptap/extension-image";
-import Placeholder from "@tiptap/extension-placeholder";
-import {
-  GraduationCap, BookOpen, CalendarDays, UsersRound, ClipboardCheck, Wallet, BellRing, ClipboardList,
-  Bold, Italic, Underline, Strikethrough, List, ListOrdered, Quote, Code2, Undo2, Redo2, Link2, ImagePlus, Paperclip, Youtube, FileText,
-} from "lucide-react";
 
-type Course = { id: string; kind: "COURSE" | "SUBJECT"; name: string; parentId: string | null; active: boolean };
-type Person = { id: string; kind: "STUDENT" | "TEACHER"; name: string; email: string | null; phone: string | null; active: boolean };
-type ClassRow = { id: string; courseId: string; teacherId: string; roomId: string | null; name: string; weekday: number; startTime: string; durationMinutes: number; active: boolean };
-type SessionRow = { id: string; classId: string; sessionDate: string; status: string; summaryHtml?: string | null };
-type Attendance = { id: string; sessionId: string; personId: string; personKind: string; status: string; note: string | null; recordedAt: string | null };
-type Enrollment = { id: string; classId: string; studentId: string; contractedSessions: number; purchasedSessions: number; status: string; tuitionAmountCents: number | null; tuitionCycle: string | null; tuitionStatus: string; tuitionNextDueDate: string | null };
-type Balance = {
-  enrollmentId: string;
-  classId: string;
-  studentId: string;
-  status: string;
-  tuition: { status: string; cycle?: string | null; amountCents: number | null; nextDueDate: string | null; executed: boolean; confirmed: boolean };
-  contractTotalCents?: number | null;
-  paidCents?: number;
-  countedDays?: number;
-  overdueInstallments?: number;
-  cancellationStatus?: string;
-  penaltyCents?: number | null;
-  reminders?: { payment: Array<{ kind: string; scheduledFor: string }>; teacher: Array<{ remindAt: string | null; sent: boolean }>; consentRequired: boolean; channels: string[]; executed: boolean; confirmed: boolean };
-  paymentNotifications?: { toStudent: boolean; toManager: boolean; toAdmins: boolean; sent: boolean };
-  contracted: number;
-  consumed: number;
-  balance: number;
-  pendingMakeups: number;
-};
-type Stats = {
-  students: { sessions: number; present: number; absences: number; percentage: number };
-  teachers: { sessions: number; present: number; absences: number; percentage: number };
-};
-type BillingPolicy = {
-  paymentReminderDaysBefore: number;
-  remindOnDueDate: boolean;
-  remindDailyWhenOverdue: boolean;
-  channels: string[];
-  consentRequired: boolean;
-  teacherReminderMinutesBefore: number;
-  cancellationApprovalRequired: boolean;
-  overdueInstallmentsForCancellation: number;
-  breachPenaltyPercent: number;
-  paymentNoticeToManager: boolean;
-  paymentNoticeToAdmins: boolean;
-};
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { BookOpen, GraduationCap, Music2, RefreshCw, UsersRound, Wallet } from "lucide-react";
+import { CourseCard, schoolTw, type Course } from "./school-ui";
+
+/**
+ * Gestão escolar enxuta do segmento music-school.
+ * Cursos padrão, professores (com formação), alunos e matrículas individuais.
+ * Não existe "turma" nesta tela: o vínculo aluno/curso/professor é criado no servidor.
+ */
+type Person = { id: string; kind: "STUDENT" | "TEACHER"; name: string; formation?: string | null; active: boolean };
 type Snapshot = {
-  billingPolicy?: BillingPolicy;
-  paymentReceipts?: Array<{ id: string; enrollmentId: string; amountCents: number; paidAt: string; periodKey: string; source: string }>;
   courses: Course[];
+  defaultCourses?: Course[];
   people: Person[];
-  classes: ClassRow[];
-  sessions: SessionRow[];
-  attendances: Attendance[];
-  enrollments: Enrollment[];
-  balances: Balance[];
-  stats: Stats;
+  warnings?: string[];
 };
-
-const DAYS = ["", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"];
-const ATTENDANCE_STATUS: Record<string, string> = {
-  PRESENT: "Presente",
-  ABSENT: "Ausente",
-  JUSTIFIED: "Ausência justificada",
-  MAKEUP: "Reposição",
-  CANCELLED: "Cancelada",
-};
-const TUITION_STATUS: Record<string, string> = {
-  SCHEDULED: "Cobrança agendada — não enviada",
-  SENT: "Enviada — aguardando evidência",
-  FAILED: "Falha registrada",
-  CANCELLED: "Cancelada",
-};
-const NOTICE_STATUS: Record<string, string> = {
-  SCHEDULED: "Agendado — nenhum envio executado",
-  DRAFT: "Rascunho — nenhum envio executado",
-  FAILED: "Falha registrada",
-};
-
-const shellTw = "mx-auto flex w-full max-w-[1400px] flex-col gap-5 px-4 py-6 sm:px-6";
-const headerTw = "flex flex-wrap items-start gap-4 rounded-token-sm border border-line bg-surface p-5 shadow-token-sm";
-const heroIconTw = "size-10 shrink-0 text-blue-600";
-const titleTw = "m-0 font-display text-2xl font-extrabold text-ink";
-const copyTw = "mb-0 mt-1 max-w-3xl text-body text-ink-secondary";
-const badgeTw = "rounded-token-sm border border-line px-2.5 py-1 text-xs font-bold text-ink-secondary";
-const gridTw = "grid gap-4 lg:grid-cols-3";
-const cardTw = "flex min-w-0 flex-col gap-3 rounded-token-sm border border-line bg-surface p-4 shadow-token-sm";
-const cardTitleTw = "m-0 flex items-center gap-2 text-base font-bold text-ink";
-const rowTw = "rounded-token-sm border border-line px-3 py-2.5";
-const summaryTw = "flex cursor-pointer flex-wrap items-center justify-between gap-2 text-body font-semibold text-ink";
-const mutedTw = "text-xs text-ink-secondary";
-const fieldTw = "min-h-control w-full rounded-token-sm border border-line bg-surface px-3 text-body text-ink";
-const labelTw = "flex flex-col gap-1 text-xs font-bold text-ink-secondary";
-const buttonTw = "inline-flex min-h-control items-center justify-center rounded-token-sm bg-blue-600 px-4 text-body font-bold text-blue-50 transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60";
-const detailsTw = "rounded-token-sm border border-line bg-surface px-4 py-3 shadow-token-sm";
-const summaryFormTw = "cursor-pointer text-body font-bold text-ink";
-const formTw = "mt-3 grid gap-3 sm:grid-cols-2";
-const editorShellTw = "grid min-w-0 overflow-hidden rounded-token-sm border border-line bg-surface";
-const editorToolbarTw = "flex flex-wrap items-center gap-0.5 border-b border-line bg-surface px-2 py-2";
-const editorButtonTw = "grid min-h-control min-w-8 place-items-center rounded-token-sm px-1 text-ink-secondary transition-colors hover:bg-surface hover:text-ink disabled:cursor-not-allowed disabled:opacity-50";
-const editorButtonActiveTw = "grid min-h-control min-w-8 place-items-center rounded-token-sm bg-blue-600 px-1 text-blue-50 transition-colors hover:bg-blue-700";
-const editorButtonClass = (active: boolean) => active ? editorButtonActiveTw : editorButtonTw;
-const editorBarTw = "flex items-center gap-2 border-b border-line bg-surface px-2 py-2";
-const editorInputTw = "min-h-control min-w-0 flex-1 rounded-token-sm border border-line bg-surface px-2 text-body text-ink";
-const richContentTw = "min-h-32 break-words px-3 py-2.5 text-body leading-relaxed text-ink outline-none";
-const sourceTw = "min-h-40 w-full resize-y border-0 px-3 py-2.5 font-mono text-xs leading-relaxed text-ink outline-none";
-const editorNoticeTw = "m-0 border-t border-line px-2 py-1.5 text-xs text-red-700";
-
-const RICH_CONTENT_CSS = `
-[data-school-rich] p{margin-bottom:0.625rem}
-[data-school-rich] p:last-child{margin-bottom:0}
-[data-school-rich] :is(h2,h3){margin:0.875rem 0 0.5rem;font-weight:800}
-[data-school-rich] :is(ul,ol){margin-bottom:0.625rem;padding-left:1.375rem}
-[data-school-rich] a{color:var(--primary);text-decoration:underline}
-[data-school-rich] img{max-width:100%;border-radius:0.5rem}
-[data-school-rich] iframe{max-width:100%;border:0;border-radius:0.5rem}
-[data-school-rich] p.is-editor-empty:first-child::before{content:attr(data-placeholder);float:left;height:0;color:var(--tx2);opacity:0.85;pointer-events:none}
-`;
+type SeedResult = { created: number; total: number };
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api/backend/${path}`, { cache: "no-store", ...init });
-  const payload = await response.json().catch(() => ({})) as { message?: string };
-  if (!response.ok) throw new Error(payload.message || "Não foi possível concluir a operação.");
-  return payload as T;
+  const response = await fetch(`/api/backend/${path}`, {
+    cache: "no-store",
+    ...init,
+    headers: { "content-type": "application/json", ...(init?.headers || {}) },
+  });
+  const body = await response.json().catch(() => ({})) as T & { message?: string };
+  if (!response.ok) throw new Error(body?.message || "Não foi possível concluir esta operação.");
+  return body;
 }
 
-const messageOf = (error: unknown) => error instanceof Error ? error.message : "Não foi possível concluir a operação.";
+/** Foto enviada do computador: o servidor normaliza e guarda os bytes no tenant. */
+async function uploadCoursePhoto(file: File): Promise<string> {
+  const body = new FormData();
+  body.append("file", file);
+  const response = await fetch("/api/backend/school/images/course", { method: "POST", body });
+  const data = await response.json().catch(() => ({})) as { imageUrl?: string; message?: string };
+  if (!response.ok || !data.imageUrl) throw new Error(data.message || "Não foi possível enviar a foto do curso.");
+  return data.imageUrl;
+}
 
-const HTML_ESCAPES: Record<string, string> = {
-  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-};
-const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => HTML_ESCAPES[character] || character);
-
-const parseYoutubeId = (input: string): string | null => {
-  try {
-    const url = new URL(String(input || "").trim());
-    const host = url.hostname.toLowerCase();
-    if (!["youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be", "www.youtu.be"].includes(host)) return null;
-    const raw = host.includes("youtu.be")
-      ? url.pathname.replace(/^\//, "").split("/")[0]
-      : url.searchParams.get("v") || (url.pathname.match(/\/(?:embed|shorts)\/([a-zA-Z0-9_-]{6,20})/)?.[1]) || "";
-    return raw && /^[A-Za-z0-9_-]{6,20}$/.test(raw) ? raw : null;
-  } catch {
-    return null;
-  }
+const today = () => {
+  const value = new Date();
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
 };
 
-function youtubeEmbed(url: string): string {
-  const id = parseYoutubeId(url);
-  return id ? `https://www.youtube-nocookie.com/embed/${id}?rel=0` : "";
-}
-
-const SchoolYoutube = Node.create({
-  name: "schoolYoutube",
-  group: "block",
-  atom: true,
-  selectable: true,
-  draggable: true,
-  addAttributes() {
-    return { src: { default: "" }, title: { default: "Vídeo do YouTube" } };
-  },
-  parseHTML() {
-    return [{ tag: "iframe.school-youtube" }];
-  },
-  renderHTML({ node }) {
-    const src = youtubeEmbed(String(node.attrs.src || "")) || String(node.attrs.src || "");
-    return ["iframe", mergeAttributes({
-      class: "school-youtube",
-      src,
-      width: "100%",
-      height: "360",
-      allowfullscreen: "true",
-      title: String(node.attrs.title || "Vídeo do YouTube"),
-    })];
-  },
-});
-
-function SchoolRichText({ value, onChange, label }: { value: string; onChange: (html: string) => void; label: string }) {
-  const [source, setSource] = useState(false);
-  const [linkOpen, setLinkOpen] = useState(false);
-  const [youtubeOpen, setYoutubeOpen] = useState(false);
-  const [url, setUrl] = useState("");
-  const [notice, setNotice] = useState("");
-  const current = useRef({ value, onChange });
-  current.current = { value, onChange };
-  const lastEmitted = useRef(value);
-  const editorRef = useRef<Editor | null>(null);
-  const editor = useEditor({
-    immediatelyRender: false,
-    extensions: [
-      StarterKit.configure({ heading: { levels: [2, 3] }, link: { openOnClick: false, autolink: false } }),
-      Image.configure({ inline: true, allowBase64: true }),
-      SchoolYoutube,
-      Placeholder.configure({ placeholder: label }),
-    ],
-    content: value,
-    editorProps: {
-      attributes: { role: "textbox", "aria-label": label, "aria-multiline": "true", "data-school-rich": "", class: richContentTw },
-      handlePaste: (_view, event) => {
-        const text = String(event.clipboardData?.getData("text/plain") || "");
-        const src = youtubeEmbed(text);
-        if (!src) return false;
-        editorRef.current?.chain().focus().insertContent({ type: "schoolYoutube", attrs: { src, title: "Vídeo do YouTube" } }).run();
-        return true;
-      },
-    },
-    onCreate: ({ editor: instance }) => { editorRef.current = instance; },
-    onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
-      lastEmitted.current = html;
-      current.current.onChange(html);
-    },
-  }, [label]);
-
-  useEffect(() => {
-    if (editor && value !== lastEmitted.current && value !== editor.getHTML()) {
-      editor.commands.setContent(value || "", { emitUpdate: false });
-      lastEmitted.current = editor.getHTML();
-    }
-  }, [editor, value]);
-
-  const insertYoutube = () => {
-    const src = youtubeEmbed(url);
-    if (!src) {
-      setNotice("Cole um link válido do YouTube (watch, youtu.be ou embed).");
-      return;
-    }
-    editor?.chain().focus().insertContent({ type: "schoolYoutube", attrs: { src, title: "Vídeo do YouTube" } }).run();
-    setYoutubeOpen(false);
-    setUrl("");
-    setNotice("");
-  };
-
-  const insertImage = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      setNotice("A imagem excede 2 MB. Escolha um arquivo menor.");
-      event.target.value = "";
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const src = String(reader.result || "");
-      editor?.chain().focus().setImage({ src, alt: file.name }).run();
-    };
-    reader.readAsDataURL(file);
-    event.target.value = "";
-  };
-
-  const insertFile = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      setNotice("O arquivo excede 2 MB. Escolha um arquivo menor.");
-      event.target.value = "";
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = String(reader.result || "");
-      const safeName = escapeHtml(file.name);
-      editor?.chain().focus().insertContent('<a href="' + dataUrl + '" target="_blank" rel="noopener noreferrer">' + safeName + '</a>').run();
-    };
-    reader.readAsDataURL(file);
-    event.target.value = "";
-  };
-
-  const hasUnderline = typeof (editor as any)?.commands?.toggleUnderline === "function";
-  return (
-    <div className={editorShellTw}>
-      <style>{RICH_CONTENT_CSS}</style>
-      <div className={editorToolbarTw} role="toolbar" aria-label="Formatação do resumo da aula">
-        <button type="button" className={editorButtonTw} title="Desfazer" aria-label="Desfazer" disabled={!editor || source} onMouseDown={(event) => event.preventDefault()} onClick={() => editor?.chain().focus().undo().run()}><Undo2 size={15} aria-hidden="true" /></button>
-        <button type="button" className={editorButtonTw} title="Refazer" aria-label="Refazer" disabled={!editor || source} onMouseDown={(event) => event.preventDefault()} onClick={() => editor?.chain().focus().redo().run()}><Redo2 size={15} aria-hidden="true" /></button>
-        <button type="button" className={editorButtonClass(!!editor?.isActive("bold"))} title="Negrito" aria-label="Negrito" aria-pressed={!!editor?.isActive("bold")} disabled={!editor || source} onMouseDown={(event) => event.preventDefault()} onClick={() => editor?.chain().focus().toggleBold().run()}><Bold size={15} aria-hidden="true" /></button>
-        <button type="button" className={editorButtonClass(!!editor?.isActive("italic"))} title="Itálico" aria-label="Itálico" aria-pressed={!!editor?.isActive("italic")} disabled={!editor || source} onMouseDown={(event) => event.preventDefault()} onClick={() => editor?.chain().focus().toggleItalic().run()}><Italic size={15} aria-hidden="true" /></button>
-        {hasUnderline ? <button type="button" className={editorButtonClass(!!editor?.isActive("underline"))} title="Sublinhado" aria-label="Sublinhado" aria-pressed={!!editor?.isActive("underline")} disabled={source} onMouseDown={(event) => event.preventDefault()} onClick={() => (editor as any)?.chain().focus().toggleUnderline().run()}><Underline size={15} aria-hidden="true" /></button> : null}
-        <button type="button" className={editorButtonClass(!!editor?.isActive("strike"))} title="Riscado" aria-label="Riscado" aria-pressed={!!editor?.isActive("strike")} disabled={!editor || source} onMouseDown={(event) => event.preventDefault()} onClick={() => editor?.chain().focus().toggleStrike().run()}><Strikethrough size={15} aria-hidden="true" /></button>
-        <button type="button" className={editorButtonClass(!!editor?.isActive("heading", { level: 2 }))} title="Título 2" aria-label="Título 2" aria-pressed={!!editor?.isActive("heading", { level: 2 })} disabled={!editor || source} onMouseDown={(event) => event.preventDefault()} onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}><b>H2</b></button>
-        <button type="button" className={editorButtonClass(!!editor?.isActive("heading", { level: 3 }))} title="Título 3" aria-label="Título 3" aria-pressed={!!editor?.isActive("heading", { level: 3 })} disabled={!editor || source} onMouseDown={(event) => event.preventDefault()} onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}><b>H3</b></button>
-        <button type="button" className={editorButtonClass(!!editor?.isActive("bulletList"))} title="Lista com marcadores" aria-label="Lista com marcadores" aria-pressed={!!editor?.isActive("bulletList")} disabled={!editor || source} onMouseDown={(event) => event.preventDefault()} onClick={() => editor?.chain().focus().toggleBulletList().run()}><List size={15} aria-hidden="true" /></button>
-        <button type="button" className={editorButtonClass(!!editor?.isActive("orderedList"))} title="Lista numerada" aria-label="Lista numerada" aria-pressed={!!editor?.isActive("orderedList")} disabled={!editor || source} onMouseDown={(event) => event.preventDefault()} onClick={() => editor?.chain().focus().toggleOrderedList().run()}><ListOrdered size={15} aria-hidden="true" /></button>
-        <button type="button" className={editorButtonClass(!!editor?.isActive("blockquote"))} title="Citação" aria-label="Citação" aria-pressed={!!editor?.isActive("blockquote")} disabled={!editor || source} onMouseDown={(event) => event.preventDefault()} onClick={() => editor?.chain().focus().toggleBlockquote().run()}><Quote size={15} aria-hidden="true" /></button>
-        <button type="button" className={editorButtonClass(!!editor?.isActive("codeBlock"))} title="Bloco de código" aria-label="Bloco de código" aria-pressed={!!editor?.isActive("codeBlock")} disabled={!editor || source} onMouseDown={(event) => event.preventDefault()} onClick={() => editor?.chain().focus().toggleCodeBlock().run()}><Code2 size={15} aria-hidden="true" /></button>
-        <button type="button" className={editorButtonTw} title="Inserir link" aria-label="Inserir link" disabled={source} onMouseDown={(event) => event.preventDefault()} onClick={() => setLinkOpen((open) => !open)}><Link2 size={15} aria-hidden="true" /></button>
-        <label className={editorButtonTw} title="Inserir imagem" aria-label="Inserir imagem" onMouseDown={(event) => event.preventDefault()}><ImagePlus size={15} aria-hidden="true" /><input type="file" accept="image/*" className="hidden" onChange={insertImage} /></label>
-        <label className={editorButtonTw} title="Inserir arquivo" aria-label="Inserir arquivo" onMouseDown={(event) => event.preventDefault()}><Paperclip size={15} aria-hidden="true" /><input type="file" className="hidden" onChange={insertFile} /></label>
-        <button type="button" className={editorButtonTw} title="Inserir vídeo do YouTube" aria-label="Inserir vídeo do YouTube" disabled={source} onMouseDown={(event) => event.preventDefault()} onClick={() => setYoutubeOpen((open) => !open)}><Youtube size={15} aria-hidden="true" /></button>
-        <button type="button" className={editorButtonTw} title={source ? "Alternar para modo Visual" : "Alternar para modo Código"} aria-label={source ? "Alternar para modo Visual" : "Alternar para modo Código"} aria-pressed={source} onClick={() => setSource((open) => !open)}><FileText size={15} aria-hidden="true" /><small>{source ? "Visual" : "Código"}</small></button>
-      </div>
-      {linkOpen ? <div className={editorBarTw}><input className={editorInputTw} aria-label="Endereço do link" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://…" /><button type="button" className={buttonTw} onClick={() => {
-        const parsed = url.trim();
-        if (/^(https?:\/\/|mailto:|tel:)/i.test(parsed)) {
-          editor?.chain().focus().setLink({ href: parsed }).run();
-          setLinkOpen(false); setUrl(""); setNotice("");
-        } else setNotice("Informe um endereço http(s), mailto: ou tel:.");
-      }}>Inserir link</button></div> : null}
-      {youtubeOpen ? <div className={editorBarTw}><input className={editorInputTw} aria-label="Link do YouTube" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://www.youtube.com/watch?v=…" /><button type="button" className={buttonTw} onClick={insertYoutube}>Inserir vídeo</button></div> : null}
-      {source
-        ? <textarea className={sourceTw} aria-label={label + " · HTML"} value={value} onChange={(event) => { onChange(event.target.value); lastEmitted.current = event.target.value; editor?.commands.setContent(event.target.value, { emitUpdate: false }); }} />
-        : <EditorContent editor={editor} />}
-      {notice ? <p className={editorNoticeTw} role="status">{notice}</p> : null}
-    </div>
-  );
-}
-
-function Donut({ label, percentage }: { label: string; percentage: number }) {
-  const value = Math.max(0, Math.min(100, Number(percentage) || 0));
-  const circumference = 2 * Math.PI * 28;
-  return (
-    <div className="flex min-w-0 items-center gap-3 rounded-token-sm border border-line px-3 py-2.5">
-      <svg width="72" height="72" viewBox="0 0 72 72" role="img" aria-label={`Presença de ${label}: ${value}%`}>
-        <circle cx="36" cy="36" r="28" fill="none" stroke="#dbe3ee" strokeWidth="9" />
-        <circle cx="36" cy="36" r="28" fill="none" stroke="#2563eb" strokeWidth="9" strokeLinecap="round" strokeDasharray={`${(value / 100) * circumference} ${circumference}`} transform="rotate(-90 36 36)" />
-        <text x="36" y="40" textAnchor="middle" fontSize="14" fontWeight="700" fill="#1f2937">{value}%</text>
-      </svg>
-      <div className="min-w-0">
-        <p className="m-0 text-body font-bold text-ink">{label}</p>
-        <p className={mutedTw}>Presença calculada sobre as sessões registradas.</p>
-      </div>
-    </div>
-  );
-}
-
-/** Gestão escolar simplificada para Escola de Música e Instrumentos.
- * Foco: cursos, professores com formação, alunos, turmas, presença, agenda, mensalidades e automações.
- * Nenhum envio é executado por aqui; lembretes e cancelamento ficam apenas configurados.
- */
 export function SchoolWorkspace() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
-  const [courseForm, setCourseForm] = useState({ name: "" });
-  const [personForm, setPersonForm] = useState({ name: "", kind: "STUDENT", email: "", phone: "" });
-  const [classForm, setClassForm] = useState({ name: "", courseId: "", teacherId: "", weekday: "1", startTime: "18:00", durationMinutes: "60" });
-  const [enrollForm, setEnrollForm] = useState({ classId: "", studentId: "", contractedSessions: "8", purchasedSessions: "0", tuitionAmountCents: "", tuitionNextDueDate: "" });
-  const [sessionForm, setSessionForm] = useState({ classId: "", sessionDate: new Date().toISOString().slice(0, 10), status: "SCHEDULED" });
-  const [pairedForm, setPairedForm] = useState({ sessionId: "", studentId: "", teacherId: "", studentStatus: "PRESENT", teacherStatus: "PRESENT", note: "" });
-  const [summaryForm, setSummaryForm] = useState({ sessionId: "", summaryHtml: "" });
-  const [attendanceForm, setAttendanceForm] = useState({ sessionId: "", personKind: "STUDENT", personId: "", status: "PRESENT", note: "" });
-  const [policyForm, setPolicyForm] = useState({ paymentReminderDaysBefore: "5", remindOnDueDate: true, remindDailyWhenOverdue: true, channels: ["WHATSAPP", "SMS", "EMAIL"], consentRequired: true, teacherReminderMinutesBefore: "30", cancellationApprovalRequired: true, overdueInstallmentsForCancellation: "2", breachPenaltyPercent: "20", paymentNoticeToManager: true, paymentNoticeToAdmins: true });
-  const [receiptForm, setReceiptForm] = useState({ enrollmentId: "", amountCents: "", paidAt: new Date().toISOString().slice(0, 10), source: "CASH", externalReference: "" });
-  const [overdueForm, setOverdueForm] = useState({ enrollmentId: "" });
-  const [cancelForm, setCancelForm] = useState({ enrollmentId: "", decision: "APPROVE" });
+  const [courseForm, setCourseForm] = useState({ name: "", summary: "" });
+  const [coursePhoto, setCoursePhoto] = useState<File | null>(null);
+  const [teacherForm, setTeacherForm] = useState({ name: "", formation: "" });
+  const [studentForm, setStudentForm] = useState({ name: "" });
+  const [enrollForm, setEnrollForm] = useState({
+    studentId: "", courseId: "", teacherId: "", contractedSessions: "8",
+    tuitionAmountCents: "", tuitionNextDueDate: "", contractTotalCents: "",
+  });
 
-  const load = async () => {
-    setError("");
+  const load = useCallback(async (seedDefaults = true) => {
     try {
-      setSnapshot(await api<Snapshot>("school/snapshot"));
-    } catch (cause) {
-      setError(messageOf(cause));
+      const data = await api<Snapshot>("school/snapshot");
+      const existing = new Set((data.courses || []).map((course) => course.name));
+      const defaults = data.defaultCourses || [];
+      if (seedDefaults && defaults.some((course) => !existing.has(course.name))) {
+        const seeded = await api<SeedResult>("school/seed-default-courses", { method: "POST" });
+        setNotice(`${seeded.created} cursos padrão adicionados ao catálogo desta empresa.`);
+        await load(false);
+        return;
+      }
+      setSnapshot(data);
+      setError("");
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Não foi possível carregar a gestão escolar.");
     }
-  };
+  }, []);
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); }, [load]);
 
-  const submit = async (event: FormEvent<HTMLFormElement>, path: string, body: Record<string, unknown>, done: string) => {
+  const submit = async (
+    event: FormEvent,
+    path: string,
+    payload: Record<string, unknown>,
+    message: string,
+    reset?: () => void,
+  ) => {
     event.preventDefault();
     setBusy(true);
-    setNotice("");
     setError("");
     try {
-      await api(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-      setNotice(done);
-      await load();
-    } catch (cause) {
-      setError(messageOf(cause));
+      await api(path, { method: "POST", body: JSON.stringify(payload) });
+      setNotice(message);
+      reset?.();
+      await load(false);
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Não foi possível salvar.");
     } finally {
       setBusy(false);
     }
   };
 
-  const courses = snapshot?.courses ?? [];
-  const people = snapshot?.people ?? [];
-  const classes = snapshot?.classes ?? [];
-  const enrollments = snapshot?.enrollments ?? [];
-  const sessions = snapshot?.sessions ?? [];
-  const attendances = snapshot?.attendances ?? [];
-  const balances = snapshot?.balances ?? [];
-  const stats = snapshot?.stats;
-  const students = people.filter((person) => person.kind === "STUDENT");
-  const teachers = people.filter((person) => person.kind === "TEACHER");
-  const nameOf = (id: string) => [...courses, ...people, ...classes].find((item) => item.id === id)?.name || "—";
+  const submitCourse = async (event: FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const imageUrl = coursePhoto ? await uploadCoursePhoto(coursePhoto) : null;
+      await api("school/records", {
+        method: "POST",
+        body: JSON.stringify({
+          kind: "COURSE",
+          name: courseForm.name,
+          imageUrl,
+          summary: courseForm.summary || null,
+        }),
+      });
+      setNotice("Curso cadastrado nesta empresa.");
+      setCourseForm({ name: "", summary: "" });
+      setCoursePhoto(null);
+      await load(false);
+    } catch (courseError) {
+      setError(courseError instanceof Error ? courseError.message : "Não foi possível cadastrar o curso.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const courses = snapshot?.courses || [];
+  const people = snapshot?.people || [];
+  const students = people.filter((person) => person.kind === "STUDENT" && person.active !== false);
+  const teachers = people.filter((person) => person.kind === "TEACHER" && person.active !== false);
 
   return (
-    <section className={shellTw} aria-label="Gestão escolar">
-      <header className={headerTw}>
-        <GraduationCap size={40} className={heroIconTw} aria-hidden="true" />
-        <div className="min-w-0 flex-1">
-          <h1 className={titleTw}>Gestão escolar</h1>
-          <p className={copyTw}>Cursos, professores com formação, alunos, turmas, presença, agenda e mensalidades — tudo no contexto da empresa. Avisos e mensalidades ficam apenas agendados, nenhum envio é executado.</p>
+    <section className={schoolTw.shell} aria-label="Gestão escolar">
+      <div className={schoolTw.hero}>
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-widest text-amber-600">Escola de música e instrumentos</p>
+          <h2 className={schoolTw.heroTitle}>Cadastros da escola</h2>
+          <p className={schoolTw.heroCopy}>Cursos, professores com formação, alunos e matrículas individuais. Cobranças, lembretes e notificações ficam configurados — nenhum envio é afirmado sem evidência.</p>
         </div>
-        <span className={badgeTw}>Avisos e mensalidades agendados — nenhum envio executado</span>
-      </header>
-
-      {error ? <p role="status" className="text-body text-red-700">{error}</p> : null}
-      {notice ? <p role="status" className="text-body text-green-700">{notice}</p> : null}
-
-      <div className={gridTw}>
-        <article className={cardTw}>
-          <h2 className={cardTitleTw}><BookOpen size={18} aria-hidden="true" /> Presença dos alunos</h2>
-          {stats ? <Donut label="Alunos" percentage={stats.students.percentage} /> : <p className={mutedTw}>Carregando indicadores…</p>}
-          {stats ? <p className={mutedTw}>Sessões: {stats.students.sessions} · Presentes: {stats.students.present} · Ausências: {stats.students.absences}</p> : null}
-        </article>
-        <article className={cardTw}>
-          <h2 className={cardTitleTw}><ClipboardCheck size={18} aria-hidden="true" /> Presença dos professores</h2>
-          {stats ? <Donut label="Professores" percentage={stats.teachers.percentage} /> : <p className={mutedTw}>Carregando indicadores…</p>}
-          {stats ? <p className={mutedTw}>Sessões: {stats.teachers.sessions} · Presentes: {stats.teachers.present} · Ausências: {stats.teachers.absences}</p> : null}
-        </article>
-        <article className={cardTw}>
-          <h2 className={cardTitleTw}><Wallet size={18} aria-hidden="true" /> Mensalidades</h2>
-          <p className="m-0 text-body text-ink">Valores e vencimentos ficam registrados como agendamento. Nenhuma cobrança é enviada, debitada ou confirmada por esta tela.</p>
-          <p className={mutedTw}>Confirmação e execução dependem de evidência do provedor financeiro.</p>
-        </article>
+        <button type="button" className={schoolTw.buttonSoft} onClick={() => void load(false)}><RefreshCw size={16} aria-hidden="true" /> Atualizar</button>
       </div>
 
-      <div className={gridTw}>
-        <article className={cardTw}>
-          <h2 className={cardTitleTw}><BookOpen size={18} aria-hidden="true" /> Cursos</h2>
-          {courses.length === 0 ? <p className={mutedTw}>Nenhum curso cadastrado nesta empresa.</p> : null}
-          {courses.map((item) => (
-            <details key={item.id} className={rowTw}>
-              <summary className={summaryTw}><span>{item.name}</span><span className={mutedTw}>{item.kind === "COURSE" ? "Curso" : "Matéria"}</span></summary>
-              <p className={mutedTw}>{item.parentId ? "Curso pai: " + nameOf(item.parentId) : "—"} · {item.active ? "Ativo" : "Inativo"}</p>
-            </details>
-          ))}
-        </article>
-        <article className={cardTw}>
-          <h2 className={cardTitleTw}><UsersRound size={18} aria-hidden="true" /> Pessoas (alunos e professores)</h2>
-          {people.length === 0 ? <p className={mutedTw}>Nenhuma pessoa cadastrada nesta empresa.</p> : null}
-          {people.map((item) => (
-            <details key={item.id} className={rowTw}>
-              <summary className={summaryTw}><span>{item.name}</span><span className={mutedTw}>{item.kind === "STUDENT" ? "Aluno" : "Professor"}</span></summary>
-              <p className={mutedTw}>E-mail: {item.email || "—"} · Telefone: {item.phone || "—"} · {item.active ? "Ativo" : "Inativo"}</p>
-            </details>
-          ))}
-        </article>
-        <article className={cardTw}>
-          <h2 className={cardTitleTw}><CalendarDays size={18} aria-hidden="true" /> Turmas</h2>
-          {classes.length === 0 ? <p className={mutedTw}>Nenhuma turma cadastrada nesta empresa.</p> : null}
-          {classes.map((item) => (
-            <details key={item.id} className={rowTw}>
-              <summary className={summaryTw}><span>{item.name}</span><span className={mutedTw}>{DAYS[item.weekday] || item.weekday} · {item.startTime}</span></summary>
-              <p className={mutedTw}>Curso/matéria: {nameOf(item.courseId)} · Professor: {nameOf(item.teacherId)} · Duração: {item.durationMinutes} min · {item.active ? "Ativa" : "Inativa"}</p>
-            </details>
-          ))}
-        </article>
+      {error ? <p role="status" className="rounded-xl border border-red-100 bg-red-100 px-4 py-3 text-sm font-semibold text-red-600">{error}</p> : null}
+      {notice ? <p role="status" className="rounded-xl border border-emerald-100 bg-emerald-100 px-4 py-3 text-sm font-semibold text-emerald-600">{notice}</p> : null}
+      {(snapshot?.warnings || []).map((warning) => (
+        <p key={warning} role="status" className="rounded-xl border border-amber-100 bg-amber-100 px-4 py-3 text-sm font-semibold text-amber-700">{warning}</p>
+      ))}
+
+      <div className={schoolTw.section}>
+        <div className={schoolTw.sectionHead}>
+          <h3 className={schoolTw.sectionTitle}><Music2 size={18} aria-hidden="true" /> Cursos</h3>
+          <p className={schoolTw.sectionHint}>Violão, Baixo, Teclado, Bateria, Sax e Canto entram como padrão. Outros cursos depois.</p>
+        </div>
+        {courses.length === 0 ? <p className={schoolTw.empty}>Nenhum curso cadastrado nesta empresa.</p> : (
+          <div className={schoolTw.grid}>
+            {courses.map((course) => (
+              <CourseCard key={course.id} course={course} />
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className={gridTw}>
-        <article className={cardTw}>
-          <h2 className={cardTitleTw}><Wallet size={18} aria-hidden="true" /> Matrículas e saldos</h2>
-          {balances.length === 0 ? <p className={mutedTw}>Nenhuma matrícula registrada nesta empresa.</p> : null}
-          {balances.map((item) => {
-            const contracted = Number(item.contracted || 0);
-            const consumed = Number(item.consumed || 0);
-            const remaining = Math.max(0, Number(item.balance || 0));
-            const used = contracted > 0 ? Math.min(100, Math.round((consumed * 100) / contracted)) : 0;
-            return (
-              <details key={item.enrollmentId} className={rowTw}>
-                <summary className={summaryTw}><span>{nameOf(item.studentId)}</span><span className={mutedTw}>{nameOf(item.classId)}</span></summary>
-                <p className={mutedTw}>Contratadas: {contracted} · Consumidas: {consumed} · Dias de aula contabilizados: {item.countedDays ?? 0} · Reposições pendentes: {item.pendingMakeups}</p>
-                <p className="m-0 text-body font-bold text-ink">Faltam {remaining} aula(s)</p>
-                <div className="h-2 w-full overflow-hidden rounded-token-sm bg-surface"><div className="h-full bg-blue-600" style={{ width: `${used}%` }} /></div>
-                <p className={mutedTw}>{TUITION_STATUS[item.tuition.status] || item.tuition.status} · Executado: {item.tuition.executed ? "sim" : "não"} · Confirmado: {item.tuition.confirmed ? "sim" : "não"}</p>
-                <p className={mutedTw}>Recebido: {item.paidCents ?? 0} centavos · Atrasos: {item.overdueInstallments ?? 0} · Cancelamento: {item.cancellationStatus ?? "NONE"} · Multa calculada: {item.penaltyCents ?? 0} centavos</p>
-                <p className={mutedTw}>Lembretes agendados: {item.reminders?.payment.length ?? 0} · Professor: {item.reminders?.teacher.length ?? 0} · Enviados: não · Confirmados: não</p>
-              </details>
-            );
-          })}
-        </article>
-        <article className={cardTw}>
-          <h2 className={cardTitleTw}><ClipboardCheck size={18} aria-hidden="true" /> Sessões e presença</h2>
-          {sessions.length === 0 ? <p className={mutedTw}>Nenhuma sessão registrada nesta empresa.</p> : null}
-          {sessions.slice(0, 12).map((item) => (
-            <details key={item.id} className={rowTw}>
-              <summary className={summaryTw}><span>{nameOf(item.classId)}</span><span className={mutedTw}>{item.sessionDate} · {item.status}</span></summary>
-              {attendances.filter((attendance) => attendance.sessionId === item.id).map((attendance) => (
-                <p key={attendance.id} className={mutedTw}>{nameOf(attendance.personId)} · {ATTENDANCE_STATUS[attendance.status] || attendance.status}{attendance.note ? ` · ${attendance.note}` : ""}</p>
-              ))}
-            </details>
-          ))}
-        </article>
-      </div>
-
-      <div className={gridTw}>
-        <details className={detailsTw} data-testid="school-course-form">
-          <summary className={summaryFormTw}>Novo curso</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "COURSE", ...courseForm }, "Curso cadastrado.")}>
-            <label className={labelTw}>Nome<input className={fieldTw} required value={courseForm.name} onChange={(event) => setCourseForm({ ...courseForm, name: event.target.value })} /></label>
-            <button className={buttonTw} type="submit" disabled={busy}>Cadastrar curso</button>
+      <div className={schoolTw.grid}>
+        <details className={schoolTw.card} data-testid="school-course-form">
+          <summary className="cursor-pointer text-sm font-bold text-slate-950">Novo curso</summary>
+          <form className="grid gap-3" onSubmit={(event) => void submitCourse(event)}>
+            <label className={schoolTw.label}>Nome do curso<input className={schoolTw.input} required maxLength={80} placeholder="Ex.: Violão" value={courseForm.name} onChange={(event) => setCourseForm({ ...courseForm, name: event.target.value })} /></label>
+            <label className={schoolTw.label}>Foto do computador
+              <input
+                className={schoolTw.input}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/avif"
+                data-testid="school-course-photo"
+                onChange={(event) => setCoursePhoto(event.target.files?.[0] ?? null)}
+              />
+            </label>
+            {coursePhoto ? <p className={schoolTw.note}>Arquivo selecionado: {coursePhoto.name}. A foto é enviada e salva nesta empresa ao cadastrar.</p> : null}
+            <label className={schoolTw.label}>Descrição / detalhes<textarea className={schoolTw.textarea} rows={3} maxLength={2000} placeholder="O que o aluno aprende neste curso" value={courseForm.summary} onChange={(event) => setCourseForm({ ...courseForm, summary: event.target.value })} /></label>
+            <button className={schoolTw.buttonPrimary} type="submit" disabled={busy}>Cadastrar curso</button>
           </form>
         </details>
 
-        <details className={detailsTw} data-testid="school-person-form">
-          <summary className={summaryFormTw}>Nova pessoa (aluno ou professor)</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: personForm.kind, name: personForm.name, email: personForm.email, phone: personForm.phone }, "Pessoa cadastrada.")}>
-            <label className={labelTw}>Nome<input className={fieldTw} required value={personForm.name} onChange={(event) => setPersonForm({ ...personForm, name: event.target.value })} /></label>
-            <label className={labelTw}>Tipo<select className={fieldTw} value={personForm.kind} onChange={(event) => setPersonForm({ ...personForm, kind: event.target.value })}><option value="STUDENT">Aluno</option><option value="TEACHER">Professor</option></select></label>
-            <label className={labelTw}>E-mail<input className={fieldTw} type="email" value={personForm.email} onChange={(event) => setPersonForm({ ...personForm, email: event.target.value })} /></label>
-            <label className={labelTw}>Telefone<input className={fieldTw} value={personForm.phone} onChange={(event) => setPersonForm({ ...personForm, phone: event.target.value })} /></label>
-            <button className={buttonTw} type="submit" disabled={busy}>Cadastrar pessoa</button>
+        <details className={schoolTw.card} data-testid="school-teacher-form">
+          <summary className="cursor-pointer text-sm font-bold text-slate-950">Novo professor</summary>
+          <form className="grid gap-3" onSubmit={(event) => void submit(
+            event,
+            "school/records",
+            { kind: "TEACHER", name: teacherForm.name, formation: teacherForm.formation || null },
+            "Professor cadastrado nesta empresa.",
+            () => setTeacherForm({ name: "", formation: "" }),
+          )}>
+            <label className={schoolTw.label}>Nome<input className={schoolTw.input} required maxLength={120} value={teacherForm.name} onChange={(event) => setTeacherForm({ ...teacherForm, name: event.target.value })} /></label>
+            <label className={schoolTw.label}>Formação<input className={schoolTw.input} maxLength={240} placeholder="Ex.: Licenciatura em Música" value={teacherForm.formation} onChange={(event) => setTeacherForm({ ...teacherForm, formation: event.target.value })} /></label>
+            <button className={schoolTw.buttonPrimary} type="submit" disabled={busy}>Cadastrar professor</button>
           </form>
         </details>
 
-        <details className={detailsTw} data-testid="school-class-form">
-          <summary className={summaryFormTw}>Nova turma</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "CLASS", name: classForm.name, courseId: classForm.courseId, teacherId: classForm.teacherId, weekday: Number(classForm.weekday), startTime: classForm.startTime, durationMinutes: Number(classForm.durationMinutes) }, "Turma cadastrada.")}>
-            <label className={labelTw}>Nome<input className={fieldTw} required value={classForm.name} onChange={(event) => setClassForm({ ...classForm, name: event.target.value })} /></label>
-            <label className={labelTw}>Curso/matéria<select className={fieldTw} required value={classForm.courseId} onChange={(event) => setClassForm({ ...classForm, courseId: event.target.value })}><option value="">Selecione</option>{courses.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <label className={labelTw}>Professor<select className={fieldTw} required value={classForm.teacherId} onChange={(event) => setClassForm({ ...classForm, teacherId: event.target.value })}><option value="">Selecione</option>{teachers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <label className={labelTw}>Dia da semana<select className={fieldTw} value={classForm.weekday} onChange={(event) => setClassForm({ ...classForm, weekday: event.target.value })}>{DAYS.slice(1).map((day, index) => <option key={day} value={index + 1}>{day}</option>)}</select></label>
-            <label className={labelTw}>Horário<input className={fieldTw} type="time" required value={classForm.startTime} onChange={(event) => setClassForm({ ...classForm, startTime: event.target.value })} /></label>
-            <label className={labelTw}>Duração (minutos)<input className={fieldTw} type="number" min={30} max={180} step={30} value={classForm.durationMinutes} onChange={(event) => setClassForm({ ...classForm, durationMinutes: event.target.value })} /></label>
-            <button className={buttonTw} type="submit" disabled={busy}>Cadastrar turma</button>
+        <details className={schoolTw.card} data-testid="school-student-form">
+          <summary className="cursor-pointer text-sm font-bold text-slate-950">Novo aluno</summary>
+          <form className="grid gap-3" onSubmit={(event) => void submit(
+            event,
+            "school/records",
+            { kind: "STUDENT", name: studentForm.name },
+            "Aluno cadastrado nesta empresa.",
+            () => setStudentForm({ name: "" }),
+          )}>
+            <label className={schoolTw.label}>Nome<input className={schoolTw.input} required maxLength={120} value={studentForm.name} onChange={(event) => setStudentForm({ name: event.target.value })} /></label>
+            <button className={schoolTw.buttonPrimary} type="submit" disabled={busy}>Cadastrar aluno</button>
           </form>
         </details>
 
-        <details className={detailsTw} data-testid="school-enroll-form">
-          <summary className={summaryFormTw}>Matricular aluno</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "ENROLLMENT", classId: enrollForm.classId, studentId: enrollForm.studentId, contractedSessions: Number(enrollForm.contractedSessions), purchasedSessions: Number(enrollForm.purchasedSessions), tuitionAmountCents: enrollForm.tuitionAmountCents ? Number(enrollForm.tuitionAmountCents) : null, tuitionNextDueDate: enrollForm.tuitionNextDueDate || null }, "Matrícula registrada. Cobrança agendada, sem envio.")}>
-            <label className={labelTw}>Turma<select className={fieldTw} required value={enrollForm.classId} onChange={(event) => setEnrollForm({ ...enrollForm, classId: event.target.value })}><option value="">Selecione</option>{classes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <label className={labelTw}>Aluno<select className={fieldTw} required value={enrollForm.studentId} onChange={(event) => setEnrollForm({ ...enrollForm, studentId: event.target.value })}><option value="">Selecione</option>{students.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <label className={labelTw}>Aulas contratadas<input className={fieldTw} type="number" min={1} value={enrollForm.contractedSessions} onChange={(event) => setEnrollForm({ ...enrollForm, contractedSessions: event.target.value })} /></label>
-            <label className={labelTw}>Aulas adicionais<input className={fieldTw} type="number" min={0} value={enrollForm.purchasedSessions} onChange={(event) => setEnrollForm({ ...enrollForm, purchasedSessions: event.target.value })} /></label>
-            <label className={labelTw}>Valor mensal (centavos)<input className={fieldTw} type="number" min={0} value={enrollForm.tuitionAmountCents} onChange={(event) => setEnrollForm({ ...enrollForm, tuitionAmountCents: event.target.value })} /></label>
-            <label className={labelTw}>Vencimento<input className={fieldTw} type="date" value={enrollForm.tuitionNextDueDate} onChange={(event) => setEnrollForm({ ...enrollForm, tuitionNextDueDate: event.target.value })} /></label>
-            <button className={buttonTw} type="submit" disabled={busy}>Matricular</button>
-          </form>
-        </details>
-
-        <details className={detailsTw} data-testid="school-session-form">
-          <summary className={summaryFormTw}>Nova sessão (agenda de aula)</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "SESSION", classId: sessionForm.classId, sessionDate: sessionForm.sessionDate, status: sessionForm.status }, "Sessão registrada.")}>
-            <label className={labelTw}>Turma<select className={fieldTw} required value={sessionForm.classId} onChange={(event) => setSessionForm({ ...sessionForm, classId: event.target.value })}><option value="">Selecione</option>{classes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <label className={labelTw}>Data<input className={fieldTw} type="date" required value={sessionForm.sessionDate} onChange={(event) => setSessionForm({ ...sessionForm, sessionDate: event.target.value })} /></label>
-            <label className={labelTw}>Status<select className={fieldTw} value={sessionForm.status} onChange={(event) => setSessionForm({ ...sessionForm, status: event.target.value })}><option value="SCHEDULED">Agendada</option><option value="HELD">Realizada</option><option value="CANCELLED">Cancelada</option></select></label>
-            <button className={buttonTw} type="submit" disabled={busy}>Registrar sessão</button>
-          </form>
-        </details>
-
-        <details className={detailsTw} data-testid="school-attendance-form">
-          <summary className={summaryFormTw}>Registrar presença</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/attendances", { sessionId: attendanceForm.sessionId, personKind: attendanceForm.personKind, personId: attendanceForm.personId, status: attendanceForm.status, note: attendanceForm.note }, "Presença registrada.")}>
-            <label className={labelTw}>Sessão<select className={fieldTw} required value={attendanceForm.sessionId} onChange={(event) => setAttendanceForm({ ...attendanceForm, sessionId: event.target.value })}><option value="">Selecione</option>{sessions.map((item) => <option key={item.id} value={item.id}>{nameOf(item.classId)} — {item.sessionDate}</option>)}</select></label>
-            <label className={labelTw}>Tipo de pessoa<select className={fieldTw} value={attendanceForm.personKind} onChange={(event) => setAttendanceForm({ ...attendanceForm, personKind: event.target.value, personId: "" })}><option value="STUDENT">Aluno</option><option value="TEACHER">Professor</option></select></label>
-            <label className={labelTw}>Pessoa<select className={fieldTw} required value={attendanceForm.personId} onChange={(event) => setAttendanceForm({ ...attendanceForm, personId: event.target.value })}><option value="">Selecione</option>{(attendanceForm.personKind === "STUDENT" ? students : teachers).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <label className={labelTw}>Status<select className={fieldTw} value={attendanceForm.status} onChange={(event) => setAttendanceForm({ ...attendanceForm, status: event.target.value })}>{Object.entries(ATTENDANCE_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-            <label className={labelTw}>Observação<input className={fieldTw} value={attendanceForm.note} onChange={(event) => setAttendanceForm({ ...attendanceForm, note: event.target.value })} /></label>
-            <button className={buttonTw} type="submit" disabled={busy}>Registrar</button>
+        <details className={schoolTw.card} data-testid="school-enroll-form">
+          <summary className="cursor-pointer text-sm font-bold text-slate-950">Matricular aluno individualmente</summary>
+          <form className="grid gap-3" onSubmit={(event) => void submit(
+            event,
+            "school/records",
+            {
+              kind: "ENROLLMENT",
+              studentId: enrollForm.studentId,
+              courseId: enrollForm.courseId,
+              teacherId: enrollForm.teacherId,
+              contractedSessions: Number(enrollForm.contractedSessions),
+              purchasedSessions: 0,
+              tuitionAmountCents: enrollForm.tuitionAmountCents ? Number(enrollForm.tuitionAmountCents) : null,
+              tuitionNextDueDate: enrollForm.tuitionNextDueDate || null,
+              contractTotalCents: enrollForm.contractTotalCents ? Number(enrollForm.contractTotalCents) : 0,
+            },
+            "Matrícula individual registrada. Nenhuma cobrança foi enviada.",
+          )}>
+            <label className={schoolTw.label}>Aluno
+              <select className={schoolTw.select} required value={enrollForm.studentId} onChange={(event) => setEnrollForm({ ...enrollForm, studentId: event.target.value })}>
+                <option value="">Selecione</option>
+                {students.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
+              </select>
+            </label>
+            <label className={schoolTw.label}>Curso
+              <select className={schoolTw.select} required value={enrollForm.courseId} onChange={(event) => setEnrollForm({ ...enrollForm, courseId: event.target.value })}>
+                <option value="">Selecione</option>
+                {courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}
+              </select>
+            </label>
+            <label className={schoolTw.label}>Professor
+              <select className={schoolTw.select} required value={enrollForm.teacherId} onChange={(event) => setEnrollForm({ ...enrollForm, teacherId: event.target.value })}>
+                <option value="">Selecione</option>
+                {teachers.map((person) => <option key={person.id} value={person.id}>{person.name}{person.formation ? ` · ${person.formation}` : ""}</option>)}
+              </select>
+            </label>
+            <label className={schoolTw.label}>Aulas contratadas<input className={schoolTw.input} type="number" min={1} max={1000} required value={enrollForm.contractedSessions} onChange={(event) => setEnrollForm({ ...enrollForm, contractedSessions: event.target.value })} /></label>
+            <label className={schoolTw.label}>Valor total do contrato em centavos<input className={schoolTw.input} type="number" min={0} value={enrollForm.contractTotalCents} onChange={(event) => setEnrollForm({ ...enrollForm, contractTotalCents: event.target.value })} /></label>
+            <label className={schoolTw.label}>Mensalidade em centavos (opcional)<input className={schoolTw.input} type="number" min={0} value={enrollForm.tuitionAmountCents} onChange={(event) => setEnrollForm({ ...enrollForm, tuitionAmountCents: event.target.value })} /></label>
+            <label className={schoolTw.label}>Próximo vencimento<input className={schoolTw.input} type="date" min={today()} value={enrollForm.tuitionNextDueDate} onChange={(event) => setEnrollForm({ ...enrollForm, tuitionNextDueDate: event.target.value })} /></label>
+            <button className={schoolTw.buttonPrimary} type="submit" disabled={busy}>Matricular</button>
           </form>
         </details>
       </div>
 
-      <div className={gridTw}>
-        <details className={detailsTw} data-testid="school-paired-attendance-form">
-          <summary className={summaryFormTw}>Presença de aluno e professor na mesma aula</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/attendances", { paired: true, ...pairedForm }, "Presença de aluno e professor registrada.")}>
-            <label className={labelTw}>Sessão<select className={fieldTw} required value={pairedForm.sessionId} onChange={(event) => setPairedForm({ ...pairedForm, sessionId: event.target.value })}><option value="">Selecione</option>{sessions.map((item) => <option key={item.id} value={item.id}>{nameOf(item.classId)} — {item.sessionDate}</option>)}</select></label>
-            <label className={labelTw}>Aluno<select className={fieldTw} required value={pairedForm.studentId} onChange={(event) => setPairedForm({ ...pairedForm, studentId: event.target.value })}><option value="">Selecione</option>{students.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <label className={labelTw}>Professor<select className={fieldTw} required value={pairedForm.teacherId} onChange={(event) => setPairedForm({ ...pairedForm, teacherId: event.target.value })}><option value="">Selecione</option>{teachers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <label className={labelTw}>Status do aluno<select className={fieldTw} value={pairedForm.studentStatus} onChange={(event) => setPairedForm({ ...pairedForm, studentStatus: event.target.value })}>{Object.entries(ATTENDANCE_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-            <label className={labelTw}>Status do professor<select className={fieldTw} value={pairedForm.teacherStatus} onChange={(event) => setPairedForm({ ...pairedForm, teacherStatus: event.target.value })}>{Object.entries(ATTENDANCE_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-            <label className={labelTw}>Observação<input className={fieldTw} value={pairedForm.note} onChange={(event) => setPairedForm({ ...pairedForm, note: event.target.value })} /></label>
-            <button className={buttonTw} type="submit" disabled={busy}>Registrar presença pareada</button>
-          </form>
-        </details>
-
-        <details className={detailsTw} data-testid="school-lesson-summary-form">
-          <summary className={summaryFormTw}>Resumo do que foi estudado na aula</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "LESSON_SUMMARY", ...summaryForm }, "Resumo da aula registrado.")}>
-            <label className={labelTw}>Sessão<select className={fieldTw} required value={summaryForm.sessionId} onChange={(event) => setSummaryForm({ ...summaryForm, sessionId: event.target.value })}><option value="">Selecione</option>{sessions.map((item) => <option key={item.id} value={item.id}>{nameOf(item.classId)} — {item.sessionDate}</option>)}</select></label>
-            <label className={labelTw}>Resumo<textarea className={fieldTw} rows={4} required value={summaryForm.summaryHtml} onChange={(event) => setSummaryForm({ ...summaryForm, summaryHtml: event.target.value })} /></label>
-            <button className={buttonTw} type="submit" disabled={busy}>Salvar resumo</button>
-          </form>
-        </details>
-
-        <details className={detailsTw} data-testid="school-billing-policy-form">
-          <summary className={summaryFormTw}>Política de lembretes e contrato (somente configuração)</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "BILLING_POLICY", ...policyForm }, "Política salva. Nenhum disparo foi executado.")}>
-            <label className={labelTw}>Dias antes do vencimento<input className={fieldTw} type="number" min={0} max={30} value={policyForm.paymentReminderDaysBefore} onChange={(event) => setPolicyForm({ ...policyForm, paymentReminderDaysBefore: event.target.value })} /></label>
-            <label className={labelTw}>Minutos antes da aula do professor<input className={fieldTw} type="number" min={5} max={120} value={policyForm.teacherReminderMinutesBefore} onChange={(event) => setPolicyForm({ ...policyForm, teacherReminderMinutesBefore: event.target.value })} /></label>
-            <label className={labelTw}>Mensalidades em atraso para cancelar automaticamente<input className={fieldTw} type="number" min={1} max={12} value={policyForm.overdueInstallmentsForCancellation} onChange={(event) => setPolicyForm({ ...policyForm, overdueInstallmentsForCancellation: event.target.value })} /></label>
-            <label className={labelTw}>Multa por quebra de contrato (%)<input className={fieldTw} type="number" min={0} max={100} value={policyForm.breachPenaltyPercent} onChange={(event) => setPolicyForm({ ...policyForm, breachPenaltyPercent: event.target.value })} /></label>
-            <label className={labelTw}>Canais consentidos<select className={fieldTw} multiple value={policyForm.channels} onChange={(event) => setPolicyForm({ ...policyForm, channels: Array.from(event.target.selectedOptions, (option) => option.value) })}><option value="WHATSAPP">WhatsApp</option><option value="SMS">SMS</option><option value="EMAIL">E-mail</option></select></label>
-            <label className={labelTw}><input type="checkbox" checked={policyForm.remindOnDueDate} onChange={(event) => setPolicyForm({ ...policyForm, remindOnDueDate: event.target.checked })} /> Lembrete no dia do vencimento</label>
-            <label className={labelTw}><input type="checkbox" checked={policyForm.remindDailyWhenOverdue} onChange={(event) => setPolicyForm({ ...policyForm, remindDailyWhenOverdue: event.target.checked })} /> Lembrete diário após atraso</label>
-            <label className={labelTw}><input type="checkbox" checked={policyForm.consentRequired} onChange={(event) => setPolicyForm({ ...policyForm, consentRequired: event.target.checked })} /> Exigir consentimento do canal</label>
-            <label className={labelTw}><input type="checkbox" checked={policyForm.cancellationApprovalRequired} onChange={(event) => setPolicyForm({ ...policyForm, cancellationApprovalRequired: event.target.checked })} /> Cancelamento somente com aprovação</label>
-            <label className={labelTw}><input type="checkbox" checked={policyForm.paymentNoticeToManager} onChange={(event) => setPolicyForm({ ...policyForm, paymentNoticeToManager: event.target.checked })} /> Avisar gestor financeiro designado</label>
-            <label className={labelTw}><input type="checkbox" checked={policyForm.paymentNoticeToAdmins} onChange={(event) => setPolicyForm({ ...policyForm, paymentNoticeToAdmins: event.target.checked })} /> Avisar OWNER/ADMIN da empresa</label>
-            <button className={buttonTw} type="submit" disabled={busy}>Salvar política</button>
-          </form>
-        </details>
-
-        <details className={detailsTw} data-testid="school-payment-receipt-form">
-          <summary className={summaryFormTw}>Baixa de pagamento recebido</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "PAYMENT_RECEIPT", ...receiptForm, amountCents: Number(receiptForm.amountCents) }, "Recebimento registrado; cobrança do período suprimida.")}>
-            <label className={labelTw}>Matrícula<select className={fieldTw} required value={receiptForm.enrollmentId} onChange={(event) => setReceiptForm({ ...receiptForm, enrollmentId: event.target.value })}><option value="">Selecione</option>{enrollments.map((item) => <option key={item.id} value={item.id}>{nameOf(item.studentId)} — {nameOf(item.classId)}</option>)}</select></label>
-            <label className={labelTw}>Valor recebido (centavos)<input className={fieldTw} type="number" min={1} required value={receiptForm.amountCents} onChange={(event) => setReceiptForm({ ...receiptForm, amountCents: event.target.value })} /></label>
-            <label className={labelTw}>Data do recebimento<input className={fieldTw} type="date" required value={receiptForm.paidAt} onChange={(event) => setReceiptForm({ ...receiptForm, paidAt: event.target.value })} /></label>
-            <label className={labelTw}>Origem<select className={fieldTw} value={receiptForm.source} onChange={(event) => setReceiptForm({ ...receiptForm, source: event.target.value })}><option value="CASH">Espécime (informado por humano)</option><option value="PROVIDER_CONFIRMED">Provedor confirmado</option></select></label>
-            <label className={labelTw}>Referência externa (se provedor)<input className={fieldTw} value={receiptForm.externalReference} onChange={(event) => setReceiptForm({ ...receiptForm, externalReference: event.target.value })} /></label>
-            <button className={buttonTw} type="submit" disabled={busy}>Registrar recebimento</button>
-          </form>
-        </details>
-
-        <details className={detailsTw} data-testid="school-overdue-form">
-          <summary className={summaryFormTw}>Marcar mensalidade em atraso</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "MARK_OVERDUE", ...overdueForm }, "Atraso marcado; cancelamento automático se atingir o limite.")}>
-            <label className={labelTw}>Matrícula<select className={fieldTw} required value={overdueForm.enrollmentId} onChange={(event) => setOverdueForm({ ...overdueForm, enrollmentId: event.target.value })}><option value="">Selecione</option>{enrollments.map((item) => <option key={item.id} value={item.id}>{nameOf(item.studentId)} — {nameOf(item.classId)}</option>)}</select></label>
-            <button className={buttonTw} type="submit" disabled={busy}>Marcar atraso</button>
-          </form>
-        </details>
-
-        <details className={detailsTw} data-testid="school-cancellation-form">
-          <summary className={summaryFormTw}>Decidir sobre cancelamento sugerido</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: "CANCELLATION_DECISION", ...cancelForm }, "Decisão registrada; multa calculada sobre total menos pago.")}>
-            <label className={labelTw}>Matrícula<select className={fieldTw} required value={cancelForm.enrollmentId} onChange={(event) => setCancelForm({ ...cancelForm, enrollmentId: event.target.value })}><option value="">Selecione</option>{enrollments.filter((item) => balances.find((balance) => balance.enrollmentId === item.id)?.cancellationStatus === "SUGGESTED").map((item) => <option key={item.id} value={item.id}>{nameOf(item.studentId)} — {nameOf(item.classId)}</option>)}</select></label>
-            <label className={labelTw}>Decisão<select className={fieldTw} value={cancelForm.decision} onChange={(event) => setCancelForm({ ...cancelForm, decision: event.target.value })}><option value="APPROVE">Aprovar cancelamento</option><option value="REJECT">Rejeitar sugestão</option></select></label>
-            <button className={buttonTw} type="submit" disabled={busy}>Registrar decisão</button>
-          </form>
-        </details>
+      <div className={schoolTw.section}>
+        <h3 className={schoolTw.sectionTitle}><BookOpen size={18} aria-hidden="true" /> Regras da escola</h3>
+        <div className={schoolTw.grid}>
+          <article className={schoolTw.cardSoft}>
+            <Wallet size={20} aria-hidden="true" className="text-amber-600" />
+            <strong className="text-sm font-extrabold text-slate-950">Inadimplência e contrato</strong>
+            <p className={schoolTw.note}>Duas mensalidades em atraso sugerem cancelamento e inadimplência. Quebra de contrato calcula 20% sobre o saldo restante. Aprovação humana continua necessária.</p>
+          </article>
+          <article className={schoolTw.cardSoft}>
+            <GraduationCap size={20} aria-hidden="true" className="text-amber-600" />
+            <strong className="text-sm font-extrabold text-slate-950">Aula e presença</strong>
+            <p className={schoolTw.note}>Presença de aluno e professor, resumo do que foi estudado e dias de aula contabilizados no histórico.</p>
+          </article>
+          <article className={schoolTw.cardSoft}>
+            <UsersRound size={20} aria-hidden="true" className="text-amber-600" />
+            <strong className="text-sm font-extrabold text-slate-950">Lembretes agendados</strong>
+            <p className={schoolTw.note}>Professor 30 minutos antes da aula; pagamento 5 dias antes, no vencimento e diariamente após o atraso, pelos canais consentidos. Nenhum disparo é executado por esta tela.</p>
+          </article>
+        </div>
       </div>
-
-      <p className={mutedTw}>Lembretes, notificações e cancelamento ficam configurados/calculados, não executados. Nenhum envio, cobrança, pagamento ou publicação é realizado por esta tela.</p>
     </section>
   );
 }

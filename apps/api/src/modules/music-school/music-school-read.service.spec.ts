@@ -28,7 +28,7 @@ describe("Escola de Música — leituras", () => {
 
   it("rejeita identificadores inválidos nos filtros de leitura", async () => {
     const service = new MusicSchoolReadService({} as any);
-    await expect(service.listAttendances(TENANT, "turma-1")).rejects.toThrow("Turma inválida");
+    await expect(service.listAttendances(TENANT, "plano-1")).rejects.toThrow("Plano do aluno inválido");
     await expect(service.listBalances(TENANT, "aluno-1")).rejects.toThrow("Aluno inválido");
     await expect(service.listAttendances(TENANT, undefined, "2026-13-01")).rejects.toThrow("Data inicial inválida");
   });

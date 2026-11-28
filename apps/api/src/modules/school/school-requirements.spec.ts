@@ -30,4 +30,9 @@ describe("requisitos Fermata Music", () => {
     expect(teacherReminderAt("2026-12-10", "18:00", 30)).toBe("2026-12-10T17:30:00.000Z");
     expect(teacherReminderAt("2026-12-10", "invalid", 30)).toBeNull();
   });
+
+  it("mantém a notificação de pagamento ao professor como configuração sem envio", () => {
+    expect(DEFAULT_BILLING_POLICY.paymentNoticeToTeacher).toBe(true);
+    expect(DEFAULT_BILLING_POLICY.channels).toEqual(["WHATSAPP", "SMS", "EMAIL"]);
+  });
 });

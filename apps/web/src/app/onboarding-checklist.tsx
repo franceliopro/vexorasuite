@@ -47,9 +47,9 @@ export function OnboardingChecklist({ onNavigate, onDismiss, profile }: { onNavi
     try { if (localStorage.getItem(dismissKey) === "1") { setDismissed(true); setReady(true); onDismissRef.current?.(); return; } } catch {}
     let live = true;
     const init: Step[] = school ? [
-      { id: "escola", title: "Cadastre cursos e turmas", hint: "Estrutura inicial da gestão escolar", target: "Gestão escolar", done: false, loading: true },
+      { id: "escola", title: "Cadastre cursos e professores", hint: "Estrutura inicial da gestão escolar", target: "Gestão escolar", done: false, loading: true },
       { id: "alunos", title: "Cadastre alunos e matrículas", hint: "Cada empresa começa com seus próprios dados", target: "Gestão escolar", done: false, loading: true },
-      { id: "aula", title: "Registre a primeira aula", hint: "Presença e resumo ficam no histórico da turma", target: "Gestão escolar", done: false, loading: true },
+      { id: "aula", title: "Registre a primeira aula", hint: "Presença e resumo ficam no histórico do aluno", target: "Gestão escolar", done: false, loading: true },
       { id: "regras", title: "Revise as regras de mensalidade", hint: "Lembretes, multa e cancelamento dependem de aprovação humana", target: "Gestão escolar", done: false, loading: true },
     ] : [
       { id: "empresa", title: "Complete os Dados da empresa", hint: "Nome, CNPJ e endereço — usados em cobranças e contratos", target: "Configurações", done: false, loading: true },
@@ -63,7 +63,7 @@ export function OnboardingChecklist({ onNavigate, onDismiss, profile }: { onNavi
       void safeFetch<SchoolChecklistSnapshot>("/api/backend/school/snapshot").then((snapshot) => {
         if (!live) return;
         setSteps((current) => current.map((step) => {
-          if (step.id === "escola") return { ...step, done: Boolean(snapshot?.courses?.length && snapshot?.classes?.length), loading: false };
+          if (step.id === "escola") return { ...step, done: Boolean(snapshot?.courses?.length && snapshot?.people?.some((person) => person.kind === "TEACHER")), loading: false };
           if (step.id === "alunos") return { ...step, done: Boolean(snapshot?.people?.some((person) => person.kind === "STUDENT") && snapshot?.enrollments?.length), loading: false };
           if (step.id === "aula") return { ...step, done: Boolean(snapshot?.sessions?.length), loading: false };
           if (step.id === "regras") return { ...step, done: Boolean(snapshot?.billingPolicy), loading: false };

@@ -5,9 +5,14 @@ import { AlertTriangle, CheckCircle2, ClipboardCopy, FileText, Link2, RefreshCw,
 import { schoolTw, StateBadge, dateLabel } from "./school-ui";
 
 type Course = { id: string; name: string; level?: string | null; imageUrl?: string | null };
-type ClassRow = { id: string; name: string; courseId: string; weekday: number; startTime: string };
+type Teacher = { id: string; name: string; phone?: string | null; email?: string | null };
 type Template = { id: string; kind: string; name: string; source: string; variables: unknown; configuredAt: string | null; driveFileId: string | null };
-type LinkRow = { id: string; token: string; url: string; status: string; ownerName: string; courseId: string | null; classId: string | null; expiresAt: string | null; createdAt: string };
+type LinkRow = {
+  id: string; token: string; url: string; status: string; ownerName: string; courseId: string | null;
+  teacherId: string | null; weekday: number | null; startTime: string | null; durationMinutes: number | null;
+  period: string | null; contractPeriod: string | null; contractedSessions: number | null;
+  expiresAt: string | null; createdAt: string;
+};
 type Delivery = { id: string; recipientRole: string; status: string; error: string | null; sentAt: string | null };
 type Submission = {
   id: string; studentName: string; status: string; createdAt: string; signedAt: string | null;
@@ -15,7 +20,7 @@ type Submission = {
   deliveries: Delivery[]; envelopes: Array<{ envelopeId: string; status: string }>;
 };
 type Overview = {
-  courses: Course[]; classes: ClassRow[]; templates: Template[]; links: LinkRow[]; submissions: Submission[];
+  courses: Course[]; teachers: Teacher[]; templates: Template[]; links: LinkRow[]; submissions: Submission[];
   readiness: { contractTemplate: boolean; formTemplate: boolean; documenso: boolean; whatsapp: boolean };
 };
 
@@ -31,7 +36,12 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 const emptyTemplate = { kind: "CONTRACT", name: "Contrato de matrícula", bodyHtml: "", driveFileId: "" };
-const emptyLink = { courseId: "", classId: "", ownerName: "Mateus Lima", ownerPhone: "", ownerEmail: "", welcomeMessage: "", expiresAt: "" };
+const emptyLink = {
+  courseId: "", teacherId: "", weekday: "", startTime: "", durationMinutes: "50",
+  period: "MANHA", contractPeriod: "MONTHLY", contractedSessions: "12",
+  welcomeMessage: "", expiresAt: "",
+};
+const weekdays = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"];
 
 export function SchoolEnrollmentsWorkspace() {
   const [data, setData] = useState<Overview | null>(null);
@@ -74,7 +84,6 @@ export function SchoolEnrollmentsWorkspace() {
     catch { setNotice("Copie o link manualmente quando o navegador não permitir a área de transferência."); }
   };
 
-  const classes = (data?.classes || []).filter((item) => !linkForm.courseId || item.courseId === linkForm.courseId);
   const readiness = data?.readiness;
   const readyItems = [
     { label: "Modelo do contrato", ok: Boolean(readiness?.contractTemplate), icon: <FileText size={16} aria-hidden="true" /> },
@@ -129,20 +138,39 @@ export function SchoolEnrollmentsWorkspace() {
         <details className={schoolTw.card} data-testid="enrollment-link-form">
           <summary className="cursor-pointer text-sm font-bold text-slate-950">Novo link de matrícula</summary>
           <form className="grid gap-3" onSubmit={(event) => void run(event, "school-enrollments/links", linkForm, "Link criado. Copie e envie ao cliente.")}>
-            <label className={schoolTw.label}>Curso
-              <select className={schoolTw.select} value={linkForm.courseId} onChange={(event) => setLinkForm({ ...linkForm, courseId: event.target.value, classId: "" })}>
+            <label className={schoolTw.label}>Matéria/curso
+              <select className={schoolTw.select} required value={linkForm.courseId} onChange={(event) => setLinkForm({ ...linkForm, courseId: event.target.value })}>
                 <option value="">Selecione</option>
                 {(data?.courses || []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
               </select>
             </label>
-            <label className={schoolTw.label}>Turma
-              <select className={schoolTw.select} value={linkForm.classId} onChange={(event) => setLinkForm({ ...linkForm, classId: event.target.value })}>
+            <label className={schoolTw.label}>Professor responsável
+              <select className={schoolTw.select} required value={linkForm.teacherId} onChange={(event) => setLinkForm({ ...linkForm, teacherId: event.target.value })}>
                 <option value="">Selecione</option>
-                {classes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                {(data?.teachers || []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
               </select>
             </label>
-            <label className={schoolTw.label}>Professor responsável<input className={schoolTw.input} required value={linkForm.ownerName} onChange={(event) => setLinkForm({ ...linkForm, ownerName: event.target.value })} /></label>
-            <label className={schoolTw.label}>WhatsApp do professor (opcional)<input className={schoolTw.input} type="tel" placeholder="(66) 99999-0000" value={linkForm.ownerPhone} onChange={(event) => setLinkForm({ ...linkForm, ownerPhone: event.target.value })} /></label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className={schoolTw.label}>Dia da semana
+                <select className={schoolTw.select} required value={linkForm.weekday} onChange={(event) => setLinkForm({ ...linkForm, weekday: event.target.value })}>
+                  <option value="">Selecione</option>
+                  {weekdays.map((label, index) => <option key={label} value={index + 1}>{label}</option>)}
+                </select>
+              </label>
+              <label className={schoolTw.label}>Horário<input className={schoolTw.input} type="time" required value={linkForm.startTime} onChange={(event) => setLinkForm({ ...linkForm, startTime: event.target.value })} /></label>
+              <label className={schoolTw.label}>Duração da aula (minutos)<input className={schoolTw.input} type="number" min={30} max={240} required value={linkForm.durationMinutes} onChange={(event) => setLinkForm({ ...linkForm, durationMinutes: event.target.value })} /></label>
+              <label className={schoolTw.label}>Turno
+                <select className={schoolTw.select} value={linkForm.period} onChange={(event) => setLinkForm({ ...linkForm, period: event.target.value })}>
+                  <option value="MANHA">Manhã</option><option value="TARDE">Tarde</option><option value="NOITE">Noite</option>
+                </select>
+              </label>
+              <label className={schoolTw.label}>Período contratual
+                <select className={schoolTw.select} value={linkForm.contractPeriod} onChange={(event) => setLinkForm({ ...linkForm, contractPeriod: event.target.value })}>
+                  <option value="MONTHLY">Mensal</option><option value="QUARTERLY">Trimestral</option><option value="SEMESTER">Semestral</option><option value="YEARLY">Anual</option>
+                </select>
+              </label>
+              <label className={schoolTw.label}>Aulas contratadas<input className={schoolTw.input} type="number" min={1} max={1000} required value={linkForm.contractedSessions} onChange={(event) => setLinkForm({ ...linkForm, contractedSessions: event.target.value })} /></label>
+            </div>
             <label className={schoolTw.label}>Mensagem de boas-vindas<textarea className={schoolTw.textarea} rows={3} value={linkForm.welcomeMessage} onChange={(event) => setLinkForm({ ...linkForm, welcomeMessage: event.target.value })} /></label>
             <button className={schoolTw.button} type="submit" disabled={busy}><Link2 size={16} aria-hidden="true" /> Criar link</button>
           </form>
@@ -152,7 +180,7 @@ export function SchoolEnrollmentsWorkspace() {
       <div className={schoolTw.section}>
         <div className={schoolTw.sectionHead}>
           <h3 className={schoolTw.sectionTitle}><Link2 size={18} aria-hidden="true" /> Links gerados</h3>
-          <p className={schoolTw.sectionHint}>O link já chega com curso, turma e professor — nunca com dados pessoais da aluna.</p>
+          <p className={schoolTw.sectionHint}>O link já chega com curso e professor responsável — nunca com dados pessoais da aluna.</p>
         </div>
         {(data?.links || []).length === 0 ? <p className={schoolTw.empty}>Nenhum link criado.</p> : (
           <div className={schoolTw.list}>
@@ -161,7 +189,10 @@ export function SchoolEnrollmentsWorkspace() {
                 <div className="grid min-w-0 gap-1">
                   <strong className="truncate text-sm font-bold text-slate-950">{link.ownerName} · {data?.courses.find((item) => item.id === link.courseId)?.name || "Curso aberto"}</strong>
                   <code className="block truncate text-xs text-slate-500">{link.url || `/m/${link.token}`}</code>
-                  <span className={schoolTw.note}>Criado em {dateLabel(link.createdAt)} · status {link.status}</span>
+                  <span className={schoolTw.note}>
+                    {link.weekday ? weekdays[link.weekday - 1] : "Dia a definir"}{link.startTime ? ` · ${link.startTime}` : ""} · {link.contractPeriod || "período a definir"}
+                    {" · "}Criado em {dateLabel(link.createdAt)} · status {link.status}
+                  </span>
                 </div>
                 <div className={schoolTw.actions}>
                   <button type="button" className={schoolTw.buttonSoft} onClick={() => void copy(link.url)}><ClipboardCopy size={15} aria-hidden="true" /> Copiar</button>

@@ -27,6 +27,11 @@ export class SchoolController {
     return this.read.defaultCourses();
   }
 
+  @Post("seed-default-courses")
+  seedDefaultCourses(@Req() req: AuthenticatedRequest) {
+    return this.service.seedDefaultCourses(req.user.tenantId, req.user.role, req.user.sub);
+  }
+
   @Post("records")
   createRecord(@Req() req: AuthenticatedRequest, @Body() body: Record<string, unknown>) {
     return this.service.createRecord(body, req.user.tenantId, req.user.role, req.user.sub);

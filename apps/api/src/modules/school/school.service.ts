@@ -1,8 +1,12 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import {
+  ATTENDANCE_PERSON_KINDS,
   ATTENDANCE_STATUSES,
+  BILLING_MODES,
   CANCELLATION_DECISIONS,
+  CLASS_PERIODS,
+  CONTRACT_PERIODS,
   DEFAULT_BILLING_POLICY,
   MATERIAL_KINDS,
   NOTICE_CHANNELS,
@@ -16,6 +20,7 @@ import {
   billingPeriodKey,
   classTime,
   cleanRichText,
+  courseImageUrl,
   httpsUrl,
   inList,
   integer,
@@ -31,6 +36,7 @@ import {
   weekday,
   youtubeEmbed,
 } from "./school-rules";
+import { musicSchoolDefaultCourses } from "./music-school-defaults";
 
 const YOUTUBE_IN_HTML = /https:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)[A-Za-z0-9_-]{6,20}/g;
 
@@ -68,19 +74,56 @@ export class SchoolService {
     return [...new Set([...materials, ...found].filter((url) => Boolean(youtubeEmbed(url))))].slice(0, 50);
   }
 
+  /** Plano individual do aluno: serviço interno, nunca exposto como "turma" na interface.
+   * Reaproveita o modelo SchoolClass para manter matrícula, sessão e presença tenant-scoped.
+   */
+  private async individualClass(tx: any, tenantId: string, body: Record<string, unknown>, userId: string): Promise<any> {
+    const explicit = this.optionalUuid(body?.classId, "Plano do aluno");
+    if (explicit) return this.find(tx, "schoolClass", { id: explicit, tenantId }, "Plano do aluno");
+    const studentId = this.optionalUuid(body?.studentId, "Aluno");
+    const courseId = this.optionalUuid(body?.courseId, "Matéria/curso");
+    const teacherId = this.optionalUuid(body?.teacherId, "Professor");
+    if (!studentId || !courseId || !teacherId) throw new Error("Informe aluno, matéria/curso e professor da aula.");
+    const student = await this.find(tx, "schoolPerson", { id: studentId, tenantId, kind: "STUDENT", active: true }, "Aluno");
+    const course = await this.find(tx, "schoolCourse", { id: courseId, tenantId, kind: "COURSE", active: true }, "Matéria/curso");
+    await this.find(tx, "schoolPerson", { id: teacherId, tenantId, kind: "TEACHER", active: true }, "Professor");
+    const schedule: Record<string, unknown> = {};
+    if (body?.weekday !== undefined && body.weekday !== "") schedule.weekday = weekday(body.weekday);
+    if (typeof body?.startTime === "string" && body.startTime) schedule.startTime = classTime(body.startTime);
+    if (body?.durationMinutes !== undefined && body.durationMinutes !== "") {
+      schedule.durationMinutes = integer(body.durationMinutes, 30, 240, "Duração da aula");
+    }
+    if (body?.period !== undefined && body.period !== "") schedule.period = inList(body.period, CLASS_PERIODS, "Período do curso");
+    const name = `${student.name} · ${course.name}`.slice(0, 120);
+    const existing = await tx.schoolClass.findFirst({ where: { tenantId, courseId, teacherId, name } });
+    if (existing) {
+      return Object.keys(schedule).length
+        ? tx.schoolClass.update({ where: { id: existing.id }, data: schedule })
+        : existing;
+    }
+    return tx.schoolClass.create({
+      data: {
+        tenantId, courseId, teacherId, name,
+        weekday: (schedule.weekday as number | undefined) ?? 1,
+        startTime: (schedule.startTime as string | undefined) ?? "19:00",
+        durationMinutes: (schedule.durationMinutes as number | undefined) ?? 50,
+        period: (schedule.period as string | undefined) ?? null,
+        active: true, createdById: userId,
+      },
+    });
+  }
+
   private async resolveSession(tx: any, tenantId: string, body: Record<string, unknown>, userId: string): Promise<any> {
     if (body?.sessionId !== undefined && body.sessionId !== "") {
       const sessionId = this.optionalUuid(body.sessionId, "Aula");
       return this.find(tx, "schoolSession", { id: sessionId, tenantId }, "Aula");
     }
-    const classId = this.optionalUuid(body?.classId, "Turma");
-    if (!classId) throw new Error("Informe a aula ou a turma com data.");
-    await this.find(tx, "schoolClass", { id: classId, tenantId }, "Turma");
+    const schoolClass = await this.individualClass(tx, tenantId, body, userId);
     const sessionDate = isoDate(body?.sessionDate);
     if (!sessionDate) throw new Error("Informe a data da aula no formato AAAA-MM-DD.");
-    const existing = await tx.schoolSession.findFirst({ where: { tenantId, classId, sessionDate: utcDate(sessionDate) } });
+    const existing = await tx.schoolSession.findFirst({ where: { tenantId, classId: schoolClass.id, sessionDate: utcDate(sessionDate) } });
     return existing ?? tx.schoolSession.create({
-      data: { tenantId, classId, sessionDate: utcDate(sessionDate), status: "SCHEDULED", createdById: userId },
+      data: { tenantId, classId: schoolClass.id, sessionDate: utcDate(sessionDate), status: "SCHEDULED", createdById: userId },
     });
   }
 
@@ -130,30 +173,44 @@ export class SchoolService {
             parent = await this.find(tx, "schoolCourse", { id: parentIdValue, tenantId, kind: "COURSE" }, "Curso");
             parentId = parent.id;
           }
-          const imageUrlRaw = optionalText(body?.imageUrl, 2000, "Foto do curso");
-          const imageUrl = imageUrlRaw ? httpsUrl(imageUrlRaw, "Foto do curso") : null;
-          const summary = optionalText(body?.summary, 2000, "Detalhes do curso");
-          const level = optionalText(body?.level, 40, "Nível");
-          const durationLabel = optionalText(body?.durationLabel, 40, "Duração");
-          const tuitionAmountCents = optionalInteger(body?.tuitionAmountCents, 0, 100_000_000, "Mensalidade em centavos");
+          const imageUrlRaw = optionalText(body?.imageUrl, 3_000_000, "Foto do curso");
+          const imageUrl = imageUrlRaw ? courseImageUrl(imageUrlRaw, "Foto do curso") : null;
+          const summary = optionalText(body?.summary, 2000, "Descrição do curso");
+          // Cadastro enxuto: somente nome, foto e descrição. Valores padrão entram só no seed do segmento.
           const row = await tx.schoolCourse.create({
             data: {
               tenantId, kind, name, parentId,
               active: body?.active !== false,
-              imageUrl, summary, level, durationLabel, tuitionAmountCents,
+              imageUrl, summary, level: null, durationLabel: null, tuitionAmountCents: null,
               createdById: userId,
             },
           });
           return { ...row, parentName: parent?.name ?? null };
         }
 
-        if (kind === "STUDENT" || kind === "TEACHER") {
+        if (kind === "STUDENT" || kind === "TEACHER" || kind === "RESPONSIBLE") {
           const name = text(body?.name, 120, "Nome");
           const email = optionalText(body?.email, 160, "E-mail");
           if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("E-mail inválido.");
           const phone = optionalText(body?.phone, 40, "Telefone");
+          const cpf = optionalText(body?.cpf, 20, "CPF");
+          const addressLine = optionalText(body?.addressLine, 300, "Endereço");
+          const formation = kind === "TEACHER" ? optionalText(body?.formation, 240, "Formação") : null;
+          const metadata = {
+            source: typeof body?.source === "string" && body.source.trim() ? body.source.trim().slice(0, 40) : "MANUAL",
+            submissionId: this.optionalUuid(body?.submissionId, "Matrícula"),
+            instrument: optionalText(body?.instrument, 80, "Instrumento"),
+            level: optionalText(body?.level, 80, "Nível"),
+            startDate: isoDate(body?.startDate),
+            weekday: optionalInteger(body?.weekday, 1, 7, "Dia da semana"),
+            startTime: typeof body?.startTime === "string" && body.startTime ? classTime(body.startTime) : null,
+            paymentMethod: optionalText(body?.paymentMethod, 40, "Forma de pagamento"),
+          };
           return tx.schoolPerson.create({
-            data: { tenantId, kind, name, email, phone, active: body?.active !== false, createdById: userId },
+            data: {
+              tenantId, kind, name, email, phone, cpf, addressLine, formation, metadata,
+              active: body?.active !== false, createdById: userId,
+            },
           });
         }
 
@@ -167,17 +224,20 @@ export class SchoolService {
 
         if (kind === "CLASS") {
           const courseId = this.optionalUuid(body?.courseId, "Matéria/curso");
-          if (!courseId) throw new Error("Informe a matéria ou curso da turma.");
+          if (!courseId) throw new Error("Informe o curso do plano individual.");
           const course = await this.find(tx, "schoolCourse", { id: courseId, tenantId }, "Matéria/curso");
           const teacherId = this.optionalUuid(body?.teacherId, "Professor");
-          if (!teacherId) throw new Error("Informe o professor da turma.");
+          if (!teacherId) throw new Error("Informe o professor do plano individual.");
           const teacher = await this.find(tx, "schoolPerson", { id: teacherId, tenantId, kind: "TEACHER", active: true }, "Professor");
           const roomId = this.optionalUuid(body?.roomId, "Sala");
           const room = roomId ? await this.find(tx, "schoolRoom", { id: roomId, tenantId, active: true }, "Sala") : null;
-          const name = text(body?.name, 120, "Nome da turma");
+          const name = text(body?.name, 120, "Nome do plano individual");
           const weekdayValue = weekday(body?.weekday);
           const startTime = classTime(body?.startTime);
           const durationMinutes = integer(body?.durationMinutes ?? 60, 30, 240, "Duração");
+          const period = body?.period === undefined || body.period === ""
+            ? null
+            : inList(body.period, CLASS_PERIODS, "Período do curso");
           let courseName = course.name;
           if (course.kind === "SUBJECT" && course.parentId) {
             const parent = await tx.schoolCourse.findFirst({ where: { id: course.parentId, tenantId }, select: { name: true } });
@@ -186,7 +246,7 @@ export class SchoolService {
           const row = await tx.schoolClass.create({
             data: {
               tenantId, courseId, teacherId, roomId: room?.id ?? null, name,
-              weekday: weekdayValue, startTime, durationMinutes,
+              weekday: weekdayValue, startTime, durationMinutes, period,
               active: body?.active !== false, createdById: userId,
             },
           });
@@ -194,9 +254,8 @@ export class SchoolService {
         }
 
         if (kind === "ENROLLMENT") {
-          const classId = this.optionalUuid(body?.classId, "Turma");
-          if (!classId) throw new Error("Informe a turma da matrícula.");
-          const schoolClass = await this.find(tx, "schoolClass", { id: classId, tenantId }, "Turma");
+          const schoolClass = await this.individualClass(tx, tenantId, body, userId);
+          const classId = schoolClass.id;
           const studentId = this.optionalUuid(body?.studentId, "Aluno");
           if (!studentId) throw new Error("Informe o aluno da matrícula.");
           const student = await this.find(tx, "schoolPerson", { id: studentId, tenantId, kind: "STUDENT", active: true }, "Aluno");
@@ -210,20 +269,52 @@ export class SchoolService {
           const tuitionCycle = body?.tuitionCycle === undefined || body.tuitionCycle === ""
             ? "MONTHLY"
             : inList(body.tuitionCycle, TUITION_CYCLES, "Ciclo de mensalidade");
+          const contractPeriod = body?.contractPeriod === undefined || body.contractPeriod === ""
+            ? null
+            : inList(body.contractPeriod, CONTRACT_PERIODS, "Período contratual");
+          const billingMode = body?.billingMode === undefined || body.billingMode === ""
+            ? "STUDENT"
+            : inList(body.billingMode, BILLING_MODES, "Cliente da mensalidade");
+          let billingPersonId = studentId;
+          if (billingMode === "GUARDIAN") {
+            const requested = this.optionalUuid(body?.guardianPersonId, "Responsável pelo aluno");
+            if (!requested) throw new Error("Selecione o responsável que será cliente no Asaas.");
+            const guardian = await this.find(tx, "schoolPerson", { id: requested, tenantId, active: true }, "Responsável pelo aluno");
+            billingPersonId = guardian.id;
+          }
           const duplicate = await tx.schoolEnrollment.findFirst({ where: { tenantId, classId, studentId } });
-          if (duplicate) throw new Error("Este aluno já está matriculado nesta turma.");
+          if (duplicate) throw new Error("Este aluno já está matriculado neste curso.");
           const row = await tx.schoolEnrollment.create({
             data: {
               tenantId, classId, studentId, contractedSessions, purchasedSessions,
               status: "ACTIVE", tuitionAmountCents, tuitionCycle,
               tuitionStatus: "SCHEDULED", tuitionNextDueDate: due ? utcDate(due) : null,
-              contractTotalCents, createdById: userId,
+              contractTotalCents, contractPeriod, billingMode, billingPersonId,
+              asaasCustomerId: null, asaasSyncStatus: "PENDING", createdById: userId,
             },
           });
+          await tx.schoolGuardian.updateMany({
+            where: { tenantId, studentId },
+            data: { isBillingClient: billingMode === "GUARDIAN" },
+          });
+          if (billingMode === "GUARDIAN") {
+            await tx.schoolGuardian.updateMany({
+              where: { tenantId, studentId, personId: billingPersonId },
+              data: { isBillingClient: true },
+            });
+          }
           return {
             ...row,
             className: schoolClass.name,
             studentName: student.name,
+            billing: {
+              mode: row.billingMode,
+              personId: row.billingPersonId,
+              asaasSyncStatus: row.asaasSyncStatus,
+              asaasCustomerId: null,
+              executed: false,
+              confirmed: false,
+            },
             tuition: {
               status: row.tuitionStatus,
               amountCents: row.tuitionAmountCents,
@@ -235,14 +326,13 @@ export class SchoolService {
         }
 
         if (kind === "SESSION") {
-          const classId = this.optionalUuid(body?.classId, "Turma");
-          if (!classId) throw new Error("Informe a turma da aula.");
-          const schoolClass = await this.find(tx, "schoolClass", { id: classId, tenantId }, "Turma");
+          const schoolClass = await this.individualClass(tx, tenantId, body, userId);
+          const classId = schoolClass.id;
           const sessionDate = isoDate(body?.sessionDate);
           if (!sessionDate) throw new Error("Informe a data da aula no formato AAAA-MM-DD.");
           const status = body?.status === undefined ? "SCHEDULED" : inList(body.status, SESSION_STATUSES, "Status da aula");
           const duplicate = await tx.schoolSession.findFirst({ where: { tenantId, classId, sessionDate: utcDate(sessionDate) } });
-          if (duplicate) throw new Error("Já existe aula nesta data para esta turma.");
+          if (duplicate) throw new Error("Já existe aula nesta data para este aluno.");
           const row = await tx.schoolSession.create({
             data: { tenantId, classId, sessionDate: utcDate(sessionDate), status, createdById: userId },
           });
@@ -250,9 +340,8 @@ export class SchoolService {
         }
 
         if (kind === "LESSON_PLAN") {
-          const classId = this.optionalUuid(body?.classId, "Turma");
-          if (!classId) throw new Error("Informe a turma do plano de aula.");
-          const schoolClass = await this.find(tx, "schoolClass", { id: classId, tenantId }, "Turma");
+          const schoolClass = await this.individualClass(tx, tenantId, body, userId);
+          const classId = schoolClass.id;
           const title = text(body?.title, 120, "Título do plano");
           const objectiveHtml = cleanRichText(body?.objectiveHtml, "Objetivo");
           const contentHtml = cleanRichText(body?.contentHtml, "Conteúdo");
@@ -285,14 +374,13 @@ export class SchoolService {
         }
 
         if (kind === "GRADE") {
-          const classId = this.optionalUuid(body?.classId, "Turma");
-          if (!classId) throw new Error("Informe a turma da avaliação.");
-          const schoolClass = await this.find(tx, "schoolClass", { id: classId, tenantId }, "Turma");
+          const schoolClass = await this.individualClass(tx, tenantId, body, userId);
+          const classId = schoolClass.id;
           const studentId = this.optionalUuid(body?.studentId, "Aluno");
           if (!studentId) throw new Error("Informe o aluno avaliado.");
           const student = await this.find(tx, "schoolPerson", { id: studentId, tenantId, kind: "STUDENT" }, "Aluno");
           const enrollment = await tx.schoolEnrollment.findFirst({ where: { tenantId, classId, studentId } });
-          if (!enrollment) throw new Error("Este aluno não está matriculado nesta turma.");
+          if (!enrollment) throw new Error("Este aluno ainda não possui matrícula neste curso.");
           const title = text(body?.title, 120, "Título da avaliação");
           const evaluationDate = isoDate(body?.evaluationDate);
           if (!evaluationDate) throw new Error("Informe a data da avaliação no formato AAAA-MM-DD.");
@@ -300,7 +388,7 @@ export class SchoolService {
           const score = integer(body?.score, 0, maxScore, "Nota");
           const note = optionalText(body?.note, 240, "Observação");
           const duplicate = await tx.schoolGrade.findFirst({ where: { tenantId, classId, studentId, title } });
-          if (duplicate) throw new Error("Já existe avaliação com este título para o aluno nesta turma.");
+          if (duplicate) throw new Error("Já existe avaliação com este título para o aluno neste plano.");
           const row = await tx.schoolGrade.create({
             data: {
               tenantId, classId, studentId, title, evaluationDate: utcDate(evaluationDate),
@@ -314,16 +402,26 @@ export class SchoolService {
           const studentId = this.optionalUuid(body?.studentId, "Aluno");
           if (!studentId) throw new Error("Informe o aluno responsabilizado.");
           const student = await this.find(tx, "schoolPerson", { id: studentId, tenantId, kind: "STUDENT" }, "Aluno");
-          const name = text(body?.name, 120, "Nome do responsável");
+          const personId = this.optionalUuid(body?.personId, "Responsável cadastrado");
+          let guardianPerson: any = null;
+          if (personId) guardianPerson = await this.find(tx, "schoolPerson", { id: personId, tenantId, active: true }, "Responsável cadastrado");
+          const name = guardianPerson?.name ?? text(body?.name, 120, "Nome do responsável");
           const relationship = body?.relationship === undefined || body.relationship === ""
             ? null
             : inList(body.relationship, RELATIONSHIPS, "Parentesco");
-          const phone = optionalText(body?.phone, 40, "Telefone");
-          const email = optionalText(body?.email, 160, "E-mail");
+          const phone = guardianPerson?.phone ?? optionalText(body?.phone, 40, "Telefone");
+          const email = guardianPerson?.email ?? optionalText(body?.email, 160, "E-mail");
+          const isBillingClient = body?.isBillingClient === true;
+          if (isBillingClient) {
+            await tx.schoolGuardian.updateMany({ where: { tenantId, studentId }, data: { isBillingClient: false } });
+          }
           const row = await tx.schoolGuardian.create({
-            data: { tenantId, studentId, name, relationship, phone, email, createdById: userId },
+            data: {
+              tenantId, studentId, personId: guardianPerson?.id ?? null, name, relationship,
+              phone, email, isBillingClient, createdById: userId,
+            },
           });
-          return { ...row, studentName: student.name };
+          return { ...row, studentName: student.name, personName: guardianPerson?.name ?? null };
         }
 
         if (kind === "NOTICE") {
@@ -331,9 +429,9 @@ export class SchoolService {
           const bodyHtml = cleanRichText(body?.bodyHtml, "Texto do aviso");
           const channel = body?.channel === undefined ? "WHATSAPP" : inList(body.channel, NOTICE_CHANNELS, "Canal");
           const studentId = this.optionalUuid(body?.studentId, "Aluno");
-          const classId = this.optionalUuid(body?.classId, "Turma");
+          const classId = this.optionalUuid(body?.classId, "Plano do aluno");
           if (studentId) await this.find(tx, "schoolPerson", { id: studentId, tenantId, kind: "STUDENT" }, "Aluno");
-          if (classId) await this.find(tx, "schoolClass", { id: classId, tenantId }, "Turma");
+          if (classId) await this.find(tx, "schoolClass", { id: classId, tenantId }, "Plano do aluno");
           const scheduledAt = isoDate(body?.scheduledAt);
           const row = await tx.schoolNotice.create({
             data: {
@@ -375,7 +473,7 @@ export class SchoolService {
             where: { id: session.id },
             data: { summaryHtml, summaryRecordedAt: new Date() },
           });
-          const classRow = await this.find(tx, "schoolClass", { id: session.classId, tenantId }, "Turma");
+          const classRow = await this.find(tx, "schoolClass", { id: session.classId, tenantId }, "Plano do aluno");
           return {
             sessionId: session.id,
             classId: session.classId,
@@ -596,7 +694,7 @@ export class SchoolService {
     if (!isManager(role)) throw new ForbiddenException("Somente responsáveis pela empresa podem registrar presença.");
     if (body?.paired === true) return this.recordPairedAttendance(body, tenantId, userId);
     try {
-      const personKind = inList(body?.personKind, PERSON_KINDS, "Tipo de pessoa");
+      const personKind = inList(body?.personKind, ATTENDANCE_PERSON_KINDS, "Tipo de pessoa");
       const personId = this.optionalUuid(body?.personId, "Pessoa");
       if (!personId) throw new Error("Informe a pessoa da presença.");
       const status = inList(body?.status, ATTENDANCE_STATUSES, "Status de presença");
@@ -608,11 +706,11 @@ export class SchoolService {
         let enrollmentId: string | null = null;
         if (personKind === "STUDENT") {
           const enrollment = await tx.schoolEnrollment.findFirst({ where: { tenantId, classId: session.classId, studentId: personId } });
-          if (!enrollment) throw new Error("Este aluno não está matriculado nesta turma.");
+          if (!enrollment) throw new Error("Este aluno ainda não possui matrícula neste curso.");
           enrollmentId = enrollment.id;
         } else {
-          const schoolClass = await this.find(tx, "schoolClass", { id: session.classId, tenantId }, "Turma");
-          if (schoolClass.teacherId !== personId) throw new Error("Este professor não leciona nesta turma.");
+          const schoolClass = await this.find(tx, "schoolClass", { id: session.classId, tenantId }, "Plano do aluno");
+          if (schoolClass.teacherId !== personId) throw new Error("Este professor não leciona neste plano.");
         }
         const duplicate = await tx.schoolAttendance.findFirst({
           where: { tenantId, sessionId: session.id, personKind, personId },
@@ -653,8 +751,8 @@ export class SchoolService {
         const session = await this.resolveSession(tx, tenantId, body, userId);
         const student = await this.find(tx, "schoolPerson", { id: studentId, tenantId, kind: "STUDENT", active: true }, "Aluno");
         const teacher = await this.find(tx, "schoolPerson", { id: teacherId, tenantId, kind: "TEACHER", active: true }, "Professor");
-        const schoolClass = await this.find(tx, "schoolClass", { id: session.classId, tenantId }, "Turma");
-        if (schoolClass.teacherId !== teacherId) throw new Error("Este professor não leciona nesta turma.");
+        const schoolClass = await this.find(tx, "schoolClass", { id: session.classId, tenantId }, "Plano do aluno");
+        if (schoolClass.teacherId !== teacherId) throw new Error("Este professor não leciona neste plano.");
         const enrollment = await this.find(tx, "schoolEnrollment", { tenantId, classId: session.classId, studentId }, "Matrícula");
         const records: any[] = [];
         for (const entry of [
@@ -688,5 +786,47 @@ export class SchoolService {
     } catch (error) {
       this.rethrow(error);
     }
+  }
+
+  /** Cadastra no tenant os cursos iniciais do segmento, sem sobrescrever o catálogo existente.
+   * Idempotente: cursos com o mesmo nome permanecem como estão. Nenhuma ação externa é executada.
+   */
+  async seedDefaultCourses(tenantId: string, role: string, userId: string) {
+    if (!isManager(role)) throw new ForbiddenException("Somente responsáveis pela empresa podem gerenciar a escola.");
+    const defaults = musicSchoolDefaultCourses();
+    return this.prisma.$transaction(async (tx: any) => {
+      await this.lockTenant(tx, tenantId);
+      let created = 0;
+      for (const item of defaults) {
+        const existing = await tx.schoolCourse.findFirst({
+          where: { tenantId, kind: item.kind, name: item.name },
+        });
+        if (existing) continue;
+        await tx.schoolCourse.create({
+          data: {
+            tenantId,
+            kind: item.kind,
+            name: item.name,
+            active: true,
+            level: item.level,
+            durationLabel: item.durationLabel,
+            tuitionAmountCents: item.tuitionAmountCents,
+            imageUrl: item.imageUrl,
+            summary: item.summary,
+            createdById: userId,
+          },
+        });
+        created += 1;
+      }
+      const stored = await tx.schoolCourse.findMany({
+        where: { tenantId, kind: "COURSE" },
+        orderBy: { name: "asc" },
+        take: 100,
+      });
+      const ordered = defaults
+        .map((item) => stored.find((course) => course.name === item.name))
+        .filter((course): course is (typeof stored)[number] => Boolean(course));
+      return { created, total: defaults.length, courses: ordered.length ? ordered : stored };
+    });
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import {
   DEFAULT_BILLING_POLICY,
@@ -14,9 +14,26 @@ import { musicSchoolDefaultCourses } from "./music-school-defaults";
 /** Leituras da gestão escolar: toda consulta começa pelo tenant da sessão. */
 @Injectable()
 export class SchoolReadService {
+  private readonly logger = new Logger(SchoolReadService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Uma tabela pendente de migration não pode derrubar o snapshot inteiro.
+   * A falha é registrada e devolvida como aviso explícito, nunca como sucesso silencioso.
+   */
+  private async safe<T>(label: string, query: () => Promise<T>, fallback: T, warnings: string[]): Promise<T> {
+    try {
+      return await query();
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "erro desconhecido";
+      this.logger.warn(`school/snapshot: ${label} indisponível (${detail}).`);
+      warnings.push(`${label} indisponível nesta instalação.`);
+      return fallback;
+    }
+  }
+
   async snapshot(tenantId: string) {
+    const warnings: string[] = [];
     const [
       courses,
       people,
@@ -33,20 +50,20 @@ export class SchoolReadService {
       billingPolicies,
       paymentReceipts,
     ] = await Promise.all([
-      this.prisma.schoolCourse.findMany({ where: { tenantId }, orderBy: { name: "asc" }, take: 500 }),
-      this.prisma.schoolPerson.findMany({ where: { tenantId }, orderBy: { name: "asc" }, take: 500 }),
-      this.prisma.schoolRoom.findMany({ where: { tenantId }, orderBy: { name: "asc" }, take: 200 }),
-      this.prisma.schoolClass.findMany({ where: { tenantId }, orderBy: { name: "asc" }, take: 500 }),
-      this.prisma.schoolEnrollment.findMany({ where: { tenantId }, orderBy: { createdAt: "desc" }, take: 500 }),
-      this.prisma.schoolSession.findMany({ where: { tenantId }, orderBy: { sessionDate: "desc" }, take: 500 }),
-      this.prisma.schoolAttendance.findMany({ where: { tenantId }, orderBy: { recordedAt: "desc" }, take: 1000 }),
-      this.prisma.schoolLessonPlan.findMany({ where: { tenantId }, orderBy: [{ classId: "asc" }, { version: "desc" }], take: 500 }),
-      this.prisma.schoolGrade.findMany({ where: { tenantId }, orderBy: { evaluationDate: "desc" }, take: 500 }),
-      this.prisma.schoolGuardian.findMany({ where: { tenantId }, orderBy: { name: "asc" }, take: 500 }),
-      this.prisma.schoolNotice.findMany({ where: { tenantId }, orderBy: { createdAt: "desc" }, take: 500 }),
-      this.prisma.schoolMaterial.findMany({ where: { tenantId }, orderBy: { createdAt: "desc" }, take: 500 }),
-      this.prisma.schoolBillingPolicy.findMany({ where: { tenantId }, take: 5 }),
-      this.prisma.schoolPaymentReceipt.findMany({ where: { tenantId }, orderBy: { createdAt: "desc" }, take: 500 }),
+      this.safe("Cursos", () => this.prisma.schoolCourse.findMany({ where: { tenantId }, orderBy: { name: "asc" }, take: 500 }), [], warnings),
+      this.safe("Pessoas", () => this.prisma.schoolPerson.findMany({ where: { tenantId }, orderBy: { name: "asc" }, take: 500 }), [], warnings),
+      this.safe("Salas", () => this.prisma.schoolRoom.findMany({ where: { tenantId }, orderBy: { name: "asc" }, take: 200 }), [], warnings),
+      this.safe("Planos individuais", () => this.prisma.schoolClass.findMany({ where: { tenantId }, orderBy: { name: "asc" }, take: 500 }), [], warnings),
+      this.safe("Matrículas", () => this.prisma.schoolEnrollment.findMany({ where: { tenantId }, orderBy: { createdAt: "desc" }, take: 500 }), [], warnings),
+      this.safe("Aulas", () => this.prisma.schoolSession.findMany({ where: { tenantId }, orderBy: { sessionDate: "desc" }, take: 500 }), [], warnings),
+      this.safe("Presenças", () => this.prisma.schoolAttendance.findMany({ where: { tenantId }, orderBy: { recordedAt: "desc" }, take: 1000 }), [], warnings),
+      this.safe("Resumos", () => this.prisma.schoolLessonPlan.findMany({ where: { tenantId }, orderBy: [{ classId: "asc" }, { version: "desc" }], take: 500 }), [], warnings),
+      this.safe("Avaliações", () => this.prisma.schoolGrade.findMany({ where: { tenantId }, orderBy: { evaluationDate: "desc" }, take: 500 }), [], warnings),
+      this.safe("Responsáveis", () => this.prisma.schoolGuardian.findMany({ where: { tenantId }, orderBy: { name: "asc" }, take: 500 }), [], warnings),
+      this.safe("Avisos", () => this.prisma.schoolNotice.findMany({ where: { tenantId }, orderBy: { createdAt: "desc" }, take: 500 }), [], warnings),
+      this.safe("Materiais", () => this.prisma.schoolMaterial.findMany({ where: { tenantId }, orderBy: { createdAt: "desc" }, take: 500 }), [], warnings),
+      this.safe("Política de cobrança", () => this.prisma.schoolBillingPolicy.findMany({ where: { tenantId }, take: 5 }), [], warnings),
+      this.safe("Recebimentos", () => this.prisma.schoolPaymentReceipt.findMany({ where: { tenantId }, orderBy: { createdAt: "desc" }, take: 500 }), [], warnings),
     ]);
 
     const storedPolicy = billingPolicies[0] ?? null;
@@ -105,6 +122,16 @@ export class SchoolReadService {
         classId: enrollment.classId,
         studentId: enrollment.studentId,
         status: enrollment.status,
+        period: enrollment.contractPeriod ?? classes.find((item) => item.id === enrollment.classId)?.period ?? null,
+        contractPeriod: enrollment.contractPeriod,
+        billing: {
+          mode: enrollment.billingMode,
+          personId: enrollment.billingPersonId,
+          asaasCustomerId: enrollment.asaasCustomerId,
+          asaasSyncStatus: enrollment.asaasSyncStatus,
+          executed: false,
+          confirmed: false,
+        },
         tuition: {
           status: enrollment.tuitionStatus,
           cycle: enrollment.tuitionCycle,
@@ -138,8 +165,17 @@ export class SchoolReadService {
       };
     });
 
+    const defaults = musicSchoolDefaultCourses();
+    const order = new Map<string, number>(defaults.map((course, index) => [course.name, index]));
+    const orderedCourses = [...courses].sort((left, right) => {
+      const a = order.get(left.name) ?? Number.MAX_SAFE_INTEGER;
+      const b = order.get(right.name) ?? Number.MAX_SAFE_INTEGER;
+      return a === b ? left.name.localeCompare(right.name, "pt-BR") : a - b;
+    });
+
     return {
-      courses,
+      courses: orderedCourses,
+      defaultCourses: defaults,
       people,
       rooms,
       classes,
@@ -155,6 +191,7 @@ export class SchoolReadService {
       paymentReceipts,
       balances,
       stats: attendanceStats(attendances as AttendanceLike[]),
+      warnings,
     };
   }
 

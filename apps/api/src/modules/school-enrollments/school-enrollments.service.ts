@@ -34,6 +34,11 @@ import {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TOKEN_RE = /^[a-f0-9]{48}$/;
 const attempts = new Map<string, number[]>();
+const CONTRACT_PERIODS = ["MONTHLY", "QUARTERLY", "SEMESTER", "YEARLY"] as const;
+const PERIOD_LABEL: Record<string, string> = { MANHA: "Manhã", TARDE: "Tarde", NOITE: "Noite" };
+const CONTRACT_LABEL: Record<string, string> = {
+  MONTHLY: "Mensal", QUARTERLY: "Trimestral", SEMESTER: "Semestral", YEARLY: "Anual",
+};
 
 /**
  * Matrícula externa da escola de música. Toda leitura/escrita começa pelo tenant
@@ -69,11 +74,185 @@ export class SchoolEnrollmentsService {
     return course;
   }
 
-  private async tenantClass(tenantId: string, classId: string | null) {
-    if (!classId) return null;
-    const row = await this.prisma.schoolClass.findFirst({ where: { id: classId, tenantId } });
-    if (!row) throw new NotFoundException("Turma não encontrada nesta empresa.");
-    return row;
+  /** Turno derivado do horário informado no formulário da matrícula. */
+  private periodOf(startTime: string | null): "MANHA" | "TARDE" | "NOITE" | null {
+    if (!startTime || !/^\d{2}:\d{2}$/.test(startTime)) return null;
+    const hour = Number(startTime.slice(0, 2));
+    if (hour < 12) return "MANHA";
+    if (hour < 18) return "TARDE";
+    return "NOITE";
+  }
+
+  private async findOrCreatePerson(
+    tx: any,
+    tenantId: string,
+    kind: "STUDENT" | "TEACHER" | "RESPONSIBLE",
+    name: string,
+    email: string | null,
+    phone: string | null,
+    cpf: string | null,
+    addressLine: string | null,
+    source: string,
+    submissionId: string | null,
+    createdById: string,
+  ) {
+    // CPF identifica a mesma pessoa em papéis diferentes: alguém pode ser aluno
+    // e responsável por outro aluno. E-mail/telefone só reaproveitam dentro do mesmo papel.
+    const filters: Array<Record<string, unknown>> = [];
+    if (cpf) filters.push(kind === "TEACHER" ? { cpf, kind } : { cpf });
+    const sameKind: Record<string, string> = { kind };
+    if (email) sameKind.email = email;
+    if (phone) sameKind.phone = phone;
+    if (email || phone) filters.push(sameKind);
+    const existing = filters.length
+      ? await tx.schoolPerson.findFirst({ where: { tenantId, OR: filters } })
+      : null;
+    if (existing) {
+      const metadata = existing.metadata && typeof existing.metadata === "object" && !Array.isArray(existing.metadata)
+        ? existing.metadata as Record<string, unknown>
+        : {};
+      const roles = Array.isArray(metadata.roles) ? metadata.roles.filter((value): value is string => typeof value === "string") : [existing.kind];
+      if (!roles.includes(kind)) roles.push(kind);
+      const updated = await tx.schoolPerson.update({
+        where: { id: existing.id },
+        data: { metadata: { ...metadata, roles } },
+      });
+      return updated;
+    }
+    return tx.schoolPerson.create({
+      data: {
+        tenantId, kind, name, email, phone, cpf, addressLine,
+        metadata: { source, submissionId, roles: [kind] }, createdById,
+      },
+    });
+  }
+
+  /** Após a assinatura confirmada, os dados do PDF viram cadastro individual do aluno.
+   * Nenhum cliente é enviado ao Asaas: o vínculo fica PENDING até confirmação do provedor.
+   */
+  private async materializeSignedRecords(
+    tx: any,
+    submission: any,
+    tenantId: string,
+    createdById: string,
+  ) {
+    const link = submission.link;
+    const course = submission.courseId
+      ? await tx.schoolCourse.findFirst({ where: { id: submission.courseId, tenantId } })
+      : null;
+    if (!course) return { reason: "course_missing" as const };
+
+    const payload = submission.payload && typeof submission.payload === "object" && !Array.isArray(submission.payload)
+      ? submission.payload as Record<string, unknown>
+      : {};
+    const read = (key: string, fallback: unknown) => payload[key] === undefined || payload[key] === "" ? fallback : payload[key];
+    const numberOr = (value: unknown, min: number, max: number, fallback: number) => {
+      try { return integer(value, min, max, "Configuração da aula"); } catch { return fallback; }
+    };
+    const weekdayValue = numberOr(read("weekday", link.weekday ?? submission.weekday ?? 1), 1, 7, 1);
+    const startTime = typeof read("startTime", link.startTime ?? submission.startTime ?? "19:00") === "string"
+      ? String(read("startTime", link.startTime ?? submission.startTime ?? "19:00")).slice(0, 5)
+      : "19:00";
+    const durationMinutes = numberOr(read("durationMinutes", link.durationMinutes ?? 50), 30, 240, 50);
+    const period = typeof read("period", link.period ?? this.periodOf(startTime)) === "string"
+      ? String(read("period", link.period ?? this.periodOf(startTime)))
+      : this.periodOf(startTime);
+    const contractPeriod = CONTRACT_PERIODS.includes(read("contractPeriod", link.contractPeriod) as typeof CONTRACT_PERIODS[number])
+      ? String(read("contractPeriod", link.contractPeriod))
+      : null;
+    const contractedSessions = numberOr(read("contractedSessions", link.contractedSessions), 1, 1000, 0) || null;
+
+    const student = await this.findOrCreatePerson(
+      tx, tenantId, "STUDENT", submission.studentName,
+      submission.studentEmail, submission.studentPhone, submission.studentCpf, submission.addressLine,
+      "DOCUMENSO_SIGNED", submission.id, createdById,
+    );
+    const guardian = submission.guardianName
+      ? await this.findOrCreatePerson(
+          tx, tenantId, "RESPONSIBLE", submission.guardianName,
+          submission.guardianEmail, submission.guardianPhone, null, submission.addressLine,
+          "DOCUMENSO_SIGNED", submission.id, createdById,
+        )
+      : null;
+    const requestedBillingMode = payload.billingMode;
+    const billingMode = requestedBillingMode === "GUARDIAN" && guardian ? "GUARDIAN" : "STUDENT";
+
+    let teacher: any = null;
+    if (link.teacherId) {
+      teacher = await tx.schoolPerson.findFirst({
+        where: { id: link.teacherId, tenantId, active: true },
+      });
+    }
+    teacher ??= await this.findOrCreatePerson(
+      tx, tenantId, "TEACHER", link.ownerName,
+      link.ownerEmail, link.ownerPhone, null, null,
+      "PUBLIC_ENROLLMENT_LINK", null, createdById,
+    );
+
+    // Plano individual: uma linha interna por aluno/curso/professor. Nunca é chamado de turma na interface.
+    const name = `${student.name} · ${course.name}`.slice(0, 120);
+    const existingClass = await tx.schoolClass.findFirst({
+      where: { tenantId, courseId: course.id, teacherId: teacher.id, name },
+    });
+    const schoolClass = existingClass
+      ? await tx.schoolClass.update({
+          where: { id: existingClass.id },
+          data: { weekday: weekdayValue, startTime, durationMinutes, period },
+        })
+      : await tx.schoolClass.create({
+          data: {
+            tenantId, courseId: course.id, teacherId: teacher.id, name,
+            weekday: weekdayValue, startTime, durationMinutes, period, active: true, createdById,
+          },
+        });
+
+    await tx.schoolGuardian.create({
+      data: {
+        tenantId,
+        studentId: student.id,
+        personId: guardian?.id ?? null,
+        name: guardian?.name ?? submission.guardianName ?? submission.studentName,
+        relationship: submission.guardianRelationship,
+        phone: guardian?.phone ?? submission.guardianPhone ?? null,
+        email: guardian?.email ?? submission.guardianEmail ?? null,
+        isBillingClient: billingMode === "GUARDIAN",
+        createdById,
+      },
+    });
+
+    let enrollmentId: string | null = null;
+    if (contractedSessions !== null && contractPeriod) {
+      const existingEnrollment = await tx.schoolEnrollment.findFirst({
+        where: { tenantId, classId: schoolClass.id, studentId: student.id },
+      });
+      if (existingEnrollment) enrollmentId = existingEnrollment.id;
+      else {
+        const enrollment = await tx.schoolEnrollment.create({
+          data: {
+            tenantId, classId: schoolClass.id, studentId: student.id,
+            contractedSessions, purchasedSessions: 0, status: "ACTIVE",
+            tuitionStatus: "SCHEDULED", contractTotalCents: 0,
+            contractPeriod, billingMode,
+            billingPersonId: billingMode === "GUARDIAN" && guardian ? guardian.id : student.id,
+            asaasCustomerId: null, asaasSyncStatus: "PENDING", createdById,
+          },
+        });
+        enrollmentId = enrollment.id;
+      }
+    }
+
+    return {
+      studentId: student.id,
+      guardianPersonId: guardian?.id ?? null,
+      teacherPersonId: teacher.id,
+      classId: schoolClass.id,
+      enrollmentId,
+      period,
+      contractPeriod,
+      contractedSessions,
+      billingMode,
+      asaasSyncStatus: "PENDING" as const,
+    };
   }
 
   private brandOf(integrations: unknown) {
@@ -115,9 +294,12 @@ export class SchoolEnrollmentsService {
   }
 
   async overview(tenantId: string) {
-    const [courses, classes, templates, links, submissions] = await Promise.all([
+    const [courses, teachers, templates, links, submissions] = await Promise.all([
       this.prisma.schoolCourse.findMany({ where: { tenantId, active: true }, orderBy: { name: "asc" }, take: 200 }),
-      this.prisma.schoolClass.findMany({ where: { tenantId, active: true }, orderBy: { name: "asc" }, take: 200 }),
+      this.prisma.schoolPerson.findMany({
+        where: { tenantId, kind: "TEACHER", active: true }, orderBy: { name: "asc" }, take: 200,
+        select: { id: true, name: true, phone: true, email: true },
+      }),
       this.prisma.schoolEnrollmentTemplate.findMany({ where: { tenantId }, orderBy: [{ kind: "asc" }, { name: "asc" }], take: 100 }),
       this.prisma.schoolEnrollmentLink.findMany({ where: { tenantId }, orderBy: { createdAt: "desc" }, take: 50 }),
       this.prisma.schoolEnrollmentSubmission.findMany({
@@ -145,7 +327,7 @@ export class SchoolEnrollmentsService {
         durationLabel: course.durationLabel,
         tuitionAmountCents: course.tuitionAmountCents,
       })),
-      classes: classes.map((item) => ({ id: item.id, name: item.name, courseId: item.courseId, weekday: item.weekday, startTime: item.startTime })),
+      teachers: teachers.map((item) => ({ id: item.id, name: item.name, phone: item.phone, email: item.email })),
       templates: templates.map((item) => ({
         id: item.id,
         kind: item.kind,
@@ -162,7 +344,13 @@ export class SchoolEnrollmentsService {
         status: item.status,
         ownerName: item.ownerName,
         courseId: item.courseId,
-        classId: item.classId,
+        teacherId: item.teacherId,
+        weekday: item.weekday,
+        startTime: item.startTime,
+        durationMinutes: item.durationMinutes,
+        period: item.period,
+        contractPeriod: item.contractPeriod,
+        contractedSessions: item.contractedSessions,
         expiresAt: item.expiresAt,
         createdAt: item.createdAt,
       })),
@@ -207,25 +395,40 @@ export class SchoolEnrollmentsService {
 
   async createLink(body: Record<string, unknown>, tenantId: string, role: string, userId: string) {
     this.assertManager(role);
-    const ownerName = text(body?.ownerName, 120, "Nome do professor responsável");
-    const ownerPhone = phone(body?.ownerPhone, "WhatsApp do professor"); // opcional; usado apenas para entregas
-    const ownerEmail = optionalText(body?.ownerEmail, 160, "E-mail do professor");
-    const welcomeMessage = optionalText(body?.welcomeMessage, 2000, "Mensagem de boas-vindas");
-    const courseId = this.uuid(body?.courseId, "Curso");
-    const classId = this.uuid(body?.classId, "Turma");
+    const courseId = this.uuid(body?.courseId, "Matéria/curso");
+    const teacherId = this.uuid(body?.teacherId, "Professor");
+    if (!courseId || !teacherId) throw new BadRequestException("Informe a matéria/curso e o professor da aula.");
     const course = await this.tenantCourse(tenantId, courseId);
-    const schoolClass = await this.tenantClass(tenantId, classId);
-    if (course && schoolClass && schoolClass.courseId !== course.id) {
-      throw new NotFoundException("A turma escolhida não pertence ao curso informado.");
-    }
+    if (!course) throw new NotFoundException("Matéria/curso não encontrado nesta empresa.");
+    const teacher = await this.prisma.schoolPerson.findFirst({
+      where: { id: teacherId, tenantId, kind: "TEACHER", active: true },
+    });
+    if (!teacher) throw new NotFoundException("Professor não encontrado nesta empresa.");
+    const ownerName = optionalText(body?.ownerName, 120, "Nome do professor responsável") || teacher.name;
+    const ownerPhone = phone(body?.ownerPhone, "WhatsApp do professor") ?? phone(teacher.phone, "WhatsApp do professor");
+    const ownerEmail = optionalText(body?.ownerEmail, 160, "E-mail do professor") ?? optionalText(teacher.email, 160, "E-mail do professor");
+    const welcomeMessage = optionalText(body?.welcomeMessage, 2000, "Mensagem de boas-vindas");
+    const weekdayValue = integer(body?.weekday, 1, 7, "Dia da semana");
+    const startTime = hhmm(body?.startTime, "Horário");
+    if (!startTime) throw new BadRequestException("Informe o horário da aula.");
+    const durationMinutes = integer(body?.durationMinutes, 30, 240, "Duração da aula");
+    const contractPeriod = inList(body?.contractPeriod, CONTRACT_PERIODS, "Período contratual");
+    const contractedSessions = integer(body?.contractedSessions, 1, 1000, "Aulas contratadas");
     const expiresAt = isoDate(body?.expiresAt, "Validade do link");
     if (expiresAt && expiresAt.getTime() <= Date.now()) throw new NotFoundException("A validade do link deve ser futura.");
     const row = await this.prisma.schoolEnrollmentLink.create({
       data: {
         tenantId,
         token: randomBytes(24).toString("hex"),
-        courseId: course?.id ?? null,
-        classId: schoolClass?.id ?? null,
+        courseId: course.id,
+        classId: null,
+        teacherId: teacher.id,
+        weekday: weekdayValue,
+        startTime,
+        durationMinutes,
+        period: this.periodOf(startTime),
+        contractPeriod,
+        contractedSessions,
         ownerName,
         ownerPhone,
         ownerEmail,
@@ -261,9 +464,11 @@ export class SchoolEnrollmentsService {
     const link = await this.findActiveLink(token);
     const tenant = await this.prisma.tenant.findUnique({ where: { id: link.tenantId }, select: { id: true, name: true, slug: true, status: true, integrations: true } });
     if (!tenant || tenant.status !== "ACTIVE") throw new NotFoundException("Link de matrícula indisponível.");
-    const [course, schoolClass, templates] = await Promise.all([
+    const [course, teacher, templates] = await Promise.all([
       this.tenantCourse(link.tenantId, link.courseId),
-      this.tenantClass(link.tenantId, link.classId),
+      link.teacherId
+        ? this.prisma.schoolPerson.findFirst({ where: { id: link.teacherId, tenantId: link.tenantId, active: true }, select: { id: true, name: true } })
+        : Promise.resolve(null),
       this.prisma.schoolEnrollmentTemplate.findMany({ where: { tenantId: link.tenantId }, select: { kind: true, configuredAt: true } }),
     ]);
     return {
@@ -281,13 +486,16 @@ export class SchoolEnrollmentsService {
         durationLabel: course.durationLabel,
         tuitionAmountCents: course.tuitionAmountCents,
       } : null,
-      schoolClass: schoolClass ? {
-        id: schoolClass.id,
-        name: schoolClass.name,
-        weekday: schoolClass.weekday,
-        startTime: schoolClass.startTime,
-        durationMinutes: schoolClass.durationMinutes,
-      } : null,
+      lesson: {
+        teacherId: teacher?.id ?? link.teacherId ?? null,
+        teacherName: teacher?.name ?? link.ownerName,
+        weekday: link.weekday,
+        startTime: link.startTime,
+        durationMinutes: link.durationMinutes,
+        period: link.period ?? this.periodOf(link.startTime),
+        contractPeriod: link.contractPeriod,
+        contractedSessions: link.contractedSessions,
+      },
       templateStatus: {
         contract: templates.some((item) => item.kind === "CONTRACT" && item.configuredAt),
         enrollmentForm: templates.some((item) => item.kind === "ENROLLMENT_FORM" && item.configuredAt),
@@ -315,15 +523,19 @@ export class SchoolEnrollmentsService {
     const instrument = optionalText(body?.instrument, 80, "Instrumento");
     const level = optionalText(body?.level, 80, "Nível");
     const startDate = isoDate(body?.startDate, "Data de início");
-    const startTime = hhmm(body?.startTime, "Horário");
-    const weekday = optionalInteger(body?.weekday, 1, 7, "Dia da semana");
+    const weekday = optionalInteger(body?.weekday, 1, 7, "Dia da semana") ?? link.weekday;
+    const startTime = hhmm(body?.startTime, "Horário") ?? link.startTime;
+    const durationMinutes = optionalInteger(body?.durationMinutes, 30, 240, "Duração da aula") ?? link.durationMinutes;
+    const contractPeriod = optionalInList(body?.contractPeriod, CONTRACT_PERIODS, "Período contratual") ?? link.contractPeriod;
+    const contractedSessions = optionalInteger(body?.contractedSessions, 1, 1000, "Aulas contratadas") ?? link.contractedSessions;
+    const period = link.period ?? this.periodOf(startTime);
     const paymentMethod = optionalInList(body?.paymentMethod, ["BOLETO", "PIX", "CASH", "TRANSFER"], "Forma de pagamento");
     const observations = optionalText(body?.observations, 4000, "Observações");
-    const courseId = this.uuid(body?.courseId, "Curso") ?? link.courseId;
-    const classId = this.uuid(body?.classId, "Turma") ?? link.classId;
-    const course = await this.tenantCourse(link.tenantId, courseId);
-    const schoolClass = await this.tenantClass(link.tenantId, classId);
-    if (course && schoolClass && schoolClass.courseId !== course.id) throw new BadRequestException("A turma não pertence ao curso deste link.");
+    const billingMode = body?.billingMode === "STUDENT" || body?.billingMode === "GUARDIAN"
+      ? body.billingMode
+      : guardianName ? "GUARDIAN" : "STUDENT";
+    // Curso, professor e horário vêm do link: o visitante não escolhe tenant nem plano interno.
+    const course = await this.tenantCourse(link.tenantId, link.courseId);
 
     const tenant = await this.prisma.tenant.findUnique({ where: { id: link.tenantId }, select: { id: true, name: true, slug: true } });
     if (!tenant) throw new NotFoundException("Escola indisponível.");
@@ -346,13 +558,11 @@ export class SchoolEnrollmentsService {
         guardianEmail,
         addressLine,
         courseId: course?.id ?? null,
-        classId: schoolClass?.id ?? null,
         instrument,
         level: level ?? course?.level ?? null,
         startDate,
-        weekday: weekday ?? schoolClass?.weekday ?? null,
-
-        startTime: startTime ?? schoolClass?.startTime ?? null,
+        weekday,
+        startTime,
         tuitionAmountCents: course?.tuitionAmountCents ?? null,
         paymentMethod,
         observations,
@@ -361,6 +571,13 @@ export class SchoolEnrollmentsService {
           schoolTenantId: null,
           submittedName: studentName,
           linkTokenPrefix: token.slice(0, 8),
+          billingMode,
+          weekday,
+          startTime,
+          durationMinutes,
+          period,
+          contractPeriod,
+          contractedSessions,
         },
         status: "PREPARED",
       },
@@ -391,14 +608,13 @@ export class SchoolEnrollmentsService {
       addressLine,
       courseName: course?.name ?? null,
       courseLevel: level ?? course?.level ?? null,
-      className: schoolClass?.name ?? null,
+      teacherName: link.ownerName,
       instrument,
       startDate: startDate?.toISOString().slice(0, 10) ?? null,
-      weekdayLabel: (() => {
-        const selected = weekday ?? schoolClass?.weekday;
-        return selected === null || selected === undefined ? null : WEEKDAYS[selected - 1] ?? null;
-      })(),
-      startTime: startTime ?? schoolClass?.startTime ?? null,
+      weekdayLabel: weekday === null || weekday === undefined ? null : WEEKDAYS[weekday - 1] ?? null,
+      startTime,
+      periodLabel: period ? PERIOD_LABEL[period] ?? null : null,
+      contractPeriodLabel: contractPeriod ? CONTRACT_LABEL[contractPeriod] ?? null : null,
       tuitionAmountCents: course?.tuitionAmountCents ?? null,
       paymentMethod,
       observations,
@@ -510,7 +726,13 @@ export class SchoolEnrollmentsService {
     if (!tenant) return { received: true, ignored: true, reason: "tenant_not_found" };
 
     const course = submission.courseId ? await this.prisma.schoolCourse.findFirst({ where: { id: submission.courseId, tenantId } }) : null;
-    const schoolClass = submission.classId ? await this.prisma.schoolClass.findFirst({ where: { id: submission.classId, tenantId } }) : null;
+    const schedule = submission.payload && typeof submission.payload === "object" && !Array.isArray(submission.payload)
+      ? submission.payload as Record<string, unknown>
+      : {};
+    const period = typeof schedule.period === "string"
+      ? schedule.period
+      : submission.link.period ?? this.periodOf(submission.startTime ?? submission.link.startTime);
+    const contractPeriod = typeof schedule.contractPeriod === "string" ? schedule.contractPeriod : submission.link.contractPeriod;
     const values = enrollmentValues({
       tenantName: tenant.name,
       ownerName: submission.link.ownerName,
@@ -524,16 +746,19 @@ export class SchoolEnrollmentsService {
       addressLine: submission.addressLine,
       courseName: course?.name ?? null,
       courseLevel: submission.level ?? course?.level ?? null,
-      className: schoolClass?.name ?? null,
+      teacherName: submission.link.ownerName,
       instrument: submission.instrument,
       startDate: submission.startDate?.toISOString().slice(0, 10) ?? null,
       weekdayLabel: submission.weekday === null ? null : WEEKDAYS[submission.weekday - 1] ?? null,
-      startTime: submission.startTime ?? schoolClass?.startTime ?? null,
+      startTime: submission.startTime ?? submission.link.startTime ?? null,
+      periodLabel: period ? PERIOD_LABEL[period] ?? null : null,
+      contractPeriodLabel: contractPeriod ? CONTRACT_LABEL[contractPeriod] ?? null : null,
       tuitionAmountCents: submission.tuitionAmountCents ?? course?.tuitionAmountCents ?? null,
       paymentMethod: submission.paymentMethod,
       observations: submission.observations,
     });
 
+    let schoolRecords: Record<string, unknown> = {};
     await this.prisma.$transaction(async (tx: any) => {
       await tx.schoolEnrollmentSubmission.update({
         where: { id: submission.id },
@@ -545,6 +770,7 @@ export class SchoolEnrollmentsService {
           data: { status: "COMPLETED", completedAt: new Date(), raw: payload },
         });
       }
+      schoolRecords = await this.materializeSignedRecords(tx, submission, tenantId, submission.link.createdById);
     });
 
     const generated: string[] = [];
@@ -656,6 +882,7 @@ export class SchoolEnrollmentsService {
       missingTemplates,
       confirmedSends: sends,
       failedDeliveries: failures,
+      schoolRecords,
       message: sends > 0 ? "Assinatura confirmada e documentos enviados." : "Assinatura confirmada e documentos gerados. Nenhum envio foi confirmado.",
     };
   }

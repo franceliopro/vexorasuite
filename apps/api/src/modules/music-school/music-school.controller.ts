@@ -5,7 +5,7 @@ import { MusicSchoolService } from "./music-school.service";
 import { MusicSchoolReadService } from "./music-school-read.service";
 
 /**
- * Escola de Música: turmas, matrículas, presença e saldos no tenant autenticado.
+ * Escola de Música: planos individuais, matrículas, presença e saldos no tenant autenticado.
  * Este slice apenas agenda cobrança; não envia mensagem, não cria cobrança externa
  * e nunca afirma pagamento sem evidência do provedor.
  */

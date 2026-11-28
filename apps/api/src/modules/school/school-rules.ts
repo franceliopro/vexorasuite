@@ -1,7 +1,11 @@
 import sanitizeHtml from "sanitize-html";
 
 export const COURSE_KINDS = ["COURSE", "SUBJECT"] as const;
-export const PERSON_KINDS = ["STUDENT", "TEACHER"] as const;
+export const PERSON_KINDS = ["STUDENT", "TEACHER", "RESPONSIBLE"] as const;
+export const ATTENDANCE_PERSON_KINDS = ["STUDENT", "TEACHER"] as const;
+export const BILLING_MODES = ["STUDENT", "GUARDIAN"] as const;
+export const CLASS_PERIODS = ["MANHA", "TARDE", "NOITE"] as const;
+export const CONTRACT_PERIODS = ["MONTHLY", "QUARTERLY", "SEMESTER", "YEARLY"] as const;
 export const ATTENDANCE_STATUSES = ["PRESENT", "ABSENT", "JUSTIFIED", "MAKEUP", "CANCELLED"] as const;
 export const RELATIONSHIPS = ["MAE", "PAI", "RESPONSAVEL", "OUTRO"] as const;
 export const NOTICE_CHANNELS = ["WHATSAPP", "SMS", "EMAIL"] as const;
@@ -11,7 +15,7 @@ export const TUITION_CYCLES = ["MONTHLY", "BIWEEKLY", "WEEKLY"] as const;
 export const PAYMENT_RECEIPT_SOURCES = ["CASH", "PROVIDER_CONFIRMED"] as const;
 export const CANCELLATION_DECISIONS = ["APPROVE", "REJECT"] as const;
 export const RECORD_KINDS = [
-  "COURSE", "SUBJECT", "STUDENT", "TEACHER", "ROOM", "CLASS", "ENROLLMENT",
+  "COURSE", "SUBJECT", "STUDENT", "TEACHER", "RESPONSIBLE", "ROOM", "CLASS", "ENROLLMENT",
   "SESSION", "LESSON_PLAN", "GRADE", "GUARDIAN", "NOTICE", "MATERIAL",
   "LESSON_SUMMARY", "BILLING_POLICY", "PAYMENT_RECEIPT", "MARK_OVERDUE", "CANCELLATION_DECISION",
 ] as const;
@@ -85,6 +89,14 @@ export function httpsUrl(value: unknown, label: string): string {
   }
   if (url.protocol !== "https:") throw new Error(`${label} deve usar HTTPS.`);
   return result;
+}
+
+/** Foto do curso enviada do computador ou URL https já existente. */
+export function courseImageUrl(value: unknown, label: string): string {
+  const result = text(value, 3_000_000, label);
+  if (/^https:\/\/\S+$/i.test(result)) return result;
+  if (/^data:image\/(webp|png|jpeg);base64,[A-Za-z0-9+/=\s]+$/.test(result)) return result;
+  throw new Error(`${label} deve ser uma imagem enviada do computador ou uma URL https.`);
 }
 
 /** Aceita youtube.com/watch, youtu.be e embed, devolvendo um embed sandbox-friendly. */

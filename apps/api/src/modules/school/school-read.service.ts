@@ -9,6 +9,7 @@ import {
   penaltyForBreach,
   teacherReminderAt,
 } from "./school-rules";
+import { musicSchoolDefaultCourses } from "./music-school-defaults";
 
 /** Leituras da gestão escolar: toda consulta começa pelo tenant da sessão. */
 @Injectable()
@@ -155,5 +156,12 @@ export class SchoolReadService {
       balances,
       stats: attendanceStats(attendances as AttendanceLike[]),
     };
+  }
+
+  /** Cursos padrão de referência para o segmento Escola de Música e Instrumentos.
+   * O dono da escola cadastra os cursos que realmente oferece; esta lista é apenas sugestão inicial.
+   */
+  defaultCourses() {
+    return musicSchoolDefaultCourses();
   }
 }

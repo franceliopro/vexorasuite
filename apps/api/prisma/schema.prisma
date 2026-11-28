@@ -1537,6 +1537,7 @@ model SchoolPerson {
   name        String
   email       String?
   phone       String?
+  formation   String?  @map("formation")
   active      Boolean  @default(true)
   createdById String   @map("created_by_id") @db.Uuid
   createdAt   DateTime @default(now()) @map("created_at")

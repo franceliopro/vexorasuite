@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 type Course = { id: string; kind: "COURSE" | "SUBJECT"; name: string; parentId: string | null; active: boolean };
-type Person = { id: string; kind: "STUDENT" | "TEACHER"; name: string; email: string | null; phone: string | null; formation: string | null; active: boolean };
+type Person = { id: string; kind: "STUDENT" | "TEACHER"; name: string; email: string | null; phone: string | null; active: boolean };
 type ClassRow = { id: string; courseId: string; teacherId: string; roomId: string | null; name: string; weekday: number; startTime: string; durationMinutes: number; active: boolean };
 type SessionRow = { id: string; classId: string; sessionDate: string; status: string; summaryHtml?: string | null };
 type Attendance = { id: string; sessionId: string; personId: string; personKind: string; status: string; note: string | null; recordedAt: string | null };
@@ -341,7 +341,7 @@ export function SchoolWorkspace() {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [courseForm, setCourseForm] = useState({ name: "" });
-  const [personForm, setPersonForm] = useState({ name: "", kind: "STUDENT", email: "", phone: "", formation: "" });
+  const [personForm, setPersonForm] = useState({ name: "", kind: "STUDENT", email: "", phone: "" });
   const [classForm, setClassForm] = useState({ name: "", courseId: "", teacherId: "", weekday: "1", startTime: "18:00", durationMinutes: "60" });
   const [enrollForm, setEnrollForm] = useState({ classId: "", studentId: "", contractedSessions: "8", purchasedSessions: "0", tuitionAmountCents: "", tuitionNextDueDate: "" });
   const [sessionForm, setSessionForm] = useState({ classId: "", sessionDate: new Date().toISOString().slice(0, 10), status: "SCHEDULED" });
@@ -441,7 +441,7 @@ export function SchoolWorkspace() {
           {people.map((item) => (
             <details key={item.id} className={rowTw}>
               <summary className={summaryTw}><span>{item.name}</span><span className={mutedTw}>{item.kind === "STUDENT" ? "Aluno" : "Professor"}</span></summary>
-              <p className={mutedTw}>E-mail: {item.email || "—"} · Telefone: {item.phone || "—"} · Formação: {item.formation || "—"} · {item.active ? "Ativo" : "Inativo"}</p>
+              <p className={mutedTw}>E-mail: {item.email || "—"} · Telefone: {item.phone || "—"} · {item.active ? "Ativo" : "Inativo"}</p>
             </details>
           ))}
         </article>
@@ -504,12 +504,11 @@ export function SchoolWorkspace() {
 
         <details className={detailsTw} data-testid="school-person-form">
           <summary className={summaryFormTw}>Nova pessoa (aluno ou professor)</summary>
-          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: personForm.kind, name: personForm.name, email: personForm.email, phone: personForm.phone, formation: personForm.kind === "TEACHER" ? personForm.formation || undefined : undefined }, "Pessoa cadastrada.")}>
+          <form className={formTw} onSubmit={(event) => void submit(event, "school/records", { kind: personForm.kind, name: personForm.name, email: personForm.email, phone: personForm.phone }, "Pessoa cadastrada.")}>
             <label className={labelTw}>Nome<input className={fieldTw} required value={personForm.name} onChange={(event) => setPersonForm({ ...personForm, name: event.target.value })} /></label>
             <label className={labelTw}>Tipo<select className={fieldTw} value={personForm.kind} onChange={(event) => setPersonForm({ ...personForm, kind: event.target.value })}><option value="STUDENT">Aluno</option><option value="TEACHER">Professor</option></select></label>
             <label className={labelTw}>E-mail<input className={fieldTw} type="email" value={personForm.email} onChange={(event) => setPersonForm({ ...personForm, email: event.target.value })} /></label>
             <label className={labelTw}>Telefone<input className={fieldTw} value={personForm.phone} onChange={(event) => setPersonForm({ ...personForm, phone: event.target.value })} /></label>
-            {personForm.kind === "TEACHER" && <label className={labelTw}>Formação<input className={fieldTw} value={personForm.formation} placeholder="Ex.: graduação, curso, instrumento" onChange={(event) => setPersonForm({ ...personForm, formation: event.target.value })} /></label>}
             <button className={buttonTw} type="submit" disabled={busy}>Cadastrar pessoa</button>
           </form>
         </details>

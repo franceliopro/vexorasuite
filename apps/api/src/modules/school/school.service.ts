@@ -152,9 +152,8 @@ export class SchoolService {
           const email = optionalText(body?.email, 160, "E-mail");
           if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("E-mail inválido.");
           const phone = optionalText(body?.phone, 40, "Telefone");
-          const formation = kind === "TEACHER" ? optionalText(body?.formation, 200, "Formação do professor") : null;
           return tx.schoolPerson.create({
-            data: { tenantId, kind, name, email, phone, formation, active: body?.active !== false, createdById: userId },
+            data: { tenantId, kind, name, email, phone, active: body?.active !== false, createdById: userId },
           });
         }
 

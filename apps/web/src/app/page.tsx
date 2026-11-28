@@ -293,12 +293,13 @@ export default function HomePage() {
   const [session, setSession] = useState<AuthSession | null>(null);
   const segmentProfile = session?.segmentProfile || null;
   const schoolProfile = segmentProfile?.overview === "SCHOOL";
-  const selectedPaymentProvider = schoolProfile ? "ASAAS" : session?.paymentProvider || "ASAAS";
-  const paymentProviderLabel = schoolProfile ? "Asaas" : selectedPaymentProvider === "STRIPE" ? "Stripe" : selectedPaymentProvider === "INFINITEPAY" ? "InfinitePay" : "Asaas";
+  const selectedPaymentProvider = session?.paymentProvider || "ASAAS";
+  const effectivePaymentProvider = schoolProfile ? "ASAAS" : selectedPaymentProvider;
+  const paymentProviderLabel = schoolProfile ? "Asaas" : effectivePaymentProvider === "STRIPE" ? "Stripe" : effectivePaymentProvider === "INFINITEPAY" ? "InfinitePay" : "Asaas";
   const providerForLabel: Record<string, string> = { Asaas: "ASAAS", Stripe: "STRIPE", InfinitePay: "INFINITEPAY" };
   const providerVisible = (label: string) => {
     if (schoolProfile && (label === "Stripe" || label === "InfinitePay")) return false;
-    return !providerForLabel[label] || providerForLabel[label] === selectedPaymentProvider;
+    return !providerForLabel[label] || providerForLabel[label] === effectivePaymentProvider;
   };
   const activeNavigation = schoolProfile && segmentProfile && segmentProfile.navigation.length
     ? segmentProfile.navigation.map((group) => ({ section: group.section, items: navigationForProfile(group.items) }))

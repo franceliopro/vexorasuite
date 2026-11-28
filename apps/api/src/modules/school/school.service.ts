@@ -143,6 +143,7 @@ export class SchoolService {
         overdueInstallmentsForCancellation: DEFAULT_BILLING_POLICY.overdueInstallmentsForCancellation,
         breachPenaltyPercent: DEFAULT_BILLING_POLICY.breachPenaltyPercent,
         paymentNoticeToManager: DEFAULT_BILLING_POLICY.paymentNoticeToManager,
+        paymentNoticeToTeacher: DEFAULT_BILLING_POLICY.paymentNoticeToTeacher,
         paymentNoticeToAdmins: DEFAULT_BILLING_POLICY.paymentNoticeToAdmins,
         updatedById: userId,
       },
@@ -520,6 +521,9 @@ export class SchoolService {
               paymentNoticeToManager: body?.paymentNoticeToManager === undefined
                 ? policy.paymentNoticeToManager
                 : body.paymentNoticeToManager !== false,
+              paymentNoticeToTeacher: body?.paymentNoticeToTeacher === undefined
+                ? policy.paymentNoticeToTeacher
+                : body.paymentNoticeToTeacher !== false,
               paymentNoticeToAdmins: body?.paymentNoticeToAdmins === undefined
                 ? policy.paymentNoticeToAdmins
                 : body.paymentNoticeToAdmins !== false,

@@ -1782,6 +1782,7 @@ model SchoolBillingPolicy {
   overdueInstallmentsForCancellation Int    @default(2) @map("overdue_installments_for_cancellation")
   breachPenaltyPercent            Int      @default(20) @map("breach_penalty_percent")
   paymentNoticeToManager          Boolean  @default(true) @map("payment_notice_to_manager")
+  paymentNoticeToTeacher          Boolean  @default(true) @map("payment_notice_to_teacher")
   paymentNoticeToAdmins           Boolean  @default(true) @map("payment_notice_to_admins")
   updatedById                     String   @map("updated_by_id") @db.Uuid
   createdAt                       DateTime @default(now()) @map("created_at")

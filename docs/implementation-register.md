@@ -241,13 +241,13 @@ As seções acima são inventário histórico; a fonte da verdade do criador hoj
 **Decisões do proprietário (2026-11-27):**
 - Lembretes somente por canais configurados e consentidos, com registro de succeeded/failed por canal quando houver envio real.
 - Duas mensalidades em atraso geram **sugestão**; o cancelamento depende de aprovação humana, não é automático.
-- Notificação de pagamento vai ao gestor financeiro designado **e** aos OWNER/ADMIN da empresa cliente.
+- Notificação de pagamento vai ao aluno, ao professor da aula, ao gestor financeiro designado **e** aos OWNER/ADMIN da empresa cliente.
 - Multa por quebra: 20% sobre o valor total do contrato menos o valor já pago.
 
 **Fatia implementada (código em PR):**
 - Presença de aluno e professor da mesma aula em uma transação tenant-scoped; resumo do que foi estudado por data/sessão; dias de aula contabilizados por datas `HELD` distintas.
-- Política por tenant: 5 dias antes, dia do vencimento e diária após atraso; WhatsApp/SMS/e-mail apenas como canais consentidos; lembrete do professor 30 minutos antes; multa configurável (padrão 20%); cancelamento somente com aprovação.
+- Política por tenant: 5 dias antes, dia do vencimento e diária após atraso; WhatsApp/SMS/e-mail apenas como canais consentidos; lembrete do professor 30 minutos antes; notificação de baixa ao aluno e ao professor; multa configurável (padrão 20%); cancelamento somente com aprovação.
 - Marcação de atraso gera sugestão após o limite; decisão aprovada suspende a matrícula e marca inadimplência. A baixa informada registra o recebimento, suprime a cobrança do período (mensal, quinzenal ou semanal) e atualiza o saldo usado na multa.
-- Notificações de pagamento ao aluno, ao gestor designado e aos administradores ficam como **configuradas/pendentes**, nunca como enviadas.
+- Notificações de pagamento ao aluno ("Recebemos seu pagamento."), ao professor ("Fulano de Tal pagou."), ao gestor designado e aos administradores ficam como **configuradas/pendentes**, nunca como enviadas.
 
 **Estado honesto:** nenhum WhatsApp, SMS, e-mail, cobrança, pagamento, publicação, migração em produção ou deploy foi executado/confirmado. `PROVIDER_CONFIRMED` exige referência externa; a confirmação real do provedor continua dependente de integração validada. A ficha de matrícula em PDF prometida pelo proprietário ainda não foi recebida e não foi inventada.

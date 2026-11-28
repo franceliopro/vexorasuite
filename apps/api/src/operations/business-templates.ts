@@ -31,7 +31,7 @@ export type SegmentProfile = {
 };
 export const SEGMENTS: Segment[] = [
  {id:'vehicle-tracking',name:'Rastreamento veicular',requests:['Suporte ao rastreador','Instalação e manutenção','Planos e contratação'],guidance:'Identifique veículo e plataforma. Encaminhe incidentes urgentes à equipe. Nunca execute bloqueio ou desbloqueio sem autorização e integração validada.'},
-  {id:'music-school',name:'Escola de Música e Instrumentos',requests:['Consultar débito','Consultar aulas','Consultar inadimplência','Regras da escola'],guidance:'Escola em modo solo: o dono também é professor. Responda somente rotina com dados cadastrados e confirmados. Não encaminhe a atendente humano, não prometa pagamento, envio, publicação ou cancelamento e não invente disponibilidade.',modules:['SCHOOL','CALENDAR','FINANCE','AUTOMATION','SETTINGS'],vocabulary:{aluno:'aluno',responsavel:'responsável',turma:'turma',matricula:'matrícula',presenca:'presença',instrumento:'instrumento',professor:'professor',aula:'aula',mensalidade:'mensalidade',planoDeAula:'plano de aula',diarioDeClasse:'diário de classe',inadimplencia:'inadimplência'}},
+  {id:'music-school',name:'Escola de Música e Instrumentos',requests:['Consultar débito','Consultar aulas','Consultar inadimplência','Regras da escola'],guidance:'Escola em modo solo: o dono também é professor. Responda somente rotina com dados cadastrados e confirmados. Não encaminhe a atendente humano, não prometa pagamento, envio, publicação ou cancelamento e não invente disponibilidade.',modules:['SCHOOL','CALENDAR','FINANCE','AUTOMATION','SETTINGS'],vocabulary:{aluno:'aluno',responsavel:'responsável',matricula:'matrícula',presenca:'presença',instrumento:'instrumento',professor:'professor',aula:'aula',mensalidade:'mensalidade',planoDeAula:'plano de aula',diarioDeClasse:'diário de classe',inadimplencia:'inadimplência'}},
  {id:'aesthetics',name:'Clínica de estética',requests:['Avaliação','Agendamento','Procedimentos'],guidance:'Informe serviços cadastrados e encaminhe avaliação à equipe habilitada.'},
  {id:'medical',name:'Clínica médica',requests:['Agendar consulta','Convênios','Retorno'],guidance:'Colete somente os dados necessários ao agendamento. Encaminhe dúvidas clínicas ao profissional responsável.'},
  {id:'barbershop',name:'Barbearia',requests:['Agendar horário','Serviços e preços','Profissionais'],guidance:'Consulte serviço, profissional e disponibilidade antes de confirmar.'},
@@ -80,12 +80,7 @@ const SCHOOL_PROFILE_OVERRIDES: Partial<SegmentProfile> = {
   navigation: [
     { section: 'ESCOLA', items: [
       { label: 'Visão geral', target: 'Visão geral', icon: 'layout-dashboard' },
-      { label: 'Gestão escolar', target: 'Gestão escolar', icon: 'graduation-cap', children: [
-        { label: 'Alunos', target: 'Gestão escolar', icon: 'users' },
-        { label: 'Turmas e aulas', target: 'Gestão escolar', icon: 'calendar' },
-        { label: 'Presença', target: 'Gestão escolar', icon: 'tasks' },
-        { label: 'Planos de aula', target: 'Gestão escolar', icon: 'file-text' },
-      ] },
+      { label: 'Gestão escolar', target: 'Gestão escolar', icon: 'graduation-cap' },
       { label: 'Matrículas', target: 'Matrículas', icon: 'file-text' },
       { label: 'Agenda de aulas', target: 'Calendários', icon: 'calendar' },
     ] },

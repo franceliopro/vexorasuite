@@ -131,7 +131,10 @@ function fixture() {
       findFirst: jest.fn(async () => null),
       create: jest.fn(async ({ data }: any) => ({ id: NEW_COURSE, ...data })),
     },
-    schoolGuardian: { create: jest.fn(async ({ data }: any) => ({ id: NEW_COURSE, ...data })) },
+    schoolGuardian: {
+      create: jest.fn(async ({ data }: any) => ({ id: NEW_COURSE, ...data })),
+      updateMany: jest.fn(async () => ({ count: 1 })),
+    },
     schoolNotice: { create: jest.fn(async ({ data }: any) => ({ id: NEW_COURSE, ...data })) },
   };
   let queue: Promise<unknown> = Promise.resolve();
@@ -173,7 +176,7 @@ describe("Gestão escolar — escrita tenant-scoped", () => {
 
   it("matricula aluno do tenant e mantém mensalidade apenas agendada", async () => {
     const { service } = fixture();
-    await expect(service.createRecord(enrollmentBody(), OTHER, "OWNER", USER)).rejects.toThrow(/Registro não encontrado.*Turma/);
+    await expect(service.createRecord(enrollmentBody(), OTHER, "OWNER", USER)).rejects.toThrow(/Registro não encontrado.*Plano do aluno/);
     await expect(service.createRecord({ ...enrollmentBody(), tuitionNextDueDate: undefined }, TENANT, "OWNER", USER)).rejects.toThrow("vencimento");
     await expect(service.createRecord({ ...enrollmentBody(), tuitionAmountCents: undefined }, TENANT, "OWNER", USER)).rejects.toThrow("valor mensal");
     const row = await service.createRecord(enrollmentBody(), TENANT, "MANAGER", USER);

@@ -26,9 +26,11 @@ type PublicForm = {
     id: string; name: string; imageUrl?: string | null; summary?: string | null;
     level?: string | null; durationLabel?: string | null; tuitionAmountCents?: number | null;
   } | null;
-  schoolClass: {
-    id: string; name: string; weekday: number; startTime: string; durationMinutes: number;
-  } | null;
+  lesson: {
+    teacherId: string | null; teacherName: string; weekday: number | null; startTime: string | null;
+    durationMinutes: number | null; period: string | null; contractPeriod: string | null;
+    contractedSessions: number | null;
+  };
   templateStatus: { contract: boolean; enrollmentForm: boolean };
   prefilled: Record<string, string>;
 };
@@ -47,7 +49,8 @@ const initial = {
   studentName: "", studentCpf: "", studentEmail: "", studentPhone: "",
   guardianName: "", guardianRelationship: "", guardianPhone: "", guardianEmail: "",
   addressLine: "", instrument: "", level: "", startDate: "", startTime: "",
-  weekday: "", paymentMethod: "", observations: "", website: "",
+  weekday: "", durationMinutes: "", contractPeriod: "", contractedSessions: "",
+  paymentMethod: "", observations: "", billingMode: "", website: "",
 };
 
 const digits = (value: string) => value.replace(/\D/g, "");
@@ -61,6 +64,8 @@ const maskPhone = (value: string) => {
   if (valueDigits.length <= 10) return valueDigits.replace(/^(\d{2})(\d)/, "($1) $2").replace(/(\d{4})(\d)/, "$1-$2");
   return valueDigits.replace(/^(\d{2})(\d)/, "($1) $2").replace(/^(\d{2})\s(\d{5})(\d)/, "$1 $2-$3");
 };
+const periodLabel = (value?: string | null) => ({ MANHA: "Manhã", TARDE: "Tarde", NOITE: "Noite" } as Record<string, string>)[value || ""] || "";
+const contractLabel = (value?: string | null) => ({ MONTHLY: "Mensal", QUARTERLY: "Trimestral", SEMESTER: "Semestral", YEARLY: "Anual" } as Record<string, string>)[value || ""] || "";
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api/backend/${path}`, {
@@ -87,8 +92,11 @@ export default function SchoolEnrollmentPage({ params }: { params: Promise<{ tok
       .then((value) => { if (live) { setData(value); setForm((current) => ({
         ...current,
         level: value.course?.level || "",
-        startTime: value.schoolClass?.startTime || "",
-        weekday: value.schoolClass?.weekday ? String(value.schoolClass.weekday) : "",
+        startTime: value.lesson?.startTime || "",
+        weekday: value.lesson?.weekday ? String(value.lesson.weekday) : "",
+        durationMinutes: value.lesson?.durationMinutes ? String(value.lesson.durationMinutes) : "",
+        contractPeriod: value.lesson?.contractPeriod || "",
+        contractedSessions: value.lesson?.contractedSessions ? String(value.lesson.contractedSessions) : "",
         ...value.prefilled,
       })); } })
       .catch((loadError) => { if (live) setError(loadError instanceof Error ? loadError.message : "Link de matrícula indisponível."); });
@@ -169,7 +177,9 @@ export default function SchoolEnrollmentPage({ params }: { params: Promise<{ tok
             <div className="flex flex-wrap gap-1.5">
               {data.course?.level ? <span className={schoolTw.chip}><Sparkles size={13} aria-hidden="true" /> {data.course.level}</span> : null}
               {data.course?.durationLabel ? <span className={schoolTw.chip}><Clock3 size={13} aria-hidden="true" /> {data.course.durationLabel}</span> : null}
-              {data.schoolClass ? <span className={schoolTw.chip}><CalendarDays size={13} aria-hidden="true" /> {weekdayLabel(data.schoolClass.weekday)} · {data.schoolClass.startTime}</span> : null}
+              {data.lesson?.weekday || data.lesson?.startTime ? <span className={schoolTw.chip}><CalendarDays size={13} aria-hidden="true" /> {data.lesson.weekday ? weekdayLabel(data.lesson.weekday) : "Dia a definir"}{data.lesson.startTime ? ` · ${data.lesson.startTime}` : ""}</span> : null}
+              {data.lesson?.period ? <span className={schoolTw.chip}><Clock3 size={13} aria-hidden="true" /> {periodLabel(data.lesson.period)}</span> : null}
+              {data.lesson?.durationMinutes ? <span className={schoolTw.chip}>{data.lesson.durationMinutes} min</span> : null}
               {data.course?.tuitionAmountCents != null ? <span className={schoolTw.chip}><Wallet size={13} aria-hidden="true" /> {money(data.course.tuitionAmountCents)}</span> : null}
             </div>
           </section>
@@ -185,8 +195,15 @@ export default function SchoolEnrollmentPage({ params }: { params: Promise<{ tok
           </section>
 
           <details className={`${schoolTw.card} sm:p-5`} data-testid="public-guardian-section">
-            <summary className="cursor-pointer text-sm font-extrabold text-slate-950">Responsável (opcional)</summary>
+            <summary className="cursor-pointer text-sm font-extrabold text-slate-950">Responsável e cliente (opcional)</summary>
             <div className="grid gap-3 sm:grid-cols-2">
+              <label className={schoolTw.label}>Quem será o cliente no Asaas?
+                <select className={schoolTw.select} value={form.billingMode} onChange={(event) => set("billingMode", event.target.value)}>
+                  <option value="">Selecione se houver responsável</option>
+                  <option value="STUDENT">O aluno</option>
+                  <option value="GUARDIAN">O responsável</option>
+                </select>
+              </label>
               <label className={schoolTw.label}>Nome do responsável<input className={schoolTw.input} value={form.guardianName} onChange={(event) => set("guardianName", event.target.value)} /></label>
               <label className={schoolTw.label}>Parentesco
                 <select className={schoolTw.select} value={form.guardianRelationship} onChange={(event) => set("guardianRelationship", event.target.value)}>
@@ -204,7 +221,11 @@ export default function SchoolEnrollmentPage({ params }: { params: Promise<{ tok
           </details>
 
           <details className={`${schoolTw.card} sm:p-5`} data-testid="public-class-section">
-            <summary className="cursor-pointer text-sm font-extrabold text-slate-950">Turma, instrumento e pagamento</summary>
+            <summary className="cursor-pointer text-sm font-extrabold text-slate-950">Matéria, horário e pagamento</summary>
+            <p className={schoolTw.note}>
+              Professor: {data.lesson?.teacherName || data.ownerName}. Período: {periodLabel(data.lesson?.period) || "a definir"}.
+              {data.lesson?.contractPeriod ? ` ${contractLabel(data.lesson.contractPeriod)} · ${data.lesson.contractedSessions ?? "—"} aula(s) contratada(s).` : ""}
+            </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className={schoolTw.label}>Instrumento<input className={schoolTw.input} value={form.instrument} onChange={(event) => set("instrument", event.target.value)} /></label>
               <label className={schoolTw.label}>Nível<input className={schoolTw.input} value={form.level} onChange={(event) => set("level", event.target.value)} /></label>

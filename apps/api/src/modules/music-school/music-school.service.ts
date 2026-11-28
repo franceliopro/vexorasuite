@@ -4,7 +4,7 @@ import { MusicSchoolReadService } from "./music-school-read.service";
 import { integer, isManager, isUuid, isoDate, optionalInteger, OUTCOMES, text, utcDate, Outcome } from "./music-school-rules";
 
 /**
- * Escola de Música — escrita do slice 1. Departamento é a turma/professor e
+ * Escola de Música — escrita do slice 1. Departamento é o professor e
  * Contato do CRM é o aluno. Presença e saldo são determinísticos; a cobrança
  * fica apenas agendada, sem envio. Toda mutação é filtrada por tenantId e a
  * identidade vem da sessão. Leituras são feitas por MusicSchoolReadService.
@@ -21,11 +21,11 @@ export class MusicSchoolService {
   }
 
   async createClass(body: Record<string, unknown>, tenantId: string, role: string, userId: string) {
-    if (!isManager(role)) throw new ForbiddenException("Somente responsáveis pela empresa podem cadastrar turmas.");
+    if (!isManager(role)) throw new ForbiddenException("Somente responsáveis pela empresa podem cadastrar planos individuais.");
     const name = text(body?.name, 80);
-    if (name.length < 2) throw new BadRequestException("Informe o nome da turma.");
+    if (name.length < 2) throw new BadRequestException("Informe o nome do plano do aluno.");
     const departmentId = body?.departmentId;
-    if (!isUuid(departmentId)) throw new BadRequestException("Informe o departamento/professor da turma.");
+    if (!isUuid(departmentId)) throw new BadRequestException("Informe o departamento/professor do plano.");
     const weekday = integer(body?.weekday, 1, 7, "Dia da semana");
     const startTime = text(body?.startTime, 5);
     if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime)) throw new BadRequestException("Informe o horário no formato HH:mm.");
@@ -44,7 +44,7 @@ export class MusicSchoolService {
 
   async enroll(body: Record<string, unknown>, classId: string, tenantId: string, role: string, userId: string) {
     if (!isManager(role)) throw new ForbiddenException("Somente responsáveis pela empresa podem matricular alunos.");
-    if (!isUuid(classId)) throw new BadRequestException("Turma inválida.");
+    if (!isUuid(classId)) throw new BadRequestException("Plano do aluno inválido.");
     const contactId = body?.contactId;
     if (!isUuid(contactId)) throw new BadRequestException("Informe o aluno do CRM.");
     const contractedSessions = integer(body?.contractedSessions, 1, 1000, "Aulas contratadas");
@@ -57,7 +57,7 @@ export class MusicSchoolService {
       where: { id: classId, tenantId },
       select: { id: true, name: true },
     });
-    if (!schoolClass) throw new NotFoundException("Turma não encontrada nesta empresa.");
+    if (!schoolClass) throw new NotFoundException("Plano do aluno não encontrado nesta empresa.");
     const contact = await this.prisma.contact.findFirst({
       where: { id: contactId, tenantId },
       select: { id: true, name: true },
@@ -66,7 +66,7 @@ export class MusicSchoolService {
     const created = await this.prisma.$transaction(async (tx: any) => {
       await this.lockTenant(tx, tenantId);
       const duplicate = await tx.musicEnrollment.findFirst({ where: { tenantId, classId, contactId } });
-      if (duplicate) throw new BadRequestException("Este aluno já está matriculado nesta turma.");
+      if (duplicate) throw new BadRequestException("Este aluno já está matriculado neste plano.");
       return tx.musicEnrollment.create({
         data: {
           tenantId,

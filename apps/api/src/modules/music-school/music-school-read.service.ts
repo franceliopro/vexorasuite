@@ -35,7 +35,7 @@ export class MusicSchoolReadService {
   }
 
   async listAttendances(tenantId: string, classId?: string, from?: string, to?: string) {
-    if (classId && !isUuid(classId)) throw new BadRequestException("Turma inválida.");
+    if (classId && !isUuid(classId)) throw new BadRequestException("Plano do aluno inválido.");
     const start = from ? isoDate(from) : null;
     const end = to ? isoDate(to) : null;
     if (from && !start) throw new BadRequestException("Data inicial inválida.");

@@ -89,7 +89,7 @@ const classBody = { name: "Piano I", departmentId: DEPT, weekday: 3, startTime: 
 const enrollBody = { contactId: CONTACT, contractedSessions: 8, purchasedSessions: 2 };
 
 describe("Escola de Música — escrita tenant-scoped", () => {
-  it("cadastra turma apenas para departamento ativo do mesmo tenant e com horário válido", async () => {
+  it("cadastra plano individual apenas para professor ativo do mesmo tenant e com horário válido", async () => {
     const { service, prisma } = fixture();
     await expect(service.createClass(classBody, OTHER, "OWNER", USER)).rejects.toThrow("não encontrado");
     await expect(service.createClass({ ...classBody, weekday: 0 }, TENANT, "OWNER", USER)).rejects.toThrow("1 e 7");
@@ -109,7 +109,7 @@ describe("Escola de Música — escrita tenant-scoped", () => {
 
   it("matricula aluno do CRM do mesmo tenant e mantém cobrança apenas agendada", async () => {
     const { service } = fixture();
-    await expect(service.enroll(enrollBody, CLASS, OTHER, "OWNER", USER)).rejects.toThrow("Turma não encontrada");
+    await expect(service.enroll(enrollBody, CLASS, OTHER, "OWNER", USER)).rejects.toThrow("Plano do aluno não encontrado");
     await expect(service.enroll({ ...enrollBody, contactId: CLASS }, CLASS, TENANT, "OWNER", USER)).rejects.toThrow("Aluno não encontrado");
     await expect(service.enroll({ ...enrollBody, billingAmountCents: 9900 }, CLASS, TENANT, "OWNER", USER)).rejects.toThrow("vencimento");
     await expect(service.enroll({ ...enrollBody, billingNextDueDate: "2026-12-05" }, CLASS, TENANT, "OWNER", USER)).rejects.toThrow("valor mensal");

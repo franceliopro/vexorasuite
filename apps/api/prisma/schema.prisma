@@ -1531,17 +1531,25 @@ model SchoolCourse {
 }
 
 model SchoolPerson {
-  id          String   @id @default(uuid()) @db.Uuid
-  tenantId    String   @map("tenant_id") @db.Uuid
-  kind        String   @default("STUDENT")
-  name        String
-  email       String?
-  phone       String?
-  active      Boolean  @default(true)
-  createdById String   @map("created_by_id") @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id              String    @id @default(uuid()) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  kind            String    @default("STUDENT")
+  name            String
+  email           String?
+  phone           String?
+  cpf             String?
+  addressLine     String?   @map("address_line") @db.Text
+  formation       String?
+  metadata        Json      @default("{}")
+  asaasCustomerId String?   @map("asaas_customer_id")
+  asaasSyncStatus String    @default("PENDING") @map("asaas_sync_status")
+  active          Boolean   @default(true)
+  createdById     String    @map("created_by_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  billingEnrollments SchoolEnrollment[] @relation("EnrollmentBillingPerson")
+  guardians       SchoolGuardian[] @relation("GuardianPerson")
 
   @@index([tenantId, kind, active])
   @@index([tenantId, name])
@@ -1574,6 +1582,7 @@ model SchoolClass {
   weekday         Int
   startTime       String   @map("start_time")
   durationMinutes Int      @default(60) @map("duration_minutes")
+  period          String?
   active          Boolean  @default(true)
   createdById     String   @map("created_by_id") @db.Uuid
   createdAt       DateTime @default(now()) @map("created_at")
@@ -1599,6 +1608,11 @@ model SchoolEnrollment {
   tuitionStatus       String    @default("SCHEDULED") @map("tuition_status")
   tuitionNextDueDate  DateTime? @db.Date @map("tuition_next_due_date")
   contractTotalCents  Int?      @map("contract_total_cents")
+  contractPeriod      String?   @map("contract_period")
+  billingMode         String    @default("STUDENT") @map("billing_mode")
+  billingPersonId     String?   @map("billing_person_id") @db.Uuid
+  asaasCustomerId     String?   @map("asaas_customer_id")
+  asaasSyncStatus     String    @default("PENDING") @map("asaas_sync_status")
   overdueInstallments Int       @default(0) @map("overdue_installments")
   cancellationStatus  String    @default("NONE") @map("cancellation_status")
   penaltyCents        Int       @default(0) @map("penalty_cents")
@@ -1606,10 +1620,12 @@ model SchoolEnrollment {
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
   tenant              Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  billingPerson       SchoolPerson? @relation("EnrollmentBillingPerson", fields: [billingPersonId], references: [id], onDelete: SetNull)
 
   @@unique([tenantId, classId, studentId])
   @@index([tenantId, studentId])
   @@index([tenantId, tuitionStatus])
+  @@index([tenantId, billingPersonId])
   @@map("school_enrollments")
 }
 
@@ -1695,19 +1711,23 @@ model SchoolGrade {
 }
 
 model SchoolGuardian {
-  id           String   @id @default(uuid()) @db.Uuid
-  tenantId     String   @map("tenant_id") @db.Uuid
-  studentId    String   @map("student_id") @db.Uuid
-  name         String
-  relationship String?
-  phone        String?
-  email        String?
-  createdById  String   @map("created_by_id") @db.Uuid
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  studentId       String   @map("student_id") @db.Uuid
+  personId        String?  @map("person_id") @db.Uuid
+  name            String
+  relationship    String?
+  phone           String?
+  email           String?
+  isBillingClient Boolean  @default(false) @map("is_billing_client")
+  createdById     String   @map("created_by_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  person          SchoolPerson? @relation("GuardianPerson", fields: [personId], references: [id], onDelete: SetNull)
 
   @@index([tenantId, studentId])
+  @@index([tenantId, personId])
   @@map("school_guardians")
 }
 
@@ -1797,8 +1817,15 @@ model SchoolEnrollmentLink {
   id             String    @id @default(uuid()) @db.Uuid
   tenantId       String    @map("tenant_id") @db.Uuid
   token          String    @unique
-  courseId       String?   @map("course_id") @db.Uuid
-  classId        String?   @map("class_id") @db.Uuid
+  courseId           String?   @map("course_id") @db.Uuid
+  classId            String?   @map("class_id") @db.Uuid
+  teacherId          String?   @map("teacher_id") @db.Uuid
+  weekday            Int?
+  startTime          String?   @map("start_time")
+  durationMinutes    Int?      @map("duration_minutes")
+  period             String?
+  contractPeriod     String?   @map("contract_period")
+  contractedSessions Int?      @map("contracted_sessions")
   ownerName      String    @map("owner_name")
   ownerPhone     String?   @map("owner_phone")
   ownerEmail     String?   @map("owner_email")

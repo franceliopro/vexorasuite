@@ -28,7 +28,6 @@ import {
   dateLabel,
   money,
   schoolTw,
-  weekdayLabel,
   type Course,
 } from "./school-ui";
 
@@ -48,9 +47,11 @@ type Balance = {
   tuition: { status: string; amountCents: number | null; nextDueDate: string | null };
 };
 type Snapshot = {
-  courses: Course[]; people: Person[]; classes: ClassRow[]; enrollments: Enrollment[];
+  courses: Course[]; defaultCourses?: Course[]; people: Person[]; classes: ClassRow[]; enrollments: Enrollment[];
   sessions: SessionRow[]; attendances: Attendance[]; lessonPlans: LessonPlan[]; balances: Balance[];
+  warnings?: string[];
 };
+type SeedResult = { created: number; total: number };
 
 const STATUS_LABEL: Record<string, string> = {
   PRESENT: "Presente",
@@ -78,7 +79,6 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 const nameOf = (people: Person[], id?: string | null) => people.find((person) => person.id === id)?.name || "—";
-const classOf = (classes: ClassRow[], id?: string | null) => classes.find((item) => item.id === id)?.name || "—";
 const shortName = (value: string) => value.trim().split(/\s+/)[0] || value;
 
 export function SchoolExperience({ userName = "" }: { userName?: string }) {
@@ -92,19 +92,27 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [payment, setPayment] = useState({ enrollmentId: "", amountCents: "", paidAt: today(), source: "CASH", externalReference: "" });
   const [form, setForm] = useState({
-    studentId: "", teacherId: "", courseId: "", classId: "", sessionId: "new",
+    studentId: "", teacherId: "", courseId: "", sessionId: "new",
     sessionDate: today(), title: "", content: "", studentStatus: "PRESENT" as typeof ATTENDANCE_STATES[number],
     teacherStatus: "PRESENT" as typeof ATTENDANCE_STATES[number], note: "",
   });
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (seedDefaults = true) => {
     try {
       const data = await api<Snapshot>("school/snapshot");
+      const existing = new Set((data.courses || []).map((course) => course.name));
+      const defaults = data.defaultCourses || [];
+      if (seedDefaults && defaults.some((course) => !existing.has(course.name))) {
+        const seeded = await api<SeedResult>("school/seed-default-courses", { method: "POST" });
+        setNotice(`${seeded.created} cursos padrão adicionados ao catálogo desta empresa.`);
+        await load(false);
+        return;
+      }
       setSnapshot(data);
       setForm((current) => {
         if (current.teacherId) return current;
-        const people = data.people || [];
-        const teachers = people.filter((person) => person.kind === "TEACHER" && person.active !== false);
+        const rows = data.people || [];
+        const teachers = rows.filter((person) => person.kind === "TEACHER" && person.active !== false);
         const preferred = teachers.find((person) => person.name.toLowerCase() === userName.trim().toLowerCase()) || teachers[0];
         return { ...current, teacherId: preferred?.id || "" };
       });
@@ -126,11 +134,27 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
   const lessonPlans = snapshot?.lessonPlans || [];
   const students = people.filter((person) => person.kind === "STUDENT" && person.active !== false);
   const teachers = people.filter((person) => person.kind === "TEACHER" && person.active !== false);
-  const taughtClasses = classes.filter((item) => item.active !== false && (!form.teacherId || item.teacherId === form.teacherId));
-  const classCourses = courses.filter((course) => taughtClasses.some((item) => item.courseId === course.id));
-  const formClasses = taughtClasses.filter((item) => !form.courseId || item.courseId === form.courseId);
-  const classSessions = sessions.filter((item) => item.classId === form.classId);
-  const selectedEnrollment = enrollments.find((item) => item.classId === form.classId && item.studentId === form.studentId) || null;
+  const courseOf = (id?: string | null) => courses.find((course) => course.id === id) || null;
+
+  /** O servidor cria o vínculo individual aluno/curso/professor. Aqui só localizamos o registro para exibição. */
+  const individualClassFor = (studentId: string, courseId: string, teacherId: string) => {
+    const student = people.find((person) => person.id === studentId);
+    const course = courseOf(courseId);
+    if (!student || !course) return null;
+    const name = `${student.name} · ${course.name}`;
+    return classes.find((item) => item.courseId === courseId && item.teacherId === teacherId && item.name === name)
+      || classes.find((item) => item.courseId === courseId && item.teacherId === teacherId)
+      || null;
+  };
+  const classLabel = (classId?: string | null) => {
+    const row = classes.find((item) => item.id === classId);
+    if (!row) return "—";
+    const studentId = enrollments.find((item) => item.classId === row.id)?.studentId;
+    return `${nameOf(people, studentId)} · ${courseOf(row.courseId)?.name || "Curso"}`;
+  };
+  const selectedClass = individualClassFor(form.studentId, form.courseId, form.teacherId);
+  const classSessions = sessions.filter((item) => item.classId === selectedClass?.id);
+  const selectedEnrollment = enrollments.find((item) => item.classId === selectedClass?.id && item.studentId === form.studentId) || null;
   const selectedBalance = balances.find((item) => item.enrollmentId === selectedEnrollment?.id) || null;
 
   const remaining = balances.reduce((sum, item) => sum + Math.max(0, Number(item.balance || 0)), 0);
@@ -143,7 +167,7 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
   const makeupCount = attendances.filter((item) => item.status === "MAKEUP").length;
 
   const classChart = classes.slice(0, 6).map((item) => ({
-    caption: shortName(item.name),
+    caption: shortName(classLabel(item.id)),
     value: sessions.filter((session) => session.classId === item.id && session.status === "HELD").length,
   }));
   const financeChart = students.slice(0, 6).map((student) => ({
@@ -165,21 +189,24 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
       if (!sessionId || sessionId === "new") {
         const created = await api<{ id: string }>("school/records", {
           method: "POST",
-          body: JSON.stringify({ kind: "SESSION", classId: form.classId, sessionDate: form.sessionDate, status: "HELD" }),
+          body: JSON.stringify({
+            kind: "SESSION", studentId: form.studentId, courseId: form.courseId, teacherId: form.teacherId,
+            sessionDate: form.sessionDate, status: "HELD",
+          }),
         });
         sessionId = created.id;
       }
       await api("school/records", {
         method: "POST",
         body: JSON.stringify({
-          kind: "LESSON_PLAN", classId: form.classId, title: form.title,
+          kind: "LESSON_PLAN", studentId: form.studentId, courseId: form.courseId, teacherId: form.teacherId, title: form.title,
           objectiveHtml: "", contentHtml: form.content, activitiesHtml: "", observationsHtml: "", materials: [],
         }),
       });
       await api("school/attendances", {
         method: "POST",
         body: JSON.stringify({
-          paired: true, sessionId, studentId: form.studentId, teacherId: form.teacherId,
+          paired: true, sessionId, studentId: form.studentId, courseId: form.courseId, teacherId: form.teacherId,
           studentStatus: form.studentStatus, teacherStatus: form.teacherStatus, note: form.note,
         }),
       });
@@ -249,6 +276,9 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
     <section className={schoolTw.shell} aria-label="Sistema escolar móvel">
       {error ? <p role="status" className="rounded-xl border border-red-100 bg-red-100 px-4 py-3 text-sm font-semibold text-red-600">{error}</p> : null}
       {notice ? <p role="status" className="rounded-xl border border-emerald-100 bg-emerald-100 px-4 py-3 text-sm font-semibold text-emerald-600">{notice}</p> : null}
+      {(snapshot?.warnings || []).map((warning) => (
+        <p key={warning} role="status" className="rounded-xl border border-amber-100 bg-amber-100 px-4 py-3 text-sm font-semibold text-amber-700">{warning}</p>
+      ))}
 
       {tab === "home" ? (
         <>
@@ -282,7 +312,7 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
           </div>
 
           <div className="grid gap-3 lg:grid-cols-2">
-            <BarChart title="Aulas realizadas por turma" values={classChart.map((item) => item.value)} captions={classChart.map((item) => item.caption)} testId="school-chart-classes" />
+            <BarChart title="Aulas realizadas por aluno" values={classChart.map((item) => item.value)} captions={classChart.map((item) => item.caption)} testId="school-chart-classes" />
             <BarChart title="Presença e reposição" values={[presenceCount, absences, makeupCount]} captions={["Presentes", "Faltas", "Reposições"]} testId="school-chart-attendance" />
           </div>
 
@@ -297,12 +327,12 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
             {catalog.length === 0 ? <p className={schoolTw.empty}>Nenhum curso encontrado. Cadastre cursos em Gestão escolar.</p> : (
               <div className={schoolTw.grid}>
                 {catalog.map((course) => {
-                  const courseClasses = classes.filter((item) => item.courseId === course.id);
+                  const courseStudents = enrollments.filter((item) => classes.some((row) => row.id === item.classId && row.courseId === course.id));
                   return (
                     <CourseCard
                       key={course.id}
                       course={course}
-                      classInfo={courseClasses.length ? `${courseClasses.length} turma(s)` : null}
+                      classInfo={courseStudents.length ? `${courseStudents.length} aluno(s)` : null}
                       onOpen={() => { setSelectedCourse(course); setSheet("course"); }}
                       onEnroll={() => setTab("enrollments")}
                     />
@@ -331,34 +361,28 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
               <p className={schoolTw.sectionHint}>Selecione o aluno e o curso que você está ministrando.</p>
             </div>
             <div className={schoolTw.progress} aria-label="Etapas">
-              <span className={schoolTw.progressDone} />
-              <span className={form.classId ? schoolTw.progressDone : schoolTw.progressStep} />
+              <span className={form.studentId ? schoolTw.progressDone : schoolTw.progressStep} />
+              <span className={form.studentId && form.courseId && form.teacherId ? schoolTw.progressDone : schoolTw.progressStep} />
               <span className={form.title && form.content ? schoolTw.progressDone : schoolTw.progressStep} />
             </div>
             <form className="grid gap-4" onSubmit={(event) => void submitLesson(event)} data-testid="school-lesson-flow">
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className={schoolTw.label}>Aluno
-                  <select className={schoolTw.select} required value={form.studentId} onChange={(event) => setForm({ ...form, studentId: event.target.value })}>
+                  <select className={schoolTw.select} required value={form.studentId} onChange={(event) => setForm({ ...form, studentId: event.target.value, sessionId: "new" })}>
                     <option value="">Selecione o aluno</option>
                     {students.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
                   </select>
                 </label>
                 <label className={schoolTw.label}>Professor
-                  <select className={schoolTw.select} required value={form.teacherId} onChange={(event) => setForm({ ...form, teacherId: event.target.value, courseId: "", classId: "", sessionId: "new" })}>
+                  <select className={schoolTw.select} required value={form.teacherId} onChange={(event) => setForm({ ...form, teacherId: event.target.value, courseId: "", sessionId: "new" })}>
                     <option value="">Selecione</option>
                     {teachers.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
                   </select>
                 </label>
-                <label className={schoolTw.label}>Curso que você ministra
-                  <select className={schoolTw.select} required value={form.courseId} onChange={(event) => setForm({ ...form, courseId: event.target.value, classId: "", sessionId: "new" })}>
+                <label className={schoolTw.label}>Curso do aluno
+                  <select className={schoolTw.select} required value={form.courseId} onChange={(event) => setForm({ ...form, courseId: event.target.value, sessionId: "new" })}>
                     <option value="">Selecione o curso</option>
-                    {classCourses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}
-                  </select>
-                </label>
-                <label className={schoolTw.label}>Turma
-                  <select className={schoolTw.select} required value={form.classId} onChange={(event) => setForm({ ...form, classId: event.target.value, sessionId: "new" })}>
-                    <option value="">Selecione a turma</option>
-                    {formClasses.map((item) => <option key={item.id} value={item.id}>{item.name} · {weekdayLabel(item.weekday)} {item.startTime}</option>)}
+                    {courses.filter((course) => course.kind !== "SUBJECT").map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}
                   </select>
                 </label>
                 <label className={schoolTw.label}>Aula
@@ -410,7 +434,7 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
                 </label>
               </div>
 
-              <button type="submit" className={schoolTw.buttonPrimary} disabled={busy || !form.studentId || !form.classId || !form.teacherId} data-testid="school-lesson-submit">
+              <button type="submit" className={schoolTw.buttonPrimary} disabled={busy || !form.studentId || !form.courseId || !form.teacherId} data-testid="school-lesson-submit">
                 <Send size={18} aria-hidden="true" /> {busy ? "Salvando…" : "Salvar aula e presença"}
               </button>
             </form>
@@ -418,17 +442,17 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
 
           <aside className={schoolTw.card} aria-label="Resumo do contrato do aluno">
             <h3 className={schoolTw.sectionTitle}><ClipboardCheck size={18} aria-hidden="true" /> Contrato do aluno</h3>
-            {!form.studentId || !form.classId ? <p className={schoolTw.empty}>Selecione aluno e turma para ver o saldo.</p> : (
+            {!form.studentId || !form.courseId ? <p className={schoolTw.empty}>Selecione aluno e curso para ver o saldo.</p> : (
               <div className="grid gap-3">
                 <div className={schoolTw.cardSoft}>
                   <span className={schoolTw.metricLabel}>Aluno</span>
                   <strong className="text-sm font-extrabold text-slate-950">{nameOf(people, form.studentId)}</strong>
-                  <span className={schoolTw.note}>{classOf(classes, form.classId)}</span>
+                  <span className={schoolTw.note}>{courseOf(form.courseId)?.name || "Curso"} · {nameOf(people, form.teacherId)}</span>
                 </div>
                 <MetricTile icon={<Clock3 size={20} />} label="Aulas restantes" value={selectedBalance?.balance ?? "—"} hint={selectedBalance ? `De ${selectedBalance.contracted} contratadas` : "Matrícula não encontrada"} testId="lesson-selected-balance" tone="amber" />
                 <MetricTile icon={<AlertTriangle size={20} />} label="Faltas do aluno" value={attendances.filter((item) => item.personKind === "STUDENT" && item.personId === form.studentId && ["ABSENT", "JUSTIFIED"].includes(item.status)).length} hint="Ausências e justificadas" testId="lesson-selected-absences" tone="red" />
                 {selectedEnrollment ? <button type="button" className={schoolTw.buttonSoft} onClick={() => openPayment(selectedEnrollment.id)}>Registrar pagamento</button> : null}
-                {!selectedEnrollment ? <p className={schoolTw.note}>Este aluno ainda não possui matrícula nesta turma.</p> : null}
+                {!selectedEnrollment ? <p className={schoolTw.note}>Este aluno ainda não possui matrícula neste curso.</p> : null}
               </div>
             )}
           </aside>
@@ -450,7 +474,7 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
             <MetricTile icon={<RefreshCw size={20} />} label="Reposições" value={makeupCount} hint="Aulas repostas" testId="history-makeups" tone="amber" />
           </div>
           <div className="grid gap-3 lg:grid-cols-2">
-            <BarChart title="Aulas por turma" values={classChart.map((item) => item.value)} captions={classChart.map((item) => item.caption)} testId="history-chart-classes" />
+            <BarChart title="Aulas por aluno" values={classChart.map((item) => item.value)} captions={classChart.map((item) => item.caption)} testId="history-chart-classes" />
             <BarChart title="Presença, falta e reposição" values={[presenceCount, absences, makeupCount]} captions={["Presentes", "Faltas", "Reposições"]} testId="history-chart-attendance" />
           </div>
           <div className={schoolTw.section}>
@@ -463,7 +487,7 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
                   return (
                     <article key={session.id} className={schoolTw.row} data-testid={`school-session-${session.id}`}>
                       <div className="grid min-w-0 gap-1">
-                        <strong className="truncate text-sm font-extrabold text-slate-950">{classOf(classes, session.classId)} · {dateLabel(session.sessionDate)}</strong>
+                        <strong className="truncate text-sm font-extrabold text-slate-950">{classLabel(session.classId)} · {dateLabel(session.sessionDate)}</strong>
                         <span className={schoolTw.note}>{plan?.title || "Sem título registrado"} · {records.length} presença(s)</span>
                         <div className="flex flex-wrap gap-1.5">
                           {records.slice(0, 6).map((record) => <span key={record.id} className={schoolTw.chip}>{shortName(nameOf(people, record.personId))}: {STATUS_LABEL[record.status] || record.status}</span>)}
@@ -504,7 +528,7 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
                     <article key={balance.enrollmentId} className={schoolTw.row} data-testid={`finance-student-${balance.studentId}`}>
                       <div className="grid min-w-0 gap-1">
                         <strong className="truncate text-sm font-extrabold text-slate-950">{student?.name || "Aluno"}</strong>
-                        <span className={schoolTw.note}>{classOf(classes, balance.classId)} · {balance.balance} aula(s) restante(s)</span>
+                        <span className={schoolTw.note}>{classLabel(balance.classId)} · {balance.balance} aula(s) restante(s)</span>
                         <div className="flex flex-wrap gap-1.5">
                           <span className={schoolTw.chip}>Pago: {money(balance.paidCents || 0)}</span>
                           <span className={schoolTw.chip}>Mensalidade: {money(balance.tuition.amountCents)}</span>
@@ -566,13 +590,15 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
               {selectedCourse.level ? <span className={schoolTw.chip}>{selectedCourse.level}</span> : null}
             </div>
             <div className={schoolTw.section}>
-              <strong className="text-sm font-extrabold text-slate-950">Turmas</strong>
-              {classes.filter((item) => item.courseId === selectedCourse.id).length === 0 ? <p className={schoolTw.note}>Nenhuma turma cadastrada para este curso.</p> : (
+              <strong className="text-sm font-extrabold text-slate-950">Alunos deste curso</strong>
+              {enrollments.filter((item) => classes.some((row) => row.id === item.classId && row.courseId === selectedCourse.id)).length === 0 ? (
+                <p className={schoolTw.note}>Nenhum aluno matriculado neste curso.</p>
+              ) : (
                 <div className={schoolTw.list}>
-                  {classes.filter((item) => item.courseId === selectedCourse.id).map((item) => (
+                  {enrollments.filter((item) => classes.some((row) => row.id === item.classId && row.courseId === selectedCourse.id)).map((item) => (
                     <div key={item.id} className={schoolTw.row}>
-                      <span className="text-sm font-bold text-slate-950">{item.name}</span>
-                      <span className={schoolTw.note}>{weekdayLabel(item.weekday)} · {item.startTime} · {nameOf(people, item.teacherId)}</span>
+                      <span className="text-sm font-bold text-slate-950">{nameOf(people, item.studentId)}</span>
+                      <span className={schoolTw.note}>{classLabel(item.classId)}</span>
                     </div>
                   ))}
                 </div>
@@ -594,7 +620,7 @@ export function SchoolExperience({ userName = "" }: { userName?: string }) {
             <label className={schoolTw.label}>Matrícula
               <select className={schoolTw.select} required value={payment.enrollmentId} onChange={(event) => setPayment({ ...payment, enrollmentId: event.target.value })}>
                 <option value="">Selecione</option>
-                {enrollments.map((item) => <option key={item.id} value={item.id}>{nameOf(people, item.studentId)} — {classOf(classes, item.classId)}</option>)}
+                {enrollments.map((item) => <option key={item.id} value={item.id}>{nameOf(people, item.studentId)} — {classLabel(item.classId)}</option>)}
               </select>
             </label>
             <label className={schoolTw.label}>Valor recebido (centavos)

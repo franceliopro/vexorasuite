@@ -62,11 +62,42 @@ test("os estados externos são explícitos e nunca confundem preparado com envia
 
 test("a semana usa 1=Segunda ... 7=Domingo em regras, API, migração e formulário", () => {
   assert.match(rules, /WEEKDAYS = \["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"\]/);
-  assert.match(service, /optionalInteger\(body\?\.weekday, 1, 7, "Dia da semana"\)/);
-  assert.match(service, /WEEKDAYS\[selected - 1\]/);
+  assert.match(service, /integer\(body\?\.weekday, 1, 7, "Dia da semana"\)/);
+  assert.match(service, /optionalInteger\(body\?\.weekday, 1, 7, "Dia da semana"\) \?\? link\.weekday/);
+  assert.match(service, /WEEKDAYS\[weekday - 1\]/);
   assert.match(service, /WEEKDAYS\[submission\.weekday - 1\]/);
   assert.match(migration, /"weekday" BETWEEN 1 AND 7/);
   assert.match(publicForm, /\[1, 2, 3, 4, 5, 6, 7\]\.map\(\(day\)/);
+});
+
+test("o link público carrega curso, professor, horário e período sem expor plano interno", () => {
+  assert.match(service, /courseId: course\.id/);
+  assert.match(service, /teacherId: teacher\.id/);
+  assert.match(service, /const contractPeriod = inList\(body\?\.contractPeriod, CONTRACT_PERIODS, "Período contratual"\)/);
+  assert.match(service, /const durationMinutes = integer\(body\?\.durationMinutes, 30, 240, "Duração da aula"\)/);
+  assert.match(service, /lesson: \{/);
+  assert.doesNotMatch(service, /classId: item\.classId/);
+  assert.doesNotMatch(service, /schoolClass\?\.name/);
+  assert.doesNotMatch(publicForm, /schoolClass|classId|Turma|turma/);
+  for (const token of [
+    "Professor:", "Período:", "Professor responsável", "Dia da semana", "Horário",
+    "Período contratual", "Aulas contratadas", "billingMode",
+  ]) {
+    assert.ok(workspace.includes(token) || publicForm.includes(token), `campo ausente: ${token}`);
+  }
+});
+
+test("o aluno entra após a assinatura e o Asaas permanece como vínculo pendente", () => {
+  assert.match(service, /status: "SIGNED_CONFIRMED", signedAt: new Date\(\)/);
+  assert.match(service, /findOrCreatePerson\(/);
+  assert.match(service, /roles: \[kind\]/);
+  assert.match(service, /billingMode === "GUARDIAN" && guardian \? guardian\.id : student\.id/);
+  assert.match(service, /asaasSyncStatus: "PENDING"/);
+  assert.match(service, /isBillingClient: billingMode === "GUARDIAN"/);
+  assert.match(service, /period,\s+contractPeriod,\s+contractedSessions,/);
+  assert.match(rules, /professor: input\.teacherName \|\| input\.ownerName/);
+  assert.match(rules, /periodo: input\.periodLabel \|\| ""/);
+  assert.doesNotMatch(rules, /turma:/);
 });
 
 test("modelos do Drive são manuais; importação automática não é afirmada", () => {
